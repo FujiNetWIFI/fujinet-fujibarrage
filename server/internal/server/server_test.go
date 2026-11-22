@@ -118,101 +118,246 @@ func fieldOK(t *testing.T, r *Room, c *client.Client) {
 // granted and released, and after each shot the field matches the world.
 func TestGameAgainstBots(t *testing.T) {
 	for mode := 0; mode < 3; mode++ {
-		s, ck, addr := serve(t)
-		r := s.Room("dev1")
+		botGame(t, client.Atari, mode)
+	}
+}
+
+// The Intellivision's shape: no CAP_HOLD. Its segments come without HOLD,
+// each after the last one's D, and its field matches after every shot.
+func TestIntvGameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 2; mode++ {
+		botGame(t, client.Intv, mode)
+	}
+}
+
+func botGame(t *testing.T, caps project.Caps, mode int) {
+	t.Helper()
+	s, ck, addr := serve(t)
+	r := s.Room("dev1")
+	c, err := client.Dial(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	if err := c.Hello("dev1", "ANN", caps, 0); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, c, "a seat", func() bool { return c.Commits > 0 && c.Seat() == 0 })
+	if len(c.Catalog) != len(s.cat) {
+		t.Fatalf("catalog %d of %d bytes", len(c.Catalog), len(s.cat))
+	}
+	c.Act(proto.ActSet, proto.SetRounds, 1) // 2 rounds
+	c.Act(proto.ActSet, proto.SetMode, byte(mode))
+	c.Act(proto.ActSet, proto.SetWalls, byte(mode*2))
+	c.Act(proto.ActStart)
+	waitFor(t, c, "the shop", func() bool { return c.State[proto.OffPhase] == proto.PhShop })
+	if c.State[proto.OffTanks] != 10 {
+		t.Fatalf("%d tanks", c.State[proto.OffTanks])
+	}
+	c.Act(proto.ActBuy, proto.INuke, 1)
+	c.Act(proto.ActDone)
+	rng := rand.New(rand.NewPCG(uint64(mode), 3))
+	shots, played := 0, 0
+	lastSID := byte(0)
+	for step := 0; step < 200000; step++ {
+		ck.add(time.Second / 60)
+		s.Update()
+		if _, err := c.Poll(time.Millisecond); err != nil {
+			t.Fatal(err)
+		}
+		if c.TerrErr != nil {
+			t.Fatal(c.TerrErr)
+		}
+		ph := c.State[proto.OffPhase]
+		if ph == proto.PhGameOver {
+			break
+		}
+		if ph == proto.PhShop || ph == proto.PhDefense {
+			if c.P(0)[proto.PFlags]&proto.PFDone == 0 && step%30 == 0 {
+				c.Act(proto.ActDone)
+			}
+		}
+		if ph == proto.PhAim && c.P(0)[proto.PFlags]&proto.PFAlive != 0 && step%20 == 0 {
+			mine := c.State[proto.OffTurn] == 0 ||
+				(c.State[proto.OffTurn] == proto.NoSeat && c.P(0)[proto.PFlags]&proto.PFDone == 0)
+			if mine {
+				p := 200 + rng.IntN(500)
+				w := byte(proto.IMiniMissile)
+				if c.State[proto.OffInv+proto.INuke] > 0 {
+					w = proto.INuke
+				}
+				c.Act(proto.ActFire, byte(20+rng.IntN(140)), byte(p), byte(p>>8), w, proto.INone, proto.NoSeat)
+				shots++
+			}
+		}
+		if len(c.Ready) > 0 {
+			if len(c.Ready) > 1 {
+				t.Fatal("a segment came before the last one's D")
+			}
+			if c.Ready[0].Hold != caps.Hold() {
+				t.Fatalf("a segment's HOLD is %v for a client whose CAP_HOLD is %v", c.Ready[0].Hold, caps.Hold())
+			}
+			for _, sg := range c.Ready {
+				if len(sg.B) > caps.Buf {
+					t.Fatalf("a %d-byte segment for a %d-byte buffer", len(sg.B), caps.Buf)
+				}
+			}
+			sid := c.Ready[0].SID
+			if _, err := c.PlayAll(); err != nil {
+				t.Fatal(err)
+			}
+			played++
+			if sid != lastSID {
+				lastSID = sid
+				// the version bump comes after D
+				waitFor(t, c, "the terrain version after the shot", func() bool {
+					if len(c.Ready) > 0 { // the volley's later segments
+						if _, err := c.PlayAll(); err != nil {
+							t.Fatal(err)
+						}
+					}
+					r.mu.Lock()
+					defer r.mu.Unlock()
+					return r.g.Shot == nil || c.V.TV == int(r.g.Shot.PostTV) || r.g.TV != r.g.Shot.PostTV
+				})
+				r.mu.Lock()
+				same := r.g.Shot != nil && r.g.TV == r.g.Shot.PostTV
+				r.mu.Unlock()
+				if same {
+					fieldOK(t, r, c)
+				}
+			}
+		}
+	}
+	if c.State[proto.OffPhase] != proto.PhGameOver {
+		t.Fatalf("%s mode %d: no game over (phase %d, round %d)", caps.Key(), mode, c.State[proto.OffPhase], c.State[proto.OffRound])
+	}
+	t.Logf("%s mode %d: %d of my shots, %d scripts played, %d bytes in, winner seat %d",
+		caps.Key(), mode, shots, played, c.BytesIn, c.State[proto.OffResult])
+}
+
+// A client that never plays its scripts is left behind when the game stops
+// waiting; asking again (R, terrain unknown) brings its field back exact.
+func TestSlowClientSkipped(t *testing.T) {
+	s, ck, addr := serve(t)
+	r := s.Room("dev1")
+	c, err := client.Dial(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	if err := c.Hello("dev1", "ANN", client.Intv, 0); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, c, "a seat", func() bool { return c.Commits > 0 && c.Seat() == 0 })
+	c.Act(proto.ActStart)
+	skipped := 0
+	for step := 0; step < 60*60*20 && skipped < 2; step++ {
+		ck.add(time.Second / 60)
+		s.Update()
+		if _, err := c.Poll(time.Millisecond); err != nil {
+			t.Fatal(err)
+		}
+		ph := c.State[proto.OffPhase]
+		if (ph == proto.PhShop || ph == proto.PhDefense) && step%30 == 0 {
+			c.Act(proto.ActDone)
+		}
+		if ph == proto.PhAim && c.State[proto.OffTurn] == 0 && step%20 == 0 {
+			c.Act(proto.ActFire, 60, 0x90, 1, proto.IMissile, proto.INone, proto.NoSeat)
+		}
+		// never play: the shot's segments pile up unplayed until the game
+		// moves on without us
+		if len(c.Ready) > 0 && ph != proto.PhShot {
+			c.Ready = nil
+			c.V.TV = -1
+			if err := c.Resync(); err != nil {
+				t.Fatal(err)
+			}
+			waitFor(t, c, "the field again", func() bool {
+				r.mu.Lock()
+				defer r.mu.Unlock()
+				return c.V.TV == int(r.g.TV)
+			})
+			fieldOK(t, r, c)
+			skipped++
+		}
+	}
+	if skipped < 2 {
+		t.Fatalf("skipped %d times", skipped)
+	}
+}
+
+// An Atari and an Intellivision in one room: each gets its own shape (one
+// held, one not), and both fields match after the game.
+func TestMixedRoom(t *testing.T) {
+	s, ck, addr := serve(t)
+	r := s.Room("dev1")
+	var cs []*client.Client
+	for i, caps := range []project.Caps{client.Atari, client.Intv} {
 		c, err := client.Dial(addr)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer c.Close()
-		if err := c.Hello("dev1", "ANN", client.Atari, 0); err != nil {
+		if err := c.Hello("dev1", []string{"ANN", "BOB"}[i], caps, 0); err != nil {
 			t.Fatal(err)
 		}
-		waitFor(t, c, "a seat", func() bool { return c.Commits > 0 && c.Seat() == 0 })
-		if len(c.Catalog) != len(s.cat) {
-			t.Fatalf("catalog %d of %d bytes", len(c.Catalog), len(s.cat))
-		}
-		c.Act(proto.ActSet, proto.SetRounds, 1) // 2 rounds
-		c.Act(proto.ActSet, proto.SetMode, byte(mode))
-		c.Act(proto.ActSet, proto.SetWalls, byte(mode*2))
-		c.Act(proto.ActStart)
-		waitFor(t, c, "the shop", func() bool { return c.State[proto.OffPhase] == proto.PhShop })
-		if c.State[proto.OffTanks] != 10 {
-			t.Fatalf("%d tanks", c.State[proto.OffTanks])
-		}
-		c.Act(proto.ActBuy, proto.INuke, 1)
-		c.Act(proto.ActDone)
-		rng := rand.New(rand.NewPCG(uint64(mode), 3))
-		shots, played := 0, 0
-		lastSID := byte(0)
-		for step := 0; step < 200000; step++ {
-			ck.add(time.Second / 60)
-			s.Update()
+		waitFor(t, c, "a seat", func() bool { return c.Commits > 0 && c.Seat() == i })
+		cs = append(cs, c)
+	}
+	cs[0].Act(proto.ActSet, proto.SetRounds, 0)
+	cs[0].Act(proto.ActSet, proto.SetTanks, 2) // 4 tanks
+	cs[0].Act(proto.ActStart)
+	rng := rand.New(rand.NewPCG(9, 9))
+	scripts := [2]int{}
+	for step := 0; step < 200000; step++ {
+		ck.add(time.Second / 60)
+		s.Update()
+		over := true
+		for i, c := range cs {
 			if _, err := c.Poll(time.Millisecond); err != nil {
 				t.Fatal(err)
 			}
-			if c.TerrErr != nil {
-				t.Fatal(c.TerrErr)
-			}
 			ph := c.State[proto.OffPhase]
-			if ph == proto.PhGameOver {
-				break
+			if ph != proto.PhGameOver {
+				over = false
 			}
-			if ph == proto.PhShop || ph == proto.PhDefense {
-				if c.P(0)[proto.PFlags]&proto.PFDone == 0 && step%30 == 0 {
-					c.Act(proto.ActDone)
-				}
+			if (ph == proto.PhShop || ph == proto.PhDefense) && step%30 == 0 && c.P(i)[proto.PFlags]&proto.PFDone == 0 {
+				c.Act(proto.ActDone)
 			}
-			if ph == proto.PhAim && c.P(0)[proto.PFlags]&proto.PFAlive != 0 && step%20 == 0 {
-				mine := c.State[proto.OffTurn] == 0 ||
-					(c.State[proto.OffTurn] == proto.NoSeat && c.P(0)[proto.PFlags]&proto.PFDone == 0)
-				if mine {
-					p := 200 + rng.IntN(500)
-					w := byte(proto.IMiniMissile)
-					if c.State[proto.OffInv+proto.INuke] > 0 {
-						w = proto.INuke
-					}
-					c.Act(proto.ActFire, byte(20+rng.IntN(140)), byte(p), byte(p>>8), w, proto.INone, proto.NoSeat)
-					shots++
-				}
+			if ph == proto.PhAim && c.State[proto.OffTurn] == byte(i) && step%20 == 0 {
+				p := 200 + rng.IntN(500)
+				c.Act(proto.ActFire, byte(20+rng.IntN(140)), byte(p), byte(p>>8), proto.IMiniMissile, proto.INone, proto.NoSeat)
 			}
 			if len(c.Ready) > 0 {
-				if !c.Ready[len(c.Ready)-1].Hold {
-					t.Fatal("an Atari-shaped client's segment came without HOLD")
+				if c.Ready[0].Hold != c.Caps.Hold() {
+					t.Fatalf("seat %d: HOLD %v", i, c.Ready[0].Hold)
 				}
-				sid := c.Ready[0].SID
 				if _, err := c.PlayAll(); err != nil {
 					t.Fatal(err)
 				}
-				played++
-				if sid != lastSID {
-					lastSID = sid
-					// the version bump comes after D
-					waitFor(t, c, "the terrain version after the shot", func() bool {
-						if len(c.Ready) > 0 { // the volley's later segments
-							if _, err := c.PlayAll(); err != nil {
-								t.Fatal(err)
-							}
-						}
-						r.mu.Lock()
-						defer r.mu.Unlock()
-						return r.g.Shot == nil || c.V.TV == int(r.g.Shot.PostTV) || r.g.TV != r.g.Shot.PostTV
-					})
-					r.mu.Lock()
-					same := r.g.Shot != nil && r.g.TV == r.g.Shot.PostTV
-					r.mu.Unlock()
-					if same {
-						fieldOK(t, r, c)
-					}
-				}
+				scripts[i]++
 			}
 		}
-		if c.State[proto.OffPhase] != proto.PhGameOver {
-			t.Fatalf("mode %d: no game over (phase %d, round %d)", mode, c.State[proto.OffPhase], c.State[proto.OffRound])
+		if over {
+			break
 		}
-		t.Logf("mode %d: %d of my shots, %d scripts played, %d bytes in, winner seat %d",
-			mode, shots, played, c.BytesIn, c.State[proto.OffResult])
 	}
+	for i, c := range cs {
+		if c.State[proto.OffPhase] != proto.PhGameOver {
+			t.Fatalf("seat %d: no game over", i)
+		}
+		waitFor(t, c, "the last terrain", func() bool {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			return c.V.TV == int(r.g.TV)
+		})
+		fieldOK(t, r, c)
+	}
+	if scripts[0] == 0 || scripts[1] == 0 {
+		t.Fatalf("scripts played: %v", scripts)
+	}
+	t.Logf("scripts played: Atari %d, Intellivision %d", scripts[0], scripts[1])
 }
 
 func TestCatalogDecodes(t *testing.T) {

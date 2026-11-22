@@ -1,8 +1,9 @@
 # FujiBarrage
 
 FujiBarrage is an artillery game for two to ten tanks over FujiNet. Seats with
-no player get bots. It runs on the Atari 400/800/XL/XE with 48K, NTSC or PAL;
-other FujiNet machines are to follow (see `docs/PORTING.md`).
+no player get bots. It runs on the Atari 400/800/XL/XE with 48K and on the
+Intellivision with the FujiNet cartridge, NTSC or PAL; other FujiNet machines
+are to follow (see `docs/PORTING.md`).
 
 The server plays the whole game. A client only shows it: the server sends each
 one its field and every shot already worked out at that machine's resolution
@@ -31,8 +32,22 @@ On the Atari:
 | Return | Done (shop, defence window) |
 | Esc | Close the items line; otherwise leave the room |
 
-- **Shop:** the stick moves up and down, Fire buys, Left sells, Return is done.
-- **Waiting room:** the host (the first person in) presses Fire to start, and bots fill the empty seats. S shows the settings and TAB turns their pages. The host changes a setting with the stick: up and down pick it, left and right change it.
+On the Intellivision:
+
+| | |
+|---|---|
+| Disc left / right | Angle (hold to go faster) |
+| Disc up / down | Power |
+| Top buttons | Shoot |
+| Lower left button | Next weapon |
+| Lower right button | The items line, as the Atari's: the disc picks, a top button uses |
+| ENTER | Done (shop, defence window) |
+| CLEAR | Close the items line; otherwise leave the room |
+| 0 | Sound off and on |
+
+- **Shop:** the stick (disc) moves up and down, Fire (a top button) buys, Left (the lower left button) sells, Return (ENTER) is done.
+- **Waiting room:** the host (the first person in) presses Fire to start, and bots fill the empty seats. S (the lower right button) shows the settings and TAB (lower left) turns their pages. The host changes a setting with the stick: up and down pick it, left and right change it.
+- **The Intellivision's name:** the disc's up and down pick a letter, right or a top button takes it, left or CLEAR takes one back, the keypad's digits type themselves, and ENTER is done.
 
 The host's settings:
 
@@ -54,11 +69,13 @@ WRAPAROUND, and MAYHEM (erratic walls and changing wind, all at once).
 | `src/*.c` | The client, platform neutral: menus, rooms, shop, play, the link. |
 | `src/platform-specific/*.h` | The API each platform implements. |
 | `src/atari/` | The Atari implementation: cc65, ANTIC mode E with compiled DLIs, players and missiles behind the tanks, POKEY, netstream. The script player, the field primitives and the display list compiler are in assembly. |
+| `src/intv/` | The Intellivision client, for the FujiNet cartridge. There is no C compiler for the CP1610, so it is `src/*.c` again in IntyBASIC 1.5, with the field, the script player, the GRAM card pool, the tanks and the sound effects in CP1610 assembly. The field is 160x80 in two bit planes in the cartridge's 16-bit RAM; each 8x8 cell that changes gets a GRAM card from a shared pool; the tanks are MOBs (past eight, the extra ones blink). |
+| `gfx/intv/` | The Intellivision's cards, drawn as text. |
 | `music/` | The tunes, in FujiBlast's text format (`tools/mus.py`). |
 | `docs/PROTOCOL.md` | The wire protocol, the state layout and the script ops. |
 | `docs/OPS.md` | How every weapon and item reaches the client as script ops. |
 | `docs/PORTING.md` | How to bring FujiBarrage to another machine. |
-| `tools/` | The font and music converters, and the Atari rigs. |
+| `tools/` | The font, art and music converters; the Atari rigs (`atarisim/`); the Intellivision's (`intvsim/`, `intvrig/`). |
 
 ## Building
 
@@ -67,6 +84,7 @@ defoogi make atari      # r2r/atari/barrage.atr
 make server             # server/barraged, server/refview
 make proto              # src/proto.h (and src/atari/proto.inc) from the server's constants
 make test               # the server's tests
+make intv               # r2r/intv/barrage.rom
 ```
 
 - **Default server:** `make SERVER=host:port` sets the server the game uses when the lobby gave none. It is remembered.
@@ -74,6 +92,7 @@ make test               # the server's tests
   - `BARRAGE.COM` is the game. It boots, reads the FujiNet appkeys (creator 1, app 0x13: the name and the room), and plays.
   - `MENU.COM` is the title, the name entry and the room list. The game loads it from the disk itself when the appkeys don't say who is playing where. The menu saves the keys and reboots into the game. Leaving a room clears the room key and reboots back to the menu.
 - **Memory:** the game fills 48K. `src/atari/barrage.cfg` says what goes where, and the link fails when it doesn't fit.
+- **The Intellivision's ROM:** `r2r/intv/barrage.rom`, for the FujiNet cartridge, which gives it 7K words of 16-bit RAM at $8000-$9BFF. It needs `as1600` (jzIntv's SDK) on the PATH and IntyBASIC 1.5's source (`IB_SRC`, default `~/Workspace/IntyBASIC`): the Makefile builds the compiler, since 1.4 has no `OPTION MAP`. The ROM is about 24K words of the 26.5K in the windows no other hardware uses; `tools/intv/checkcfg.py` fails a build that strays outside them. `SERVER=host:port` works as the Atari's.
 
 ## Running a server
 
@@ -83,7 +102,7 @@ server/barraged -stream :9913
 
 - **Rooms:** `barraged` serves `room1`–`room4`, plus the hidden `dev1`–`dev3`, whose settings `-devset` (or `BARRAGE_DEVSET`) changes for tests, e.g. `tanks=3,rounds=2,timer=10,tier=0`.
 - **Phrases:** `BARRAGE_TALK_FIRE` and `BARRAGE_TALK_LAST` name phrase files of your own: a line each, 40 characters at most.
-- **Lobby:** it lists itself in the FujiNet lobby (key 0x13) only when `BARRAGE_LOBBY` is `qa`, `prod` or a URL. `BARRAGE_SERVER_URL` and `BARRAGE_CLIENT_ATARI` then say what it lists.
+- **Lobby:** it lists itself in the FujiNet lobby (key 0x13) only when `BARRAGE_LOBBY` is `qa`, `prod` or a URL. `BARRAGE_SERVER_URL` and `BARRAGE_CLIENT_ATARI` (`BARRAGE_CLIENT_INTV`, and so on) then say what it lists.
 - **systemd:** `server/barraged.service` is a unit for it.
 
 ## Testing
@@ -96,6 +115,11 @@ python3 tools/atarisim/atarisim.py r2r/atari/barrage.atr build/barrage-atari.map
 tools/atarisim/refcheck.py OUTDIR WEAPON...
 tools/atarisim/rig.sh SCRIPT OUTDIR
 tools/atarisim/rig800.sh SECONDS OUTDIR [STICKS]
+make intv TEST=1
+python3 tools/intvsim/intvsim.py r2r/intv/barrage.rom SCENARIO OUTDIR
+tools/intvsim/refcheck.py OUTDIR WEAPON...
+make -C src/intv rig    # build/intv-rig/barrage.rom: its room list the rig's server
+tools/intvrig/rig.sh SCENARIO OUTDIR
 ```
 
 - **`go test`** covers:
@@ -110,3 +134,6 @@ tools/atarisim/rig800.sh SECONDS OUTDIR [STICKS]
 - **`rig800.sh`** does the same with the standalone atari800, whose pacing and interrupt timing are closer to a real machine's.
   - It runs NTSC unless `PAL=1`.
   - It runs atari800 with `-nojoystick`: SDL reads this machine's controllers even headless, and a controller's Y button is atari800's warm start.
+- **`intvsim.py`** runs an Intellivision ROM in jzIntv's debugger, a frame at a time: the controller, screenshots and the screen as text, sound, the stack's high water mark and CPU profiles. `PAL=1` makes it a PAL console. The test scenes (`src/intv/test.bas`) are the field, a shot, the rooms, the results, game over, every effect and the tunes.
+- **`tools/intvsim/refcheck.py`** is `refcheck.py` for the Intellivision. Every weapon comes out at 0 pixels, on hilly and flat fields and with shields.
+- **`tools/intvrig/rig.sh`** plays the Intellivision live, as `rig.sh` does the Atari, with a copy of fujinet-pc on BoIP and the FujiNet build of jzIntv. `EXTRA` runs `tools/rigs/cutproxy.py` or `dropproxy.py` in the namespace to drop the link.

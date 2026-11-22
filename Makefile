@@ -9,6 +9,9 @@
 #   make test                      the server's tests
 #   make atari TEST=1              with the offline test scenes (tools/atarisim;
 #                                  rm -rf build/barrage first: make doesn't see flags change)
+#   make intv                      r2r/intv/barrage.rom (Intellivision, FujiNet cartridge;
+#                                  src/intv/Makefile: IntyBASIC + as1600, TEST=1 as above)
+#   make fixture-intv              src/intv/test/fixture.bas: its test scenes' field and shot
 #
 # src/ is platform neutral; src/platform-specific/*.h is what each platform
 # implements in src/<platform>/. The server sends every client its field and
@@ -110,5 +113,16 @@ fixture:
 
 test:
 	cd server && go test ./...
+
+# ---- Intellivision (the FujiNet cartridge) -------------------------------
+# not a MekkoGX platform: IntyBASIC and CP1610 assembly, src/intv/Makefile
+intv:
+	$(MAKE) -C src/intv $(if $(SERVER),SERVER=$(SERVER)) $(if $(TEST),TEST=$(TEST))
+
+fixture-intv:
+	cd server && go run ./cmd/refview -w 160 -h 80 -par 54 -buf 1024 -shots 1 -seed 5 -weapon 9 \
+	    -fixture-bas ../src/intv/test/fixture.bas -out ../build/refview-intv
+
+.PHONY: intv fixture-intv
 
 include mekkogx/toplevel-rules.mk

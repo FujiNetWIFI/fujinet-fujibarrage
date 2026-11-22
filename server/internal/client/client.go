@@ -78,6 +78,11 @@ func pad(s string, n int) []byte {
 var Atari = project.Caps{FieldW: 160, FieldH: 168, Par: 109, Hz: 60, TankW: 7, TankH: 4, Buf: 3072,
 	Bands: 5, Flags: proto.CapHold, Plat: proto.PlatAtari}
 
+// Intv is the Intellivision client's shape: no CAP_HOLD (the link stays up
+// while it plays; the next segment still waits for its D).
+var Intv = project.Caps{FieldW: 160, FieldH: 80, Par: 54, Hz: 60, TankW: 7, TankH: 5, Buf: 1024,
+	Bands: 8, Plat: proto.PlatIntv}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps

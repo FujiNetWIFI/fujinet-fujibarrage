@@ -20,6 +20,8 @@ var shapes = []Caps{
 	{FieldW: 256, FieldH: 176, Hz: 50, Buf: 2048, TankW: 8, TankH: 5},  // TMS9918, PAL
 	{FieldW: 40, FieldH: 40, Hz: 60, Buf: 512, TankW: 3, TankH: 2},     // a tiny one
 	{FieldW: 320, FieldH: 176, Hz: 60, Buf: 8192, TankW: 12, TankH: 6}, // CGA
+	{FieldW: 160, FieldH: 80, Hz: 60, Buf: 1024, TankW: 7, TankH: 5},   // Intellivision
+	{FieldW: 160, FieldH: 80, Hz: 50, Buf: 1024, TankW: 7, TankH: 5},   // the same, PAL
 }
 
 func field(seed uint64) *sim.Sim {

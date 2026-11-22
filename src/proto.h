@@ -16,6 +16,7 @@
 #define HELLO_WATCH        1
 #define CAP_HOLD           1
 #define PLAT_ATARI         1
+#define PLAT_INTV          2
 #define SC_HELLO           72
 #define SC_ROOMS           84
 #define SC_ACT             65
