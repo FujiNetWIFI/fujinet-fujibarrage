@@ -1,0 +1,16 @@
+# boot, join (the room from the lobby's appkey), start as host, the shop, the field
+wait 600
+snap boot
+peek @frame_count 2
+wait 300
+snap room
+key 32
+wait 600
+snap after_start
+peek @frame_count 2
+wait 600
+snap later
+key 13
+wait 600
+snap field
+peek @frame_count 2

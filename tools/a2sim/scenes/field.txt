@@ -1,0 +1,8 @@
+# the field, ten tanks, seat 0 aiming (scene 5): a picture and the HGR page
+test 5
+wait 120
+snap field
+dump hgr.bin $2000 8192
+dump text.bin $0400 1024
+wait 20
+snap field2

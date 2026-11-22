@@ -1,0 +1,4 @@
+# a round's end (3)
+test 3
+wait 90
+snap results

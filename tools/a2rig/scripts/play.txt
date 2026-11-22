@@ -1,0 +1,20 @@
+# join, start (host), shop done, the field: dump it against the server's
+# terrain (tools/a2rig/terrcheck.py), fire, watch the turns go round
+wait 600
+key 32
+wait 600
+snap shop
+key 13
+wait 480
+snap field
+vmode
+dump hgr.bin 0x2000 8192
+key 32
+wait 300
+snap shot1
+wait 900
+snap turns
+peek @frame_count 2
+wait 900
+snap turns2
+dump hgr2.bin 0x2000 8192

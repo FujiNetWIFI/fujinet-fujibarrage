@@ -1,0 +1,10 @@
+# the display's switches on the waiting room, frame by frame
+wait 880
+vmode
+wait 1
+vmode
+wait 1
+vmode
+wait 7
+vmode
+snap room

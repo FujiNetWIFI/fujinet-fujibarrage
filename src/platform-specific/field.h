@@ -22,6 +22,32 @@
 #define SCRIPT_BUF 1536
 #endif
 #define BANDS   4
+#define PLAT_ID   PLAT_ATARI    /* HELLO's platform and capabilities (proto.h) */
+#define PLAT_CAPS CAP_HOLD
+#define ITEMS_ROW 2             /* the items line: the HUD's third row */
+#define PLY_CATCHUP 4           /* script steps a pass, at most, when behind */
+#define TXT_DEFEND "DEFEND: OPTION/RETURN"
+#define field_turn(seat) ((void)0)
+#endif
+
+#ifdef __APPLE2__
+/* HGR page 1 is the field: 140 colour pixels (two dots each) by 160 lines,
+ * mixed mode's four text rows the HUD (src/apple2/) */
+#define FIELD_W 140
+#define FIELD_H 160
+#define TANK_W  5
+#define TANK_H  5
+#define PAR     117             /* pixel aspect, 64ths */
+#ifndef SCRIPT_BUF
+#define SCRIPT_BUF 1536
+#endif
+#define BANDS   0               /* the tanks are in the bitmap: no colour objects */
+#define PLAT_ID   PLAT_APPLE2
+#define PLAT_CAPS CAP_HOLD
+#define ITEMS_ROW 3             /* the items line: the HUD's fourth row (talk's, in a script) */
+#define PLY_CATCHUP 8
+#define TXT_DEFEND "DEFEND: I, RETURN"
+void field_turn(uint8_t seat);  /* a blinking marker over the turn's tank (NONE: away) */
 #endif
 
 void field_init(void);                      /* at start-up: all sky */

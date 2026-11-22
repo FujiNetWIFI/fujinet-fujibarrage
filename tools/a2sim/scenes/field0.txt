@@ -1,0 +1,7 @@
+# the field in palette 0 (a sunset: violet sky, green land), aiming
+test 5 0x84
+wait 100
+snap field0
+wait 15
+snap field0b
+dump hgr.bin $2000 8192

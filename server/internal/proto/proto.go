@@ -66,6 +66,7 @@ const (
 	PlatAtari
 	PlatIntv
 	PlatAstrocade
+	PlatApple2
 )
 
 // Client -> server frame types.
@@ -471,6 +472,7 @@ var cdefs = []struct {
 	{"WORLD_W", WorldW}, {"WORLD_H", WorldH}, {"ROOM_REC", RoomRec}, {"HELLO_LEN", HelloLen},
 	{"MAX_TALK", MaxTalk},
 	{"HELLO_WATCH", HelloWatch}, {"CAP_HOLD", CapHold}, {"PLAT_ATARI", PlatAtari}, {"PLAT_INTV", PlatIntv}, {"PLAT_ASTROCADE", PlatAstrocade},
+	{"PLAT_APPLE2", PlatApple2},
 	{"SC_HELLO", SCHello}, {"SC_ROOMS", SCRooms}, {"SC_ACT", SCAct}, {"SC_DONE", SCDone},
 	{"SC_WANT", SCWant}, {"SC_RESYNC", SCResync}, {"SC_CREDIT", SCCredit}, {"SC_PING", SCPing},
 	{"SC_BYE", SCBye},

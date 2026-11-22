@@ -88,16 +88,26 @@ void cat_name(const uint8_t *l, char *out, uint8_t max)
     out[n] = 0;
 }
 
+#ifndef __APPLE2__                       /* (the Apple's: src/apple2/txt.s) */
+static const uint16_t tens16[] = { 10000, 1000, 100, 10 };
+
+/* v in decimal: by subtraction (a 6502 has no divide, and the HUD's
+ * numbers come every aim step) */
 void numstr(char *out, uint16_t v)
 {
-    char b[6], *p = b + 5;
-    *p = 0;
-    do {
-        *--p = '0' + v % 10;
-        v /= 10;
-    } while (v);
-    strcpy(out, p);
+    uint8_t i, d, any = 0;
+    for (i = 0; i < 4; ++i) {
+        for (d = '0'; v >= tens16[i]; ++d)
+            v -= tens16[i];
+        if (d != '0' || any) {
+            *out++ = d;
+            any = 1;
+        }
+    }
+    *out++ = '0' + (uint8_t)v;
+    *out = 0;
 }
+#endif
 
 static const uint32_t tens[] = { 1000000000UL, 100000000UL, 10000000UL, 1000000UL, 100000UL,
                                  10000UL, 1000UL, 100UL, 10UL, 1UL };

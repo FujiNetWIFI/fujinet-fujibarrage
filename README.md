@@ -1,9 +1,10 @@
 # FujiBarrage
 
 FujiBarrage is an artillery game for two to ten tanks over FujiNet. Seats with
-no player get bots. It runs on the Atari 400/800/XL/XE with 48K and on the
-Intellivision with the FujiNet cartridge, NTSC or PAL; other FujiNet machines
-are to follow (see `docs/PORTING.md`).
+no player get bots. It runs on the Atari 400/800/XL/XE with 48K, on the Apple
+//e, //c and IIgs with 128K, and on the Intellivision (NTSC or PAL) and the
+Bally Astrocade with the FujiNet cartridge; other FujiNet machines are to
+follow (see `docs/PORTING.md`).
 
 The server plays the whole game. A client only shows it: the server sends each
 one its field and every shot already worked out at that machine's resolution
@@ -29,6 +30,18 @@ On the Atari:
 | Fire | Shoot |
 | SELECT, W or TAB | Next weapon |
 | OPTION or I | The items line. The stick picks an item and Fire uses it. Guidance asks for a target (stick, then Fire). Fuel drives the tank with the stick. |
+| Return | Done (shop, defence window) |
+| Esc | Close the items line; otherwise leave the room |
+
+On the Apple II:
+
+| | |
+|---|---|
+| Arrows left / right, or the joystick | Angle (hold to go faster) |
+| Arrows up / down, or the joystick | Power |
+| Space, Open-Apple or Solid-Apple (the joystick's buttons) | Shoot |
+| W or TAB | Next weapon |
+| I | The items line, as the Atari's: the arrows pick, Space uses |
 | Return | Done (shop, defence window) |
 | Esc | Close the items line; otherwise leave the room |
 
@@ -61,6 +74,7 @@ On the Bally Astrocade:
 - **Shop:** the stick (disc) moves up and down, Fire (a top button) buys, Left (the lower left button) sells, Return (ENTER) is done.
 - **Waiting room:** the host (the first person in) presses Fire to start, and bots fill the empty seats. S (the lower right button) shows the settings and TAB (lower left) turns their pages. The host changes a setting with the stick: up and down pick it, left and right change it.
 - **The Intellivision's name:** the disc's up and down pick a letter, right or a top button takes it, left or CLEAR takes one back, the keypad's digits type themselves, and ENTER is done.
+- **The Apple II:** the screens are the Atari's, in text; the name is typed, and the left arrow or DELETE takes a letter back.
 - **The Astrocade:** the shop and waiting room are the Atari's, with the trigger for Fire and = for Return; ÷ shows the settings and + turns their pages. The name: the stick's up and down pick a letter, right or the trigger takes it, left, C or CE takes one back, = is done.
 
 The host's settings:
@@ -83,6 +97,8 @@ WRAPAROUND, and MAYHEM (erratic walls and changing wind, all at once).
 | `src/*.c` | The client, platform neutral: menus, rooms, shop, play, the link. |
 | `src/platform-specific/*.h` | The API each platform implements. |
 | `src/atari/` | The Atari implementation: cc65, ANTIC mode E with compiled DLIs, players and missiles behind the tanks, POKEY, netstream. The script player, the field primitives and the display list compiler are in assembly. |
+| `src/6502/` | The script player every 6502 port shares (`ply.s`, `ops.s`, `trk.s`): it draws through the port's own `fld.s`. |
+| `src/apple2/` | The Apple II client: cc65, ProDOS. High-res page 1 is the field itself: a colour pixel is two dots, and the game's four values are HGR's four colours in a palette (tank black, sky blue or violet, dirt orange or green, fire white), so `fld.s` draws the field straight into the screen. Mixed mode's four text rows are the HUD; the other screens are 40x24 text. The tanks are black, yours with a pennant, the turn's under a blinking arrow. Sound is a Mockingboard's AY (the Intellivision's effects at this clock), or a few clicks of the speaker. |
 | `src/intv/` | The Intellivision client, for the FujiNet cartridge. There is no C compiler for the CP1610, so it is `src/*.c` again in IntyBASIC 1.5, with the field, the script player, the GRAM card pool, the tanks and the sound effects in CP1610 assembly. The field is 160x80 in two bit planes in the cartridge's 16-bit RAM; each 8x8 cell that changes gets a GRAM card from a shared pool; the tanks are MOBs (past eight, the extra ones blink). |
 | `gfx/intv/` | The Intellivision's cards, drawn as text. |
 | `src/astrocade/` | The Bally Astrocade client, for the FujiNet cartridge: Z80 assembly (zmac), an APPBANK image of 4K pages. The field is the screen's own 160x56 bitmap, as on the Atari; a band interrupt every 4 lines gives each band its sky, two tank colours and the split between them (past two tanks in a band, the extra ones shimmer at 30 Hz). The 4K of screen RAM is all the RAM there is. |
@@ -90,14 +106,15 @@ WRAPAROUND, and MAYHEM (erratic walls and changing wind, all at once).
 | `docs/PROTOCOL.md` | The wire protocol, the state layout and the script ops. |
 | `docs/OPS.md` | How every weapon and item reaches the client as script ops. |
 | `docs/PORTING.md` | How to bring FujiBarrage to another machine. |
-| `tools/` | The font, art and music converters; the Atari rigs (`atarisim/`); the Intellivision's (`intvsim/`, `intvrig/`). |
+| `tools/` | The font, art and music converters; the Atari rigs (`atarisim/`); the Apple II's (`a2sim/`, `a2rig/`); the Intellivision's (`intvsim/`, `intvrig/`). |
 
 ## Building
 
 ```
 defoogi make atari      # r2r/atari/barrage.atr
+defoogi make apple2     # r2r/apple2/barrage.po
 make server             # server/barraged, server/refview
-make proto              # src/proto.h (and src/atari/proto.inc) from the server's constants
+make proto              # src/proto.h (and src/6502/proto.inc) from the server's constants
 make test               # the server's tests
 make intv               # r2r/intv/barrage.rom
 make astrocade          # r2r/astrocade/barrage.bin
@@ -108,6 +125,7 @@ make astrocade          # r2r/astrocade/barrage.bin
   - `BARRAGE.COM` is the game. It boots, reads the FujiNet appkeys (creator 1, app 0x13: the name and the room), and plays.
   - `MENU.COM` is the title, the name entry and the room list. The game loads it from the disk itself when the appkeys don't say who is playing where. The menu saves the keys and reboots into the game. Leaving a room clears the room key and reboots back to the menu.
 - **Memory:** the game fills 48K. `src/atari/barrage.cfg` says what goes where, and the link fails when it doesn't fit.
+- **The Apple II's disk:** a 140K ProDOS disk holding two programs, as the Atari's: `BARRAGE` (the game) and `MENU` (the title, the name and the rooms), each loaded by its own `.SYSTEM` loader (`tools/a2loader`), which skips the 8K of high-res page 1 in the file. Either runs the other by loading its loader (`src/apple2/chain.s`). It needs a 128K //e, //c or IIgs; `/RAM` is unplugged. The clock is a Mockingboard's timer if there is one, else the vertical blank. `src/apple2/barrage.cfg` says what goes where: code below the field, above it to $BDFF, and in the language card. `SERVER=host:port` works as the Atari's.
 - **The Astrocade's image:** `r2r/astrocade/barrage.bin`, 52K for the FujiNet cartridge's APPBANK: 8K at $2000 (page 0, then the resident code at $3000), then 4K pages that the code maps at $2000 one at a time. `src/astrocade/build.sh` needs zmac 1.3's source (`~/Workspace/zmac-1.3`, or `ZMACSRC=`) and builds it with a bigger symbol table. It writes the catalog into the image from `barraged -catalog`. Its checks fail a build that overruns a page, the resident code or RAM, or jumps between pages without `FAR`. `SERVER=host:port` works as the Atari's.
 - **The Intellivision's ROM:** `r2r/intv/barrage.rom`, for the FujiNet cartridge, which gives it 7K words of 16-bit RAM at $8000-$9BFF. It needs `as1600` (jzIntv's SDK) on the PATH and IntyBASIC 1.5's source (`IB_SRC`, default `~/Workspace/IntyBASIC`): the Makefile builds the compiler, since 1.4 has no `OPTION MAP`. The ROM is about 24K words of the 26.5K in the windows no other hardware uses; `tools/intv/checkcfg.py` fails a build that strays outside them. `SERVER=host:port` works as the Atari's.
 
@@ -132,6 +150,10 @@ python3 tools/atarisim/atarisim.py r2r/atari/barrage.atr build/barrage-atari.map
 tools/atarisim/refcheck.py OUTDIR WEAPON...
 tools/atarisim/rig.sh SCRIPT OUTDIR
 tools/atarisim/rig800.sh SECONDS OUTDIR [STICKS]
+make apple2 TEST=1      # (rm -rf build/barrage/apple2 first)
+python3 tools/a2sim/a2sim.py r2r/apple2/barrage.po build/barrage-apple2.map SCENARIO OUTDIR
+tools/a2sim/refcheck.py [-gate] OUTDIR [WEAPON...]
+tools/a2rig/rig.sh SCRIPT OUTDIR
 make intv TEST=1
 python3 tools/intvsim/intvsim.py r2r/intv/barrage.rom SCENARIO OUTDIR
 tools/intvsim/refcheck.py OUTDIR WEAPON...
@@ -156,6 +178,9 @@ tools/astrorig/rig.sh SCENARIO OUTDIR
 - **`rig800.sh`** does the same with the standalone atari800, whose pacing and interrupt timing are closer to a real machine's.
   - It runs NTSC unless `PAL=1`.
   - It runs atari800 with `-nojoystick`: SDL reads this machine's controllers even headless, and a controller's Y button is atari800's warm start.
+- **`a2sim.py`** runs the Apple II's test scenes in MAME's enhanced //e (`MACHINE=apple2c`, `NOMOCK=1` for no Mockingboard): screenshots, memory dumps (`hgrfield.py` decodes high-res page 1 into the field's values), CPU traces (`prof.py`), sound (`A2WAV=`, cut by `sndwav.py`). Scene 7 plays every effect.
+- **`tools/a2sim/refcheck.py`** is `refcheck.py` for the Apple II, with each shot's lag; `-gate` runs every weapon on hilly and flat fields and with shields (99 shots), all at 0 pixels.
+- **`tools/a2rig/rig.sh`** plays the Apple II live: AppleWin's core (from fujinet-go-apple2-desktop) with its FujiNet on SmartPort, the server and bots in a network namespace; `NOMOCK=1` takes the Mockingboard out. `EXTRA` and `ROOM` put the proxies in the link; `terrcheck.py` holds the field against the server's terrain from `tapproxy.py`'s log. The menu's room list needs a build with `SERVER=127.0.0.1:9913`.
 - **`intvsim.py`** runs an Intellivision ROM in jzIntv's debugger, a frame at a time: the controller, screenshots and the screen as text, sound, the stack's high water mark and CPU profiles. `PAL=1` makes it a PAL console. The test scenes (`src/intv/test.bas`) are the field, a shot, the rooms, the results, game over, every effect and the tunes.
 - **`tools/intvsim/refcheck.py`** is `refcheck.py` for the Intellivision. Every weapon comes out at 0 pixels, on hilly and flat fields and with shields.
 - **`astrosim.py`** runs the Astrocade image in MAME's `astrocde` with the FujiNet cartridge, headless: the controls, screenshots and the screen as text, RAM peeks and watches, CPU traces (`traceprof.py`), sound. Its test scenes (`src/astrocade/src/p_test.inc`) are the raster, a sound, and a whole shot from `make fixture-astrocade`.

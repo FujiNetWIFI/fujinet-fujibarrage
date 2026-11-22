@@ -88,6 +88,11 @@ var Intv = project.Caps{FieldW: 160, FieldH: 80, Par: 54, Hz: 60, TankW: 7, Tank
 var Astrocade = project.Caps{FieldW: 160, FieldH: 56, Par: 54, Hz: 60, TankW: 7, TankH: 5, Buf: 240,
 	Bands: 2, Flags: proto.CapHold, Plat: proto.PlatAstrocade}
 
+// Apple2 is the Apple II client's shape: HGR as the field itself, 140 colour
+// pixels (two dots each) by 160 lines over mixed mode's text rows.
+var Apple2 = project.Caps{FieldW: 140, FieldH: 160, Par: 117, Hz: 60, TankW: 5, TankH: 5, Buf: 1536,
+	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatApple2}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps

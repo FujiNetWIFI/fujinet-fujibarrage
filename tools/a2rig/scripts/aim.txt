@@ -1,0 +1,42 @@
+# the shop (down, buy, done), then aim: keys (left: angle, up: power), the
+# stick, the items line (I), the next weapon (W), fire
+wait 600
+key 32
+wait 600
+key 10
+wait 10
+key 10
+wait 10
+key 32
+wait 60
+snap shop
+key 13
+wait 480
+snap aim0
+keydown 8
+wait 40
+keyup 8
+keydown 11
+wait 60
+keyup 11
+wait 10
+snap aim1
+joy 32767 0
+wait 40
+joy 0 0
+joy 0 32767
+wait 40
+joy 0 0
+wait 10
+snap aim2
+key I
+wait 30
+snap items
+key I
+wait 30
+key W
+wait 30
+snap weapon
+key 32
+wait 240
+snap fired

@@ -9,6 +9,9 @@
 #   make test                      the server's tests
 #   make atari TEST=1              with the offline test scenes (tools/atarisim;
 #                                  rm -rf build/barrage first: make doesn't see flags change)
+#   make apple2                    r2r/apple2/barrage.po (128K //e, //c, IIgs; HGR)
+#   make apple2 TEST=1             with the offline test scenes (tools/a2sim)
+#   make fixture-apple2            src/apple2/test/fixture.h: its test scenes' field and shot
 #   make intv                      r2r/intv/barrage.rom (Intellivision, FujiNet cartridge;
 #                                  src/intv/Makefile: IntyBASIC + as1600, TEST=1 as above)
 #   make fixture-intv              src/intv/test/fixture.bas: its test scenes' field and shot
@@ -22,10 +25,12 @@
 # shots at its own resolution (docs/PROTOCOL.md).
 
 PRODUCT = barrage
-PLATFORMS = atari
+PLATFORMS = atari apple2
 
-SRC_DIRS = src src/%PLATFORM% gen/%PLATFORM%
-EXTRA_INCLUDE = src src/platform-specific src/test gen
+# src/6502: the script player (ply.s, trk.s, ops.s) every 6502 port shares,
+# drawing through its own fld.s
+SRC_DIRS = src src/%PLATFORM% src/6502 gen/%PLATFORM%
+EXTRA_INCLUDE = src src/platform-specific src/test gen src/6502
 
 # fujinet-lib (appkeys): a release, fetched into _cache (works in defoogi)
 FUJINET_LIB = 5.1.0
@@ -110,13 +115,116 @@ server:
 
 proto:
 	cd server && go run ./cmd/barraged -cheader > ../src/proto.h
-	sed -n 's/^#define \([A-Z_0-9]*\) *\([0-9][0-9]*\)$$/\1 = \2/p' src/proto.h > src/atari/proto.inc
+	sed -n 's/^#define \([A-Z_0-9]*\) *\([0-9][0-9]*\)$$/\1 = \2/p' src/proto.h > src/6502/proto.inc
 
 fixture:
 	cd server && go run ./cmd/refview -flat -shots 1 -seed 5 -weapon 3 -buf 1536 -fixture ../src/test/fixture.h -out ../build/refview
 
 test:
 	cd server && go test ./...
+
+# ---- Apple II (128K //e, //c, IIgs), high-res ----------------------------
+# cc65, ProDOS: BARRAGE.SYSTEM (tools/a2loader) loads BARRAGE around HGR
+# page 1, which is the field itself (src/apple2/fld.s). Memory:
+# src/apple2/barrage.cfg.
+CFLAGS_EXTRA_APPLE2 += -Os -Cl
+ifeq ($(TEST),1)
+  CFLAGS_EXTRA_APPLE2 += -DTEST_SCENES -DNO_APPKEYS
+endif
+LDFLAGS_EXTRA_APPLE2 += -C src/apple2/barrage.cfg -m build/barrage-apple2.map
+EXECUTABLE_EXTRA_DEPS_APPLE2 += src/apple2/barrage.cfg src/apple2/test/fixture.h
+ifeq ($(PLATFORM),apple2)
+  DISK_BASIC_SYSTEM =
+endif
+# MAIN ($4000-$BDFF) can't hold it all: start-up, the link and the clock
+# below HGR page 1, the field's code and input in the language card
+A2OBJ = build/$(PRODUCT)/apple2/src
+$(A2OBJ)/main.o $(A2OBJ)/apple2/nstrans.o $(A2OBJ)/apple2/plat.o: CFLAGS += --code-name LOWCODE --rodata-name LOWDATA
+$(A2OBJ)/apple2/input.o: CFLAGS += --code-name LC
+
+r2r/apple2/$(PRODUCT): gen-apple2
+
+gen-apple2: gen/config.h gen/apple2/fldtab.s gen/apple2/sfx.s gen/apple2/tunes.s
+
+# the sound (src/apple2/mock.s): the Intellivision's effects at this clock,
+# the game's jingles (the title is MENU's)
+gen/apple2/sfx.s: tools/mksfx_a2.py src/intv/sfx.asm
+	@mkdir -p $(dir $@)
+	$(PYTHON) tools/mksfx_a2.py src/intv/sfx.asm $@
+
+gen/apple2/tunes.s: tools/mkmus_a2.py tools/mkmus_intv.py tools/mus.py music/win.txt music/over.txt music/shop.txt
+	@mkdir -p $(dir $@)
+	$(PYTHON) tools/mkmus_a2.py $@ t_win=music/win.txt t_over=music/over.txt t_shop=music/shop.txt
+
+# the field's tables: HGR's lines, the colour pixels' dots
+gen/apple2/fldtab.s: tools/mktab_a2.py
+	@mkdir -p $(dir $@)
+	$(PYTHON) tools/mktab_a2.py $@
+
+# MENU (-DMENU): the title, the name and the room list, as the Atari's
+# MENU.COM; the same memory map (it chains, src/apple2/chain.s, through
+# the same loader). BARRAGE boots; it runs MENU.SYSTEM when the appkeys
+# name no room, and MENU runs BARRAGE.SYSTEM once one is picked.
+MENU_SRC_APPLE2 = src/main.c src/menus.c src/appkey.c src/net.c src/cat.c \
+	src/apple2/scr.c src/apple2/input.c src/apple2/plat.c src/apple2/nstrans.c \
+	src/apple2/lowlevel.s src/apple2/chain.s src/apple2/pages.s src/apple2/txt.s \
+	src/apple2/mock.s
+MENU_DIR_APPLE2 = build/menu-apple2
+MENU_BIN_APPLE2 = $(MENU_DIR_APPLE2)/menu.a2s
+MENU_OBJ_APPLE2 = $(patsubst src/%,$(MENU_DIR_APPLE2)/%.o,$(MENU_SRC_APPLE2)) \
+	$(MENU_DIR_APPLE2)/title.s.o $(MENU_DIR_APPLE2)/sfx.s.o
+MENU_HDR_APPLE2 = $(wildcard src/*.h src/platform-specific/*.h) gen/config.h
+MENU_LIB_APPLE2 = _cache/fujinet-lib/$(FUJINET_LIB)-apple2
+MENU_CFLAGS_APPLE2 = -t apple2 -Os -Cl -O --cpu 6502 -DMENU -DUSING_FUJINET_LIB=1 \
+	--include-dir src --include-dir src/platform-specific --include-dir gen --include-dir $(MENU_LIB_APPLE2)
+
+$(MENU_DIR_APPLE2)/%.c.o: src/%.c $(MENU_HDR_APPLE2)
+	@mkdir -p $(dir $@)
+	cl65 $(MENU_CFLAGS_APPLE2) -c -o $@ $<
+
+$(MENU_DIR_APPLE2)/%.s.o: src/%.s
+	@mkdir -p $(dir $@)
+	cl65 -t apple2 --asm-include-dir src --asm-include-dir src/6502 -c -o $@ $<
+
+$(MENU_DIR_APPLE2)/title.s: tools/mkmus_a2.py tools/mkmus_intv.py tools/mus.py music/title.txt
+	@mkdir -p $(dir $@)
+	$(PYTHON) tools/mkmus_a2.py $@ t_title=music/title.txt
+
+$(MENU_DIR_APPLE2)/title.s.o: $(MENU_DIR_APPLE2)/title.s
+	cl65 -t apple2 -c -o $@ $<
+
+$(MENU_DIR_APPLE2)/sfx.s.o: gen/apple2/sfx.s
+	@mkdir -p $(dir $@)
+	cl65 -t apple2 -c -o $@ $<
+
+$(MENU_BIN_APPLE2): $(MENU_OBJ_APPLE2) src/apple2/barrage.cfg
+	cl65 -t apple2 -C src/apple2/barrage.cfg -m $(MENU_DIR_APPLE2)/menu.map -o $@ $(MENU_OBJ_APPLE2) \
+	  --lib-path $(MENU_LIB_APPLE2) fujinet-apple2-$(FUJINET_LIB).lib
+
+# BARRAGE.SYSTEM and MENU.SYSTEM are our own loader: it skips HGR page 1's
+# zeros in the file. (ProDOS boots the first .SYSTEM file: BARRAGE.SYSTEM
+# goes back in the slot it had.)
+apple2/disk-post:: build/a2loader.bin build/a2loader-menu.bin $(MENU_BIN_APPLE2)
+	ac -d $(DISK) BARRAGE.SYSTEM
+	ac -p $(DISK) BARRAGE.SYSTEM SYS 0x2000 < build/a2loader.bin
+	ac -p $(DISK) MENU.SYSTEM SYS 0x2000 < build/a2loader-menu.bin
+	ac -as $(DISK) MENU < $(MENU_BIN_APPLE2)
+
+build/a2loader.bin: tools/a2loader/loader.s tools/a2loader/loader.cfg
+	@mkdir -p build
+	ca65 -o build/a2loader.o tools/a2loader/loader.s
+	ld65 -C tools/a2loader/loader.cfg -o $@ build/a2loader.o
+
+build/a2loader-menu.bin: tools/a2loader/loader.s tools/a2loader/loader.cfg
+	@mkdir -p build
+	ca65 -D MENU=1 -o build/a2loader-menu.o tools/a2loader/loader.s
+	ld65 -C tools/a2loader/loader.cfg -o $@ build/a2loader-menu.o
+
+fixture-apple2:
+	cd server && go run ./cmd/refview -w 140 -h 160 -par 117 -buf 1536 -flat -shots 1 -seed 5 -weapon 3 \
+	    -fixture ../src/apple2/test/fixture.h -out ../build/refview-apple2
+
+.PHONY: gen-apple2 fixture-apple2
 
 # ---- Intellivision (the FujiNet cartridge) -------------------------------
 # not a MekkoGX platform: IntyBASIC and CP1610 assembly, src/intv/Makefile

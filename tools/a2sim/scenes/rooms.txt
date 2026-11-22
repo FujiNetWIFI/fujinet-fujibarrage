@@ -1,0 +1,4 @@
+# the text screens: the waiting room (2)
+test 2
+wait 90
+snap wait

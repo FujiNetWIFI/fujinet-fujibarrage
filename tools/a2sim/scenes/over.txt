@@ -1,0 +1,4 @@
+# the game's end (4)
+test 4
+wait 90
+snap over

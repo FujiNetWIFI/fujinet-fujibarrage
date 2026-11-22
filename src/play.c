@@ -15,7 +15,12 @@
 #include "plat.h"
 #include "sound.h"
 
+#ifdef __ATARI__
 #define CONSOL (*(volatile uint8_t *)0xD01F)
+#define CONSOL_KEYS() (~CONSOL & 7)     /* START, SELECT, OPTION held */
+#else
+#define CONSOL_KEYS() 0                 /* (none: the keys do it) */
+#endif
 
 tank_t tk[SEATS];
 uint8_t my_seat = NONE;
@@ -101,6 +106,34 @@ static uint8_t defending(void)
            (PL(my_seat, P_FLAGS) & (PF_DEFENSE | PF_DONE)) == PF_DEFENSE;
 }
 
+/* the items line (OPTION) into line: what is open, the item, guidance and
+ * its target */
+static void items_line(void)
+{
+    char nm[17];
+    memset(line, ' ', 40);
+    switch (menu) {
+    case M_ITEM:
+        cat_name(cat_item(item) + 6, nm, 16);
+        put(0, nm);
+        put(19, "X");
+        putn(20, INV(item));
+        if (item == I_PARACHUTE || item == I_IMPACT_FUSE)
+            put(24, PL(my_seat, P_FLAGS) & (item == I_PARACHUTE ? PF_CHUTE : PF_FUSE) ? "ON" : "OFF");
+        put(29, "<> FIRE USE");
+        break;
+    case M_TARGET:
+        put(0, "TARGET");
+        memcpy(line + 7, NAME(target), nlen(NAME(target), NAME_LEN));
+        put(29, "<> FIRE ON");
+        break;
+    default:
+        put(0, "DRIVE <>  FUEL");
+        putn(15, INV(I_FUEL));
+        put(27, "FIRE DONE");
+    }
+}
+
 static void hud(void)
 {
     uint8_t s = st[OFF_TURN];
@@ -138,30 +171,13 @@ static void hud(void)
     putn(6, st[OFF_ROUND]);
     put(9, "OF");
     putn(12, st[OFF_ROUNDS]);
-    if (menu) {
-        memset(line, ' ', 40);
-        switch (menu) {
-        case M_ITEM:
-            cat_name(cat_item(item) + 6, nm, 16);
-            put(0, nm);
-            put(19, "X");
-            putn(20, INV(item));
-            if (item == I_PARACHUTE || item == I_IMPACT_FUSE)
-                put(24, PL(my_seat, P_FLAGS) & (item == I_PARACHUTE ? PF_CHUTE : PF_FUSE) ? "ON" : "OFF");
-            put(29, "<> FIRE USE");
-            break;
-        case M_TARGET:
-            put(0, "TARGET");
-            memcpy(line + 7, NAME(target), nlen(NAME(target), NAME_LEN));
-            put(29, "<> FIRE ON");
-            break;
-        default:
-            put(0, "DRIVE <>  FUEL");
-            putn(15, INV(I_FUEL));
-            put(27, "FIRE DONE");
-        }
-    } else if (defending())
-        put(15, "DEFEND: OPTION/RETURN");
+#if ITEMS_ROW == 2
+    if (menu)
+        items_line();
+    else
+#endif
+    if (defending())
+        put(15, TXT_DEFEND);
     else if (my_turn)
         put(16, "YOUR TURN: AIM, FIRE");
     else if (st[OFF_PHASE] == PH_AIM && st[OFF_TURN] < SEATS) {
@@ -171,6 +187,34 @@ static void hud(void)
         put(16, "EVERYONE AIMS");
     putn(37, st[OFF_TIMER]);
     field_status(2, 0, line);
+#if ITEMS_ROW == 3
+    if (menu) {                         /* its own row (talk's, in a script) */
+        items_line();
+        field_status(3, 0, line);
+    } else if (!in_script) {
+        memset(line, ' ', 40);
+        field_status(3, 0, line);
+    }
+#endif
+}
+
+/* an aim step changes two numbers of the first row: those alone (a whole
+ * HUD is slow on a 1 MHz machine), each padded over the last */
+static void hud_num(uint8_t col, uint16_t v, uint8_t w)
+{
+    char b[6];
+    uint8_t n;
+    numstr(b, v);
+    for (n = (uint8_t)strlen(b); n < w; ++n)
+        b[n] = ' ';
+    b[n] = 0;
+    field_status(0, col, b);
+}
+
+static void hud_aim(void)
+{
+    hud_num(16, aim_a, 3);
+    hud_num(27, aim_p, 4);
 }
 
 /* ---- entering the field, and the STATE changing ------------------------- */
@@ -346,8 +390,9 @@ void play_frame(void)
         tanks_from_state(1);
         net_terrain = 0;
     }
+    field_turn(st[OFF_PHASE] == PH_AIM ? st[OFF_TURN] : NONE);
     def = defending();
-    c = ~CONSOL & 7;
+    c = CONSOL_KEYS();
     opt = ((c & 4) && !(consol_prev & 4)) || ev_key == 'I';
     if (!my_turn && !def) {
         if (menu) {
@@ -406,7 +451,7 @@ void play_frame(void)
             aim_p = energy[my_seat] * 10u;
         tk[my_seat].angle = aim_a;
         field_tank(my_seat, 1);
-        hud();
+        hud_aim();
     }
     if ((c & 2) && !(consol_prev & 2))
         next_weapon();                  /* SELECT */
@@ -608,6 +653,7 @@ void play_segment(void)
     uint8_t last, behind;
     in_script = 1;
     my_turn = 0;
+    field_turn(NONE);                   /* (no marker in the field a script plays on) */
     if (seg_no == 0)                    /* a new shot */
         ply_reset();
     ply_pc = 0;
@@ -617,8 +663,8 @@ void play_segment(void)
     while (!ply_done) {
         while ((behind = (uint8_t)(vbi_count - last)) == 0)
             ;
-        if (behind > 4)
-            behind = 4;
+        if (behind > PLY_CATCHUP)
+            behind = PLY_CATCHUP;
         last += behind;
         while (behind--) {
             ply_step();

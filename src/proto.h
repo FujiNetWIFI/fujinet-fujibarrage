@@ -18,6 +18,7 @@
 #define PLAT_ATARI         1
 #define PLAT_INTV          2
 #define PLAT_ASTROCADE     3
+#define PLAT_APPLE2        4
 #define SC_HELLO           72
 #define SC_ROOMS           84
 #define SC_ACT             65

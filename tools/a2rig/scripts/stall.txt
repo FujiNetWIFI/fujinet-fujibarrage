@@ -1,0 +1,128 @@
+# stallproxy holds our bytes over our shot: the server skips it, we resync
+wait 600
+key 32
+wait 600
+key 13
+wait 480
+key 32
+peek @net_tv
+dump hgr01.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr02.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr03.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr04.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr05.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr06.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr07.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr08.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr09.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr10.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr11.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr12.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr13.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr14.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr15.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr16.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr17.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr18.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr19.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr20.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr21.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr22.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr23.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr24.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr25.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr26.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr27.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr28.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr29.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr30.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr31.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr32.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr33.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr34.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr35.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr36.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr37.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr38.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr39.bin 0x2000 8192
+wait 30
+peek @net_tv
+dump hgr40.bin 0x2000 8192
+wait 30
+snap end

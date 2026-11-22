@@ -1,0 +1,10 @@
+# where the time goes while aiming with the stick held
+wait 600
+key 32
+wait 600
+key 13
+wait 480
+joy 32767 0
+xprof 120 aim.prof
+joy 0 0
+snap end

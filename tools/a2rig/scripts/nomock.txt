@@ -1,0 +1,15 @@
+# no Mockingboard: the //e's polled clock (and the server's timer), the
+# speaker's cues; a few turns, then the clock against the frames
+wait 600
+key 32
+wait 600
+key 13
+wait 480
+peek @clk_mode
+peek @mb_slot
+peek @frame_count 2
+key 32
+wait 1800
+snap turns
+peek @frame_count 2
+wav 300 spk.wav

@@ -138,6 +138,13 @@ func TestAstrocadeGameAgainstBots(t *testing.T) {
 	}
 }
 
+// The Apple II's shape: CAP_HOLD, 140x160, a 1536-byte buffer.
+func TestApple2GameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.Apple2, mode)
+	}
+}
+
 func botGame(t *testing.T, caps project.Caps, mode int) {
 	t.Helper()
 	s, ck, addr := serve(t)

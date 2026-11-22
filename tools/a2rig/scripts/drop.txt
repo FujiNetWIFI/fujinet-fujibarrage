@@ -1,0 +1,3 @@
+# dropproxy loses our first frame: we still get in
+wait 900
+snap room

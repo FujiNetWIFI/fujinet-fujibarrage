@@ -1,0 +1,12 @@
+# as play.txt, then on past our second (timed-out) shot
+wait 600
+key 32
+wait 600
+key 13
+wait 480
+key 32
+wait 2100
+film 360 self
+snap after
+wait 600
+snap later

@@ -1,0 +1,13 @@
+# cutproxy hangs up at 40 s: CONNECTION LOST, a redial, the seat back
+wait 600
+key 32
+wait 600
+key 13
+wait 600
+snap before
+wait 600
+snap lost
+wait 300
+snap lost2
+wait 900
+snap back

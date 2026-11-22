@@ -1,0 +1,24 @@
+# no name, no room: the title, the name (typed), the rooms, join the
+# second; ESC leaves: back through the game to the rooms
+wait 700
+key 32
+wait 200
+snap name
+key T
+key O
+key X
+key 8
+key M
+wait 30
+snap name2
+key 13
+wait 400
+snap rooms
+key 10
+wait 30
+key 32
+wait 900
+snap joined
+key 27
+wait 1000
+snap back

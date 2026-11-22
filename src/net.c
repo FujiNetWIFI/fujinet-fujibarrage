@@ -152,8 +152,8 @@ static void hello_frame(void)
     h[25] = (uint8_t)SCRIPT_BUF;
     h[26] = SCRIPT_BUF >> 8;
     h[27] = BANDS;
-    h[28] = CAP_HOLD;
-    h[29] = PLAT_ATARI;
+    h[28] = PLAT_CAPS;
+    h[29] = PLAT_ID;
     send(SC_HELLO, h, sizeof(h));
 }
 

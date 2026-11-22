@@ -1,0 +1,9 @@
+# the sound live: join, start, shop done, fire, 10 s of it to a WAV
+wait 600
+key 32
+wait 600
+key 13
+wait 480
+key 32
+wav 600 shot.wav
+snap after

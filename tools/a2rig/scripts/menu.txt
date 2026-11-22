@@ -1,0 +1,13 @@
+# no room in the appkeys: the game runs MENU; the title, the rooms, pick
+# the first: MENU runs the game again, which joins it
+wait 700
+snap title
+vmode
+key 32
+wait 400
+snap rooms
+key 32
+wait 900
+snap joined
+wait 300
+snap joined2

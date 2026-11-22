@@ -23,6 +23,8 @@ var shapes = []Caps{
 	{FieldW: 160, FieldH: 80, Hz: 60, Buf: 1024, TankW: 7, TankH: 5},   // Intellivision
 	{FieldW: 160, FieldH: 80, Hz: 50, Buf: 1024, TankW: 7, TankH: 5},   // the same, PAL
 	{FieldW: 160, FieldH: 56, Hz: 60, Buf: 240, TankW: 7, TankH: 5},    // Astrocade
+	{FieldW: 140, FieldH: 160, Hz: 60, Buf: 1536, TankW: 5, TankH: 5},  // Apple II (HGR colour pixels)
+	{FieldW: 140, FieldH: 160, Hz: 50, Buf: 1536, TankW: 5, TankH: 5},  // the same, PAL
 }
 
 func field(seed uint64) *sim.Sim {
@@ -126,11 +128,18 @@ func TestEveryWeaponRoundTrip(t *testing.T) {
 	}
 }
 
-// The Astrocade's 4K holds a script buffer of 240 bytes: how many segments
-// each weapon's shot takes there, against 320 and 400 (go test -run
-// SegmentCounts -v). The Astrocade trades field lines for buffer bytes.
+// How many segments each weapon's shot takes in a small client's script
+// buffer (go test -run SegmentCounts -v): the Astrocade's 4K holds 240 bytes
+// (it trades field lines for buffer bytes), the Apple II's main RAM 1536
+// (1024 if it must).
 func TestSegmentCounts(t *testing.T) {
-	bufs := []int{240, 320, 400}
+	segmentCounts(t, Caps{FieldW: 160, FieldH: 56, Hz: 60, TankW: 7, TankH: 5}, []int{240, 320, 400})
+	segmentCounts(t, Caps{FieldW: 140, FieldH: 160, Hz: 60, TankW: 5, TankH: 5}, []int{1024, 1536})
+}
+
+func segmentCounts(t *testing.T, shape Caps, bufs []int) {
+	t.Helper()
+	t.Logf("%dx%d:", shape.FieldW, shape.FieldH)
 	tot := make([]int, len(bufs))
 	for w := 0; w < proto.NWeapons; w++ {
 		line := fmt.Sprintf("%-18s", items.All[w].Name)
@@ -143,7 +152,8 @@ func TestSegmentCounts(t *testing.T) {
 				shot := sim.Shot{Seat: 3, Angle: 40 + int(seed*13)%100, Power: 200 + int(seed*41)%450,
 					Weapon: w, Guide: proto.INone, Target: proto.NoSeat}
 				lg := s.Resolve([]sim.Shot{shot}, false)
-				c := Caps{FieldW: 160, FieldH: 56, Hz: 60, Buf: b, TankW: 7, TankH: 5}
+				c := shape
+				c.Buf = b
 				segs := Script(lg, pre, c)
 				n += len(segs)
 				if len(segs) > most {

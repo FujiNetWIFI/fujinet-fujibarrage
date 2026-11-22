@@ -8,8 +8,11 @@
  *   1  the field: the fixture's ground, ten tanks, its shot played every
  *      5 seconds with the held link's sound ([3] bit 0: stream sound only)
  *   2  the waiting room       3  a round's end       4  the game's end
- *   5  the field, ten tanks, no shot: aim with the stick (seat 0's turn)
+ *   5  the field, ten tanks, no shot: aim with the stick (seat 0's turn;
+ *      [3] bit 7: the sky, SKY_* in bits 0-2, in place of the fixture's)
  *   6  a tune (ARG 0 a round's end, 1 the game's end, 2 the shop)
+ *   7  every effect, 3 seconds apart: SND_* 0-15 (a boom small), the
+ *      boom's sizes 1-3, then the UI_* cues (the sound's WAVs)
  */
 #ifndef TEST_SCENES
 #include "game.h"
@@ -25,13 +28,23 @@ void test_check(void)
 #include "plat.h"
 #include "sound.h"
 #include "field.h"
+#ifdef __APPLE2__
+#include "apple2/test/fixture.h"    /* (its own shape: make fixture-apple2) */
+#else
 #include "fixture.h"
+#endif
 
 /* a fixture bigger than the script buffer can't be played: make it with
  * refview -buf SCRIPT_BUF */
 typedef char fixture_fits[sizeof(fix_script) <= SCRIPT_BUF ? 1 : -1];
 
 uint8_t test_hook[4];
+uint16_t test_t0, test_t1;              /* the shot's start and end, in jiffies: the lag */
+#ifdef __ATARI__                        /* (the OS's clock: frame_count stands still in a script) */
+#define TEST_NOW() ((uint16_t)(*(volatile uint8_t *)0x13 << 8 | *(volatile uint8_t *)0x14))
+#else
+#define TEST_NOW() frame_count
+#endif
 
 static const char names[SEATS][NAME_LEN] = {
     "ANN", "BOB", "CAT", "DOT", "EVE", "FAY", "GUS", "HAL", "IVY", "JOE" };
@@ -96,7 +109,9 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
         seg_flags = S_LAST_FRAME | S_LAST_SEG;
         if (!stream_only)
             snd_full(1);
+        test_t0 = TEST_NOW();
         play_segment();
+        test_t1 = TEST_NOW();
         for (t = 0; t < 40 && snd_busy(); ++t)
             frame_wait();
         snd_full(0);
@@ -115,6 +130,7 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
 void test_check(void)
 {
     uint8_t n;
+    uint16_t t;
     test_hook[1] = 0xC3;
 #ifdef TEST_SCENE                        /* a rig that can't poke memory: built in */
     test_hook[0] = 0x5A;
@@ -137,10 +153,20 @@ void test_check(void)
         field_scene(1, test_hook[3] & 1);
     case 5:
         st[OFF_TURN] = 0;
+        if (test_hook[3] & 0x80)
+            st[OFF_SKY] = test_hook[3] & 7;
         field_scene(0, 0);
     case 6:                             /* a tune: 0 the round's, 1 the game's end, 2 the shop */
         snd_tune(test_hook[3] == 1 ? t_over1 : test_hook[3] == 2 ? t_shop1 : t_win1,
                  test_hook[3] == 1 ? t_over2 : test_hook[3] == 2 ? t_shop2 : t_win2);
+        for (;;)
+            tick();
+    case 7:
+        for (n = 0; n < 24; ++n) {
+            snd_cue(n < 16 ? n : n < 19 ? SND_BOOM : UI_TICK + n - 19, n < 16 ? 0 : n < 19 ? n - 15 : 0);
+            for (t = 0; t < 180; ++t)
+                tick();
+        }
         for (;;)
             tick();
     case 2:

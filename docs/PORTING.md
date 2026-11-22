@@ -53,7 +53,7 @@ implements `src/platform-specific/*.h` in `src/<platform>/`:
 
 **The script player.**
 - **Who calls it:** `play.c` drives the player through `ply_reset`, `ply_step`, `ply_draw` and `ply_end`.
-- **The Atari's:** assembly (`src/atari/ply.s`, `ops.s`, `trk.s`). It calls back into `play.c` for what C does better: `c_op` handles TALK, SOUND, SHIELD, DAMAGE, FALL, DEATH, TANK, FLASH and FIRE, and `c_anim` handles the talk chatter.
+- **The Atari's:** assembly (`src/6502/ply.s`, `ops.s`, `trk.s`, shared by every 6502 port: each brings its own `fld.s`). It calls back into `play.c` for what C does better: `c_op` handles TALK, SOUND, SHIELD, DAMAGE, FALL, DEATH, TANK, FLASH and FIRE, and `c_anim` handles the talk chatter.
 - **For a new machine:** write one from `docs/PROTOCOL.md`, or start from `server/internal/view/view.go`, the reference player in Go. It follows PROTOCOL.md to the letter, and `refview` draws with it.
 - **Before porting:** the `ply_*` declarations sit in `play.c` with a cc65 `zpsym`; move them to a platform header first.
 
@@ -113,6 +113,19 @@ IntyBASIC 1.5, with the hot paths in CP1610 assembly. What it took:
 - **IntyBASIC's 24-word stack is too small** for the field's assembly plus the frame handler. The Makefile makes it 40 words and fails a build whose variables then overrun.
 - **Sound:** the PSG's three voices. Booms are noise on the chip's envelope, so they die away smoothly; its 16-step decay takes EP x 0.143 ms.
 
+## The Apple II
+
+`src/apple2/` is the Atari's C again on cc65 for ProDOS, with the Atari's
+6502 script player (`src/6502/`) drawing through an `fld.s` of its own. What
+it took:
+- **The field is the screen.** A high-res colour pixel is two dots, and the game's four values are exactly HGR's four colours in a palette: no dots black (tank), the even dot blue or violet (sky), the odd dot orange or green (dirt), both white (fire). So the field is 140x160 straight in high-res page 1, the value in each pixel's dots, and bit 7 of every byte is the round's palette (stars, storm and sunset skies are violet over green; `fld_pal` flips the page when the round's palette differs). A value's dots in a byte are one of two patterns by the byte's parity, so a span is a masked byte at each end and stores between.
+- **No colours to spare:** tanks are black; yours carries a black pennant, and the turn's tank, while it aims, a blinking white arrow (fire over sky, taken off before any script). Fire stays white. The flash is full text mode for its frames, the text page's rows above the HUD all inverse spaces. The HUD is mixed mode's four text rows; the other screens are 40x24 text, inverse for highlights.
+- **Memory:** 128K //e, //c, IIgs. Main RAM holds the field ($2000-$3FFF), code and data below it from $0803 and above it to $BDFF, the C stack at $BE00; the language card's $D400-$DFFF holds `fld.s`, its tables and the input. The loader skips the field's 8K in the file. The menu and the game are two programs that load each other's loader (with the ROM switched back in first: cc65's start-up asks the ROM what machine it is on). Zero page $80-$EF is full; the sound uses self-modified addresses instead.
+- **The clock:** no interrupts. A Mockingboard's 6522 timer counts every cycle (`frame_tick` turns them into jiffies, if it is called at least every 65536 cycles: the field's loops call it per column, per ellipse row, per tank, per HUD row); without one, the vertical blank (polled on a //e, latched on a //c, inverted on a IIgs). Jiffies a polled blank misses come back from the server's round timer (`clock_check`).
+- **CPU:** a 1 MHz 6502. An aim step redraws two numbers and the barrel, not the HUD and the tank. The player catches up 8 steps a frame. The worst shots (a MEGA MIRV, a SHOVEL BLAST) run about as far behind their scripts as on the Atari: settles write whole 160-line columns.
+- **Input:** the //e's "a key is down" flag holds an arrow; AppleWin's libretro core never sets it, so a direction also lasts two polls after its last key repeat. The joystick is read every other pass.
+- **Sound:** a Mockingboard's first AY: the effects are the Intellivision's, every period scaled to the Apple's 1.02 MHz (`tools/mksfx_a2.py`), and the tunes its converter's voicing (`tools/mkmus_a2.py`). Without one, the speaker gives each cue a few milliseconds of tone or noise, and there are no tunes.
+
 ## The Astrocade
 
 `src/astrocade/` is Z80 assembly (zmac), as FujiBlast's Astrocade client
@@ -127,7 +140,7 @@ is, on the FujiNet cartridge's APPBANK pages. What it took:
 
 ## Testing a port
 
-- **Exact pictures:** `refview -fixture FILE` writes a field and one shot as a C header (`src/test/fixture.h`). A test build plays it offline: the `src/test.c` scenes are the field, a shot, the rooms, the results and the tunes. Compare your field after the shot with refview's `shot1.px`, pixel for pixel, for every weapon. `tools/atarisim/refcheck.py` does this for the Atari: 0 pixels must differ.
+- **Exact pictures:** `refview -fixture FILE` writes a field and one shot as a C header (`src/test/fixture.h`). A test build plays it offline: the `src/test.c` scenes are the field, a shot, the rooms, the results and the tunes. Compare your field after the shot with refview's `shot1.px`, pixel for pixel, for every weapon. `tools/atarisim/refcheck.py` does this for the Atari: 0 pixels must differ. `tools/a2sim/refcheck.py` does it for the Apple II (`src/apple2/test/fixture.h`, `make fixture-apple2`), with each shot's lag.
   - `-shield I_*` puts shields on every other tank.
   - `-flat` puts all ten tanks on the same lines.
   - `-angle` and `-power` aim the shot.

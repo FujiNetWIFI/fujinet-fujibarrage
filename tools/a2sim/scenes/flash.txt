@@ -1,0 +1,9 @@
+# a flash (the nuke's): full text, rows 0-19 inverse spaces, the HUD under them
+test 5
+wait 100
+poke flashn 20
+poke $C051 0
+wait 3
+snap flash
+wait 40
+snap after

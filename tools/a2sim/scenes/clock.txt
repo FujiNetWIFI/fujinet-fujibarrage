@@ -1,0 +1,6 @@
+# the clock: 600 game jiffies against MAME's frames (aiming, idle)
+test 5
+wait 60
+peek frame_count 2
+wait 600
+peek frame_count 2
