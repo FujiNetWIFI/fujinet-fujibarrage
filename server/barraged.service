@@ -1,0 +1,34 @@
+# systemd unit for the FujiBarrage server: the game's stream on TCP 9913
+# (FujiNet netstream) -- open it.
+#
+# Install:
+#   go build -o barraged ./cmd/barraged
+#   sudo mkdir -p /srv/fujibarrage && sudo cp barraged /srv/fujibarrage/
+#   sudo cp barraged.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now barraged
+[Unit]
+Description=FujiBarrage server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/srv/fujibarrage
+ExecStart=/srv/fujibarrage/barraged
+Environment=BARRAGE_STREAM_ADDR=:9913
+# Talking tanks: phrase files of your own (a line each, 40 characters at
+# most) instead of the built-in ones.
+#Environment=BARRAGE_TALK_FIRE=/srv/fujibarrage/fire.txt
+#Environment=BARRAGE_TALK_LAST=/srv/fujibarrage/last.txt
+# Lobby listing (lobby key 0x13): off unless BARRAGE_LOBBY is qa, prod or a URL.
+#Environment=BARRAGE_LOBBY=qa
+#Environment=BARRAGE_REGION=us
+#Environment=BARRAGE_SERVER_URL=tcp://fujinet.online:9913/
+#Environment=BARRAGE_CLIENT_ATARI=tnfs://apps.irata.online/fujibarrage/atari/barrage.atr
+DynamicUser=yes
+Restart=on-failure
+RestartSec=5
+# barraged posts "offline" to the lobby on SIGTERM: give it the time
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

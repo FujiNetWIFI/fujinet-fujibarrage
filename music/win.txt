@@ -1,0 +1,37 @@
+# win.txt -- a round's winner (the results screen): a D major fanfare up to
+# a held D. Original.
+
+tempo 5
+once
+
+pattern up
+    K D1    | t D5
+    .       | .
+    S       | t F#5
+    .       | .
+    K D1    | t A5
+    .       | .
+    S A1    | t D6
+    .       | .
+    K D1    | .
+    .       | .
+    S       | t C#6
+    S       | t D6
+    K D1    | .
+    .       | .
+    S       | t E6
+    S       | t F#6
+end
+
+pattern hold
+    K D1    | t D6
+    .       | .
+    .       | .
+    .       | .
+    S A1    | .
+    .       | .
+    K D1    | -
+    -       | -
+end
+
+song up hold

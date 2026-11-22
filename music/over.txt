@@ -1,0 +1,40 @@
+# over.txt -- the game's end (the final results): slow, falling, and home
+# to D. Original.
+
+tempo 9
+once
+
+pattern fall1
+    K D1    | t A5
+    .       | .
+    .       | .
+    .       | t G5
+    S A1    | t F5
+    .       | .
+    .       | t E5
+    .       | .
+end
+
+pattern fall2
+    K Bb1   | t D5
+    .       | .
+    .       | .
+    .       | .
+    S F1    | t C#5
+    .       | .
+    .       | t E5
+    .       | .
+end
+
+pattern home
+    K D1    | t D5
+    .       | .
+    S       | a D5
+    .       | .
+    K D1    | .
+    .       | .
+    .       | .
+    -       | -
+end
+
+song fall1 fall2 home

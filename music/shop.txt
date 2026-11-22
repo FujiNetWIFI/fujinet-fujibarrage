@@ -1,0 +1,17 @@
+# shop.txt -- the shop opens: a quick rise and a till's ring. Original.
+
+tempo 4
+once
+
+pattern ring
+    H       | A C5
+    -       | .
+    H       | A F5
+    -       | .
+    K F1    | b C6
+    .       | b F6
+    .       | w C6
+    -       | -
+end
+
+song ring

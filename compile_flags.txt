@@ -1,0 +1,6 @@
+-Isrc
+-Isrc/platform-specific
+-Isrc/test
+-Igen
+-D__ATARI__
+-D__CC65__

@@ -1,0 +1,150 @@
+/*
+ * menus.c -- the title, the name and the room list (text screens), and the
+ * little things every screen uses: a frame's tick, messages.
+ */
+#include <string.h>
+#include "game.h"
+#include "scr.h"
+#include "input.h"
+#include "plat.h"
+#include "sound.h"
+
+static uint8_t prev_dir;
+
+void tick(void)
+{
+    frame_wait();
+    input_poll();
+    input_take();
+}
+
+uint8_t pressed(uint8_t bit)
+{
+    uint8_t p = (inp_dir & bit) && !(prev_dir & bit);
+    return p;
+}
+
+#ifdef MENU
+static void tick_dir(void)
+{
+    prev_dir = inp_dir;
+}
+#endif
+
+static void centre(uint8_t row, const char *s)
+{
+    uint8_t n = strlen(s);
+    scr_text(row, n < 40 ? (40 - n) / 2 : 0, s);
+}
+
+void message(const char *a, const char *b, uint8_t frames)
+{
+    scr_begin();
+    scr_row(10, PAL_HEAD);
+    scr_row(11, PAL_HEAD);
+    scr_row(12, PAL_HEAD);
+    centre(10, a);
+    centre(12, b);
+    scr_show();
+    if (!frames) {
+        do {
+            tick();
+        } while (!ev_btn && ev_key == KEY_NONE);
+        return;
+    }
+    while (frames--)
+        tick();
+}
+
+#ifdef MENU
+/* ---- the menu program's (MENU.COM): the title, the name, the room ---- */
+
+void title(void)
+{
+    uint8_t r;
+    scr_begin();
+    for (r = 3; r < 8; ++r)
+        scr_row(r, PAL_TITLE);
+    centre(4, "F U J I B A R R A G E");
+    centre(6, "ARTILLERY FOR UP TO TEN, ON FUJINET");
+    centre(12, "AIM, FIRE, TALK TRASH.");
+    centre(14, "WEAPONS, SHIELDS AND BOTS GALORE.");
+    scr_row(20, PAL_HILITE);
+    centre(20, "PRESS FIRE");
+    scr_show();
+    snd_tune(t_title1, t_title2);       /* (it plays on through the menus) */
+    do {
+        tick();
+    } while (!ev_btn && ev_key == KEY_NONE);
+    snd_cue(UI_GO, 0);
+}
+
+void name_entry(void)
+{
+    uint8_t n = 0;
+    scr_begin();
+    scr_row(8, PAL_HEAD);
+    centre(8, "WHAT'S YOUR NAME?");
+    scr_row(12, PAL_HILITE);
+    scr_show();
+    for (;;) {
+        scr_clear_row(12);
+        scr_text(12, 16, my_name);
+        scr_inverse(12, 16 + n, 1);
+        tick();
+        if (ev_key == KEY_RETURN && n)
+            break;
+        if (ev_key == KEY_BACK && n)
+            my_name[--n] = 0;
+        else if (n < NAME_LEN && ((ev_key >= 'A' && ev_key <= 'Z') || (ev_key >= '0' && ev_key <= '9'))) {
+            my_name[n++] = ev_key;
+            my_name[n] = 0;
+            snd_cue(UI_TICK, 0);
+        }
+    }
+}
+uint8_t room_list(void)
+{
+    uint8_t n, i, sel = 0;
+    char b[8];
+    message("LOOKING FOR ROOMS", srv_host, 1);
+    n = net_rooms();
+    if (!n) {
+        message("NO ROOMS FROM", srv_host, 0);
+        return 0;
+    }
+    scr_begin();
+    scr_row(1, PAL_HEAD);
+    centre(1, "PICK A ROOM");
+    scr_text(3, 2, "ROOM          PEOPLE  PLAYING");
+    for (i = 0; i < n; ++i) {
+        scr_text(5 + i * 2, 2, (char *)rooms[i] + 8);
+        numstr(b, rooms[i][20]);
+        scr_text(5 + i * 2, 16, b);
+        scr_text(5 + i * 2, 18, "/10");
+        scr_text(5 + i * 2, 24, rooms[i][22] ? "ROUND" : "WAITING");
+        if (rooms[i][22]) {
+            numstr(b, rooms[i][23]);
+            scr_text(5 + i * 2, 30, b);
+        }
+    }
+    centre(22, "UP/DOWN, FIRE TO JOIN");
+    scr_show();
+    for (;;) {
+        for (i = 0; i < n; ++i)
+            scr_row(5 + i * 2, i == sel ? PAL_HILITE : PAL_TEXT);
+        tick();
+        if (pressed(IN_UP) && sel)
+            --sel, snd_cue(UI_TICK, 0);
+        if (pressed(IN_DOWN) && sel + 1 < n)
+            ++sel, snd_cue(UI_TICK, 0);
+        tick_dir();
+        if (ev_btn) {
+            memset(srv_table, 0, sizeof(srv_table));
+            memcpy(srv_table, rooms[sel], ROOM_LEN);
+            snd_cue(UI_GO, 0);
+            return 1;
+        }
+    }
+}
+#endif

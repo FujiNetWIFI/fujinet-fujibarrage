@@ -1,0 +1,315 @@
+# title.txt -- FujiBarrage's title march (MENU.COM): D minor, 128 BPM.
+# Original. ch1: kick and snare on the beats, hats between, the bass an
+# oom-pah of root and fifth (only notes POKEY's bass voice holds in tune:
+# no G1, B1, C2 or A2). ch2: the fanfare. Form: a snare-roll call, the
+# theme (bars 3-6) and its answer (7-10), an arpeggio lift, the close.
+
+tempo 7                 # 16ths at 128 BPM
+
+pattern intro1
+    K D1    | u D4
+    .       | .
+    .       | .
+    .       | .
+    S       | .
+    S       | .
+    S       | .
+    S       | .
+    S       | u A4
+    S       | .
+    S       | .
+    S       | .
+    S       | .
+    S       | .
+    S       | .
+    S       | .
+end
+
+pattern intro2
+    S D1    | u D5
+    S       | .
+    S       | .
+    S       | .
+    S       | .
+    S       | .
+    S       | .
+    S       | .
+    K D1    | t A5
+    .       | .
+    S       | .
+    S       | .
+    S       | -
+    S       | .
+    S       | .
+    S       | .
+end
+
+pattern a1
+    K D1    | t D5
+    .       | .
+    H       | .
+    .       | .
+    S A1    | t A4
+    .       | .
+    H       | t A4
+    .       | .
+    K D1    | t D5
+    .       | .
+    H       | .
+    .       | .
+    S A1    | t F5
+    .       | .
+    H       | .
+    S       | .
+end
+
+pattern a2
+    K D1    | t A5
+    .       | .
+    H       | .
+    .       | .
+    S A1    | .
+    .       | .
+    H       | t G5
+    .       | .
+    K D1    | t F5
+    .       | .
+    H       | .
+    .       | .
+    S A1    | t E5
+    .       | .
+    H       | .
+    S       | .
+end
+
+pattern a3
+    K C1    | t C5
+    .       | .
+    H       | .
+    .       | .
+    S E1    | t E5
+    .       | .
+    H       | .
+    .       | .
+    K C1    | t G5
+    .       | .
+    H       | .
+    .       | .
+    S E1    | .
+    .       | .
+    H       | t F5
+    S       | .
+end
+
+pattern a4
+    K D1    | t F5
+    .       | .
+    H       | .
+    .       | .
+    S A1    | t E5
+    .       | .
+    H       | .
+    .       | .
+    K D1    | t D5
+    .       | .
+    H       | .
+    .       | .
+    S A1    | .
+    .       | .
+    H       | -
+    S       | .
+end
+
+pattern b1
+    K D1    | t D5
+    .       | .
+    H       | -
+    .       | .
+    S A1    | t D5
+    .       | .
+    H       | t F5
+    .       | .
+    K D1    | t A5
+    .       | .
+    H       | .
+    .       | .
+    S A1    | t D6
+    .       | .
+    H       | .
+    S       | .
+end
+
+pattern b2
+    K F1    | t C6
+    .       | .
+    H       | .
+    .       | .
+    S C1    | .
+    .       | .
+    H       | t Bb5
+    .       | .
+    K F1    | t A5
+    .       | .
+    H       | .
+    .       | .
+    S C1    | t G5
+    .       | .
+    H       | .
+    S       | .
+end
+
+pattern b3
+    K Bb1   | t Bb5
+    .       | .
+    H       | .
+    .       | .
+    S F1    | .
+    .       | .
+    H       | t A5
+    .       | .
+    K Bb1   | t G5
+    .       | .
+    H       | .
+    .       | .
+    S F1    | t F5
+    .       | .
+    H       | t E5
+    S       | .
+end
+
+pattern b4
+    K A1    | t E5
+    .       | .
+    H       | .
+    .       | .
+    S E1    | t C#5
+    .       | .
+    H       | .
+    .       | .
+    K A1    | t D5
+    .       | .
+    H       | .
+    .       | .
+    S E1    | .
+    .       | .
+    H       | -
+    S       | .
+end
+
+pattern c1
+    K F1    | A F5
+    .       | .
+    H       | .
+    .       | .
+    S C1    | .
+    .       | .
+    H       | .
+    .       | .
+    K F1    | A Bb4
+    .       | .
+    H       | .
+    .       | .
+    S C1    | .
+    .       | .
+    H       | .
+    S       | .
+end
+
+pattern c2
+    K C1    | A C5
+    .       | .
+    H       | .
+    .       | .
+    S E1    | .
+    .       | .
+    H       | .
+    .       | .
+    K C1    | A A4
+    .       | .
+    H       | .
+    .       | .
+    S E1    | .
+    .       | .
+    H       | .
+    S       | .
+end
+
+pattern c3
+    K D1    | a D5
+    .       | .
+    H       | .
+    .       | .
+    S A1    | .
+    .       | .
+    H       | .
+    .       | .
+    K D1    | A Bb4
+    .       | .
+    H       | .
+    .       | .
+    S A1    | .
+    .       | .
+    H       | .
+    S       | .
+end
+
+pattern c4
+    K A1    | A A4
+    .       | .
+    H       | .
+    .       | .
+    S E1    | .
+    .       | .
+    H       | .
+    .       | .
+    K A1    | w E5
+    .       | .
+    H       | .
+    .       | .
+    S E1    | .
+    .       | .
+    H       | .
+    S       | .
+end
+
+pattern end1
+    K D1    | t D5
+    .       | .
+    H       | t F5
+    .       | .
+    S A1    | t A5
+    .       | .
+    H       | t D6
+    .       | .
+    K D1    | .
+    .       | .
+    S       | .
+    S       | .
+    S       | .
+    S       | .
+    S       | .
+    S       | .
+end
+
+pattern end2
+    K D1    | w D6
+    .       | .
+    .       | .
+    .       | .
+    S F1    | .
+    .       | .
+    S       | .
+    .       | .
+    K D1    | .
+    .       | .
+    .       | .
+    .       | .
+    S       | -
+    S       | .
+    K       | .
+    S       | .
+end
+
+song intro1 intro2 a1 a2 a3 a4 b1 b2
+song b3 b4 c1 c2 c3 c4 end1 end2
+loop 2
