@@ -47,6 +47,7 @@ func main() {
 	addr := flag.String("stream", env("BARRAGE_STREAM_ADDR", ":9913"), "stream listen address")
 	seed := flag.Uint64("seed", uint64(time.Now().UnixNano()), "field seed")
 	cheader := flag.Bool("cheader", false, "write src/proto.h to stdout and exit")
+	catalog := flag.String("catalog", "", "write the CATALOG's bytes to this file and exit (a client keeping it in ROM)")
 	devset := flag.String("devset", os.Getenv("BARRAGE_DEVSET"), "dev rooms' settings: tanks=3,rounds=2,order=robin,mode=0,walls=1,sky=4,timer=10,arms=4,tier=0,kit=1")
 	flag.Parse()
 	if err := parseDevset(*devset); err != nil {
@@ -54,6 +55,12 @@ func main() {
 	}
 	if *cheader {
 		proto.CHeader(os.Stdout)
+		return
+	}
+	if *catalog != "" {
+		if err := os.WriteFile(*catalog, game.Catalog(), 0o644); err != nil {
+			log.Fatal(err)
+		}
 		return
 	}
 	book, err := talk.Load(os.Getenv("BARRAGE_TALK_FIRE"), os.Getenv("BARRAGE_TALK_LAST"))

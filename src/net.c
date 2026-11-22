@@ -228,6 +228,11 @@ static uint8_t frame(uint8_t n)
         }
         break;
     case CS_TERRAIN:
+        /* terrain while a script plays: the server left our shot behind
+           (play_skip ends it). Its diff runs from the shot's start and our
+           field is part-way through it: ours no longer (as the INTV's). */
+        if (play_skip())
+            net_tv = 0xFF;
         if (p[0] != 0xFF && p[0] != net_tv) {
             net_tv = 0xFF;              /* not what we have: all of it again */
             resync();

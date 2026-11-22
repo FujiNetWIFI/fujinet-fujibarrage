@@ -113,6 +113,18 @@ IntyBASIC 1.5, with the hot paths in CP1610 assembly. What it took:
 - **IntyBASIC's 24-word stack is too small** for the field's assembly plus the frame handler. The Makefile makes it 40 words and fails a build whose variables then overrun.
 - **Sound:** the PSG's three voices. Booms are noise on the chip's envelope, so they die away smoothly; its 16-step decay takes EP x 0.143 ms.
 
+## The Astrocade
+
+`src/astrocade/` is Z80 assembly (zmac), as FujiBlast's Astrocade client
+is, on the FujiNet cartridge's APPBANK pages. What it took:
+- **All the RAM is the screen's 4K.** The cartridge has none. The field (160x56 at 2 bits a pixel, the Atari's own layout) and the HUD take 61 lines. The variables, the script buffer, the tracks and the stack live in the rest. The text screens (82 lines) lie over the shot's tables, which nothing needs between shots. `tools/astro/checksize.py` fails a build that runs past it, and keeps the stack's 64 bytes.
+- **Code in 4K pages,** one mapped at $2000 at a time, with 2.75K resident. A page calls another with `FAR`, never by a pointer into its own ROM. Every page that draws has its own copy of the pixel primitives, the same source with a renamed prefix, because a `FAR` call a pixel would cost ten times the pixel. `tools/astro/checkcalls.py` fails a jump between pages.
+- **Colour:** eight colour registers split at a movable column. A band interrupt every 4 lines sets that band's sky, its two tank colours and the split between them. A solver gives each tank a colour in every band it touches: yours, the shooter's and the turn's keep theirs. Past two tanks in a band, the others alternate at 30 Hz. The power and energy bars are the border below the field.
+- **No ROM catalog from the link:** the K frames are dropped, and the build writes the catalog into a page (`barraged -catalog`). The state's catalog length and sum must match, or the waiting room says UPDATE FUJIBARRAGE.
+- **CPU:** a Z80 at 1.79 MHz, about 30,000 cycles a frame, and the band interrupts take about a quarter of them. Explosions and craters are drawn a byte (4 pixels) at a time, and settles write 4 solid columns at once. The player catches up to 8 steps a frame and draws once. A MEGA MIRV still ends about a second late.
+- **The link:** `CAP_HOLD`. While a script waits for its next segment, the link runs its transactions back to back. Every read asks only for what STATUS says is waiting, because older firmware loses a short read's bytes.
+- **Sound:** three tones and a noise on one master oscillator. The tunes keep the master at 26 (from about 130 Hz up, so the bass is an octave or two up). On the field, where no tune plays, an effect's noise may set the master and modulate it: that gives thumps down to about 30 Hz and the nuke's roar. The tunes are voiced by instrument from music/*.txt, at 3 bytes a note.
+
 ## Testing a port
 
 - **Exact pictures:** `refview -fixture FILE` writes a field and one shot as a C header (`src/test/fixture.h`). A test build plays it offline: the `src/test.c` scenes are the field, a shot, the rooms, the results and the tunes. Compare your field after the shot with refview's `shot1.px`, pixel for pixel, for every weapon. `tools/atarisim/refcheck.py` does this for the Atari: 0 pixels must differ.

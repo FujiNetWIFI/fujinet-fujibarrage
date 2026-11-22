@@ -87,6 +87,7 @@ void play_frame(void);
 uint8_t play_esc(void);             /* ESC on the field: 1 if it closed something */
 void play_script(void);             /* a segment is ready: play it */
 void play_segment(void);            /* (the same, no link: test scenes) */
+uint8_t play_skip(void);            /* our shot left behind: its script ends (1) */
 uint16_t entry_len(const uint8_t *e);
 
 /* menus.c */

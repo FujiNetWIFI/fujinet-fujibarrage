@@ -22,6 +22,7 @@ var shapes = []Caps{
 	{FieldW: 320, FieldH: 176, Hz: 60, Buf: 8192, TankW: 12, TankH: 6}, // CGA
 	{FieldW: 160, FieldH: 80, Hz: 60, Buf: 1024, TankW: 7, TankH: 5},   // Intellivision
 	{FieldW: 160, FieldH: 80, Hz: 50, Buf: 1024, TankW: 7, TankH: 5},   // the same, PAL
+	{FieldW: 160, FieldH: 56, Hz: 60, Buf: 240, TankW: 7, TankH: 5},    // Astrocade
 }
 
 func field(seed uint64) *sim.Sim {
@@ -122,5 +123,39 @@ func TestEveryWeaponRoundTrip(t *testing.T) {
 			lg := s.Resolve([]sim.Shot{shot}, false)
 			check(t, fmt.Sprintf("%s wall %d", items.All[w].Name, wall), s, pre, lg)
 		}
+	}
+}
+
+// The Astrocade's 4K holds a script buffer of 240 bytes: how many segments
+// each weapon's shot takes there, against 320 and 400 (go test -run
+// SegmentCounts -v). The Astrocade trades field lines for buffer bytes.
+func TestSegmentCounts(t *testing.T) {
+	bufs := []int{240, 320, 400}
+	tot := make([]int, len(bufs))
+	for w := 0; w < proto.NWeapons; w++ {
+		line := fmt.Sprintf("%-18s", items.All[w].Name)
+		for i, b := range bufs {
+			n, most := 0, 0
+			for k := 0; k < 4; k++ {
+				seed := uint64(100 + w*7 + k)
+				s := field(seed)
+				pre := s.T.Clone()
+				shot := sim.Shot{Seat: 3, Angle: 40 + int(seed*13)%100, Power: 200 + int(seed*41)%450,
+					Weapon: w, Guide: proto.INone, Target: proto.NoSeat}
+				lg := s.Resolve([]sim.Shot{shot}, false)
+				c := Caps{FieldW: 160, FieldH: 56, Hz: 60, Buf: b, TankW: 7, TankH: 5}
+				segs := Script(lg, pre, c)
+				n += len(segs)
+				if len(segs) > most {
+					most = len(segs)
+				}
+			}
+			tot[i] += n
+			line += fmt.Sprintf("  %d: %4.1f (most %d)", b, float64(n)/4, most)
+		}
+		t.Log(line)
+	}
+	for i, b := range bufs {
+		t.Logf("buffer %d: %.2f segments a shot on average", b, float64(tot[i])/float64(4*proto.NWeapons))
 	}
 }

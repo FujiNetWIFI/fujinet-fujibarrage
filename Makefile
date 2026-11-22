@@ -12,6 +12,10 @@
 #   make intv                      r2r/intv/barrage.rom (Intellivision, FujiNet cartridge;
 #                                  src/intv/Makefile: IntyBASIC + as1600, TEST=1 as above)
 #   make fixture-intv              src/intv/test/fixture.bas: its test scenes' field and shot
+#   make astrocade                 r2r/astrocade/barrage.bin (Bally Astrocade, FujiNet cartridge;
+#                                  src/astrocade/build.sh: zmac, the APPBANK image)
+#   make astrocade-rig             build/astrocade-rig/barrage.bin: default server 127.0.0.1:9913
+#   make fixture-astrocade         src/astrocade/test/fixture.inc: its test scenes' field and shot
 #
 # src/ is platform neutral; src/platform-specific/*.h is what each platform
 # implements in src/<platform>/. The server sends every client its field and
@@ -124,5 +128,20 @@ fixture-intv:
 	    -fixture-bas ../src/intv/test/fixture.bas -out ../build/refview-intv
 
 .PHONY: intv fixture-intv
+
+# ---- Bally Astrocade (the FujiNet cartridge) -------------------------------
+# Z80 assembly (zmac 1.3), not MekkoGX: src/astrocade/build.sh builds the
+# APPBANK image and runs its checks
+astrocade:
+	$(if $(SERVER),DEFSRV=$(SERVER)) bash src/astrocade/build.sh
+
+astrocade-rig:
+	DEFSRV=127.0.0.1:9913 OUT=build/astrocade-rig/obj R2R=build/astrocade-rig bash src/astrocade/build.sh
+
+fixture-astrocade:
+	cd server && go run ./cmd/refview -w 160 -h 56 -par 54 -buf 240 -shots 1 -seed 5 -weapon 9 \
+	    -fixture-asm ../src/astrocade/test/fixture.inc -out ../build/refview-astrocade
+
+.PHONY: astrocade astrocade-rig fixture-astrocade
 
 include mekkogx/toplevel-rules.mk

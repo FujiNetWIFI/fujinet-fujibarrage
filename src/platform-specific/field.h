@@ -18,7 +18,9 @@
 #define TANK_W  7
 #define TANK_H  5
 #define PAR     109             /* pixel aspect, 64ths */
+#ifndef SCRIPT_BUF                  /* (a rig's build may make it smaller) */
 #define SCRIPT_BUF 1536
+#endif
 #define BANDS   4
 #endif
 

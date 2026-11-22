@@ -83,6 +83,11 @@ var Atari = project.Caps{FieldW: 160, FieldH: 168, Par: 109, Hz: 60, TankW: 7, T
 var Intv = project.Caps{FieldW: 160, FieldH: 80, Par: 54, Hz: 60, TankW: 7, TankH: 5, Buf: 1024,
 	Bands: 8, Plat: proto.PlatIntv}
 
+// Astrocade is the Bally Astrocade client's shape: its 4K of RAM (screen
+// included) holds a 160x56 field and a 240-byte script buffer.
+var Astrocade = project.Caps{FieldW: 160, FieldH: 56, Par: 54, Hz: 60, TankW: 7, TankH: 5, Buf: 240,
+	Bands: 2, Flags: proto.CapHold, Plat: proto.PlatAstrocade}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps

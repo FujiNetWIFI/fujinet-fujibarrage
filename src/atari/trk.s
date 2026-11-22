@@ -6,8 +6,9 @@
 ;       X += VX;  Y += VY;  VX += AX;  VY += AY
 ;
 ; and the head is drawn at (X >> 12, Y >> 12) -- the server's fitter runs
-; the very same integers. A head is drawn (colour 3) only over sky, and the
-; pixel under it is put back when it moves; a smoke trail's stays.
+; the very same integers. A head is drawn (colour 3) only over sky (a smoke
+; trail's over fire too), and the pixel under it is put back when it moves;
+; a smoke trail's stays.
 ;
         .export _trk_load, _trk_step, _trk_stop, _trk_reset, _trk_fall
         .importzp _fx, _fy, _fv, ptr1
@@ -270,6 +271,8 @@ on_:    stx     slot
         ldx     slot
         cmp     #PX_SKY
         beq     @draw
+        cmp     #PX_FX          ; a trail's over fire too (refview's drawHead:
+        bne     @x              ;  never over dirt or a tank)
         tay
         lda     style,x
         and     #15

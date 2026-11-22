@@ -585,10 +585,27 @@ static void draw(void)
         snd_whistle(f != 0, 16 + (f >> 2));
 }
 
+/* the script's end: anything still going finishes now */
+static void script_end(void)
+{
+    uint8_t i;
+    for (i = 0; i < 16; ++i)
+        trk_stop(i);
+    ops_beams_off();
+    if (talk_seat != NONE)
+        field_balloon(talk_seat, 0, 0);
+    talk_seat = NONE;
+    field_fire(0);
+    snd_whistle(0, 0);
+    snd_blip(0);
+    in_script = 0;
+    net_terrain = 1;                    /* settles cut through tanks: all again */
+}
+
 /* play the segment in script[] (seg_len bytes) to its end */
 void play_segment(void)
 {
-    uint8_t last, behind, i;
+    uint8_t last, behind;
     in_script = 1;
     my_turn = 0;
     if (seg_no == 0)                    /* a new shot */
@@ -611,20 +628,19 @@ void play_segment(void)
         draw();
     }
     ply_end();
-    /* the script's end: anything still going finishes now */
-    if (seg_flags & S_LAST_SEG) {
-        for (i = 0; i < 16; ++i)
-            trk_stop(i);
-        ops_beams_off();
-        if (talk_seat != NONE)
-            field_balloon(talk_seat, 0, 0);
-        talk_seat = NONE;
-        field_fire(0);
-        snd_whistle(0, 0);
-        snd_blip(0);
-        in_script = 0;
-        net_terrain = 1;                /* settles cut through tanks: all again */
-    }
+    if (seg_flags & S_LAST_SEG)
+        script_end();
+}
+
+/* a TERRAIN came while a script was under way: the server stopped waiting
+   for our D and left the shot behind. The script ends here (1 if so), and
+   the caller takes the field as not ours: all of it comes again. */
+uint8_t play_skip(void)
+{
+    if (!in_script)
+        return 0;
+    script_end();
+    return 1;
 }
 
 void play_script(void)

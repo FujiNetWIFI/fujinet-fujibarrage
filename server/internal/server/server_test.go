@@ -130,6 +130,14 @@ func TestIntvGameAgainstBots(t *testing.T) {
 	}
 }
 
+// The Astrocade's shape: CAP_HOLD and a 240-byte buffer, so big shots come
+// in several segments, each held and each after the last one's D.
+func TestAstrocadeGameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.Astrocade, mode)
+	}
+}
+
 func botGame(t *testing.T, caps project.Caps, mode int) {
 	t.Helper()
 	s, ck, addr := serve(t)
