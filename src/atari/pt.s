@@ -15,7 +15,8 @@
         .import _tk, _rowlo, _rowhi
 
 NP      = 16
-RANDOM  = $D20A
+        .include "hw.inc"
+RANDOM  = POKEY + $0A
 
 ; a kind's parameters (par, 9 bytes each)
 P_N     = 0             ; how many

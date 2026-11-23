@@ -161,6 +161,12 @@ func TestAdamGameAgainstBots(t *testing.T) {
 	}
 }
 
+func TestAtari5200GameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.Atari5200, mode)
+	}
+}
+
 func botGame(t *testing.T, caps project.Caps, mode int) {
 	t.Helper()
 	s, ck, addr := serve(t)

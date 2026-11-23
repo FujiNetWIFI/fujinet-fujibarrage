@@ -84,21 +84,54 @@ void title(void)
     snd_cue(UI_GO, 0);
 }
 
+#ifdef NAME_WHEEL
+/* no keyboard: a letter wheel. The stick's up and down turn it, right or
+   the button takes the letter, left takes one back; the keypad's digits
+   type themselves; START (RETURN) is done. */
+static const char wheel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+#endif
+
 void name_entry(void)
 {
     uint8_t n = 0;
+#ifdef NAME_WHEEL
+    uint8_t w = 0;
+    char c[2];
+    c[1] = 0;
+#endif
     scr_begin();
     scr_row(8, PAL_HEAD);
     centre(8, "WHAT'S YOUR NAME?");
     scr_row(12, PAL_HILITE);
+#ifdef NAME_WHEEL
+    centre(16, "UP/DOWN: LETTER  FIRE: TAKE IT");
+    centre(18, "LEFT: BACK  START: DONE");
+#endif
     scr_show();
     for (;;) {
         scr_clear_row(12);
         scr_text(12, (SCR_COLS - NAME_LEN) / 2, my_name);
+#ifdef NAME_WHEEL
+        if (n < NAME_LEN) {
+            c[0] = wheel[w];
+            scr_text(12, (SCR_COLS - NAME_LEN) / 2 + n, c);
+        }
+#endif
         scr_inverse(12, (SCR_COLS - NAME_LEN) / 2 + n, 1);
         tick();
         if (ev_key == KEY_RETURN && n)
             break;
+#ifdef NAME_WHEEL
+        if (pressed(IN_UP))
+            w = w ? w - 1 : sizeof(wheel) - 2;
+        else if (pressed(IN_DOWN))
+            w = w < sizeof(wheel) - 2 ? w + 1 : 0;
+        else if ((pressed(IN_RIGHT) || ev_btn) && n < NAME_LEN)
+            ev_key = wheel[w];
+        else if (pressed(IN_LEFT))
+            ev_key = KEY_BACK;
+        tick_dir();
+#endif
         if (ev_key == KEY_BACK && n)
             my_name[--n] = 0;
         else if (n < NAME_LEN && ((ev_key >= 'A' && ev_key <= 'Z') || (ev_key >= '0' && ev_key <= '9'))) {

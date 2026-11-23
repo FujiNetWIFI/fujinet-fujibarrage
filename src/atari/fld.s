@@ -43,9 +43,19 @@ ei:     .res 1
 erem:   .res 1
 ehw:    .res 2
 
+.ifdef __ATARI5200__
+        .rodata                 ; (16K of RAM: the field never moves, so they're ROM)
+_rowlo: .repeat FLINES, I
+        .byte   <(FIELD + I * 40)
+        .endrep
+_rowhi: .repeat FLINES, I
+        .byte   >(FIELD + I * 40)
+        .endrep
+.else
         .segment "LOWBSS"
 _rowlo: .res FLINES
 _rowhi: .res FLINES
+.endif
 
         .rodata
 ; a quarter circle: q32[i] = 64 sqrt(1 - (i/32)^2)
@@ -60,6 +70,7 @@ rmask:  .byte   $C0, $F0, $FC, $FF      ; its last byte: up to pixel n
 
 ; void fld_init(void): the line address tables
 _fld_init:
+.ifndef __ATARI5200__        ; (the 5200's are ROM)
         lda     #<FIELD
         sta     fp
         lda     #>FIELD
@@ -78,6 +89,7 @@ _fld_init:
 @n:     inx
         cpx     #FLINES
         bne     @l
+.endif
         rts
 
 ; void fld_clear(void): all sky

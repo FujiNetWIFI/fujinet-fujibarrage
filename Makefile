@@ -21,6 +21,8 @@
 #   make coco                      r2r/coco/barrage.dsk (CoCo 1/2 64K and CoCo 3, one disk;
 #                                  tools/coco/build.mk: CMOC, TEST=1 and VIDEO_CARD=1 as above)
 #   make fixture-astrocade         src/astrocade/test/fixture.inc: its test scenes' field and shot
+#   make atari5200                 r2r/atari5200/barrage.a52 (Atari 5200, FujiNet cartridge;
+#                                  tools/atari5200/build.mk: cc65 in defoogi, TEST=1, TEST_SCENE=n)
 #   make adam                      r2r/adam/barrage.ddp (Coleco Adam; tools/adam/build.mk:
 #                                  z88dk in defoogi, TEST=1, TEST_SCENE=n and VIDEO_CARD=1)
 #
@@ -123,6 +125,35 @@ proto:
 	sed -n 's/^#define \([A-Z_0-9]*\) *\([0-9][0-9]*\)$$/\1 EQU \2/p' src/proto.h > src/6809/proto.inc
 	@mkdir -p src/z80
 	sed -n 's/^#define \([A-Z_0-9]*\) *\([0-9][0-9]*\)$$/\tdefc \1 = \2/p' src/proto.h > src/z80/proto.inc
+
+# ---- Atari 5200 (the FujiNet 5200 cartridge) ---------------------------------
+# The Atari's client (src/atari) assembled for the 5200 (src/atari5200): cc65
+# in the defoogi container (tools/atari5200/build.mk), a 128K Super Cart, the
+# menu in bank 0 and the game in banks 1-3. fujinet-lib is
+# fujinet-lib-experimental's add-atari5200 branch, built on the host
+# (tools/atari5200/mkfnlib.sh: in defoogi $HOME is another). The catalog is
+# in ROM (16K of RAM): the server's own bytes (barraged -catalog).
+FNLIB_5200 ?= $(HOME)/Workspace/fnlib-5200
+SERVER_GO := $(shell find server -name '*.go' -not -name '*_test.go')
+
+atari5200: gen/config.h gen/font35.h gen/atari/tunes.s gen/atari5200/catalog.h build/fnlib-a52/fujinet-a52.lib
+	defoogi $(MAKE) -f tools/atari5200/build.mk $(if $(TEST),TEST=$(TEST)) \
+	    $(if $(TEST_SCENE),TEST_SCENE=$(TEST_SCENE) TEST_ARG=$(TEST_ARG)) $(if $(XFLAGS),XFLAGS="$(XFLAGS)")
+
+build/fnlib-a52/fujinet-a52.lib: tools/atari5200/mkfnlib.sh
+	tools/atari5200/mkfnlib.sh $(FNLIB_5200) build/fnlib-a52
+
+gen/atari5200/catalog.h: $(SERVER_GO) tools/atari5200/mkcat.py src/proto.h
+	@mkdir -p build/a52 gen/atari5200
+	cd server && go run ./cmd/barraged -catalog ../build/a52/catalog.bin
+	$(PYTHON) tools/atari5200/mkcat.py build/a52/catalog.bin src/proto.h gen/atari5200/catalog.s $@
+
+# the test scenes' field and shot at the 5200's script buffer
+fixture-atari5200:
+	@mkdir -p src/atari5200/test
+	cd server && go run ./cmd/refview -flat -shots 1 -seed 5 -weapon 3 -buf 1024 -fixture-all ../src/atari5200/test/fixture.h -out ../build/refview-a52
+
+.PHONY: atari5200 fixture-atari5200
 
 # ---- Coleco Adam (the TMS9918A, the SN76489) --------------------------------
 # z88dk's zcc with zsdcc and z80asm, in the defoogi container unless z88dk is

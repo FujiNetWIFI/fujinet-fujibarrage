@@ -19,6 +19,7 @@
 	defc PLAT_COCO = 5
 	defc PLAT_COCO3 = 6
 	defc PLAT_ADAM = 7
+	defc PLAT_ATARI5200 = 8
 	defc SC_HELLO = 72
 	defc SC_ROOMS = 84
 	defc SC_ACT = 65

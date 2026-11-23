@@ -1,5 +1,6 @@
 /* nstrans.h -- the byte link to the server: a stream of COBS frames (on the
- * Atari, FujiNet netstream: src/atari/nstream.s, nsatari.c). */
+ * Atari, FujiNet netstream: src/atari/nstream.s, nsatari.c; on the 5200,
+ * the cartridge's mailbox: src/atari5200/nstrans.c). */
 #ifndef NSTRANS_H
 #define NSTRANS_H
 

@@ -6,7 +6,7 @@
  * Slots: 0 the effect, 1 its body or the UI, 2 and 3 (link held only) the
  * low end of blasts and the whistle.
  */
-#ifdef __ATARI__
+#if defined(__ATARI__) || defined(__ATARI5200__)
 
 #include <string.h>
 #include "atari.h"
@@ -74,6 +74,10 @@ void snd_init(void)
 {
     memset(snd_c, 0, sizeof(snd_c));
     snd_pal = (GTIA_PAL & 0x0E) == 0;   /* GTIA: 1 on NTSC, 0 on PAL */
+#ifdef __ATARI5200__
+    snd_ctl = 0x00;                     /* no SIO: all four voices, always */
+    snd_all = 1;
+#endif
 }
 
 /* the cues that are one sound on voice 1 (0: see snd_cue) */
@@ -124,6 +128,9 @@ void snd_cue(uint8_t id, uint8_t size)
 
 void snd_full(uint8_t on)
 {
+#ifdef __ATARI5200__
+    (void)on;                           /* (all four, always: snd_init) */
+#else
     if (on) {
         snd_ptr[5] = snd_ptr[7] = 0;
         snd_c[4] = snd_c[6] = 0;
@@ -133,6 +140,7 @@ void snd_full(uint8_t on)
         snd_all = 0;
         snd_ptr[5] = snd_ptr[7] = 0;
     }
+#endif
 }
 
 void snd_whistle(uint8_t on, uint8_t pitch)

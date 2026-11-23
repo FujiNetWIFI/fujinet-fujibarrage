@@ -83,6 +83,14 @@ static uint8_t play_room(void)
         if (r == NET_STATE) {
             my_seat = st[OFF_MY_SEAT];
             cat_check();
+#ifdef CAT_ROM
+            if (cat_stale) {            /* our catalog in ROM isn't the server's */
+                net_leave();
+                net_close();
+                message("THE SERVER SAID NO", "UPDATE FUJIBARRAGE", 0);
+                return 0;
+            }
+#endif
         }
         want = screen_for();
         if (r == NET_SCRIPT || want != shown || (want == S_FIELD && st[OFF_SEQ] != shown_seq)) {

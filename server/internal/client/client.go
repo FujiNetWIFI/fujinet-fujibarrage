@@ -108,6 +108,11 @@ var Coco3 = project.Caps{FieldW: 320, FieldH: 176, Par: 55, Hz: 60, TankW: 12, T
 var Adam = project.Caps{FieldW: 256, FieldH: 168, Par: 73, Hz: 60, TankW: 7, TankH: 5, Buf: 1536,
 	Bands: 4, Flags: proto.CapHold, Plat: proto.PlatAdam}
 
+// Atari5200 is the Atari 5200 client's shape: the Atari's field, with a
+// smaller script buffer (16K of RAM).
+var Atari5200 = project.Caps{FieldW: 160, FieldH: 168, Par: 109, Hz: 60, TankW: 7, TankH: 5, Buf: 1024,
+	Bands: 4, Flags: proto.CapHold, Plat: proto.PlatAtari5200}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps

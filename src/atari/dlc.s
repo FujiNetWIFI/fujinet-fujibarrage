@@ -23,6 +23,9 @@
 ; void __fastcall__ dlc_palette(uint16_t a)   sky (SKY_*) low, dirt palette high
 ;
         .export _dlc_build, _dlc_palette
+.ifdef __ATARI5200__
+        .export _dlc_sky        ; (dsp.s: the first line's sky, set in the VBI)
+.endif
         .import _tk, _seat_col, _hue, _my_seat, _st, _fld_get
         .import _dl_field, _dsp_chain, _dsp_dl, _dsp_flip, _dsp_front, _dsp_prior
         .import _fx_col
@@ -36,13 +39,9 @@ CODE_MAX = $2F0         ; a 768-byte buffer, less the last routine
 DL_SIZE = 184
 F_LINES = 168
 TANK_H  = 5             ; the body's rows: the player's block
-DLICODE = $9000
-MISSILES = $9B00
-PLAYERS = $9C00
-FIELD_ADDR = $A010
-STATUS_ADDR = $BA50
-VDSLST  = $0200
-WSYNC   = $D40A
+        .include "hw.inc"       ; (DLICODE, PLAYERS, VDSLST, WSYNC, GTIA: the 5200's too)
+FIELD_ADDR = FIELD
+STATUS_ADDR = STATUS
 
         .segment "ZEROPAGE"
 cp:     .res 2          ; where the code goes
@@ -197,13 +196,13 @@ head:   lda     cp
         sta     pp+1
         lda     #$48
         jsr     emit
-        lda     #2
+        lda     #>VDSLST
         sta     rh
         ldx     #<VDSLST
         jsr     sti
         ldx     #<VDSLST+1
         jsr     sti
-        lda     #$D0
+        lda     #>GTIA
         sta     rh
         rts
 
@@ -256,7 +255,7 @@ grad:   stx     gb
         sta     rh
         ldx     #<WSYNC
         jsr     sta_
-        lda     #$D0
+        lda     #>GTIA
         sta     rh
         ldx     #$16
         jsr     sta_
@@ -592,10 +591,10 @@ _dlc_build:
         lda     #$4E
         sta     (dp),y
         iny
-        lda     #<$B000
+        lda     #<FIELD2
         sta     (dp),y
         iny
-        lda     #>$B000
+        lda     #>FIELD2
         sta     (dp),y
 
         ; the routines: R0, the players' first places

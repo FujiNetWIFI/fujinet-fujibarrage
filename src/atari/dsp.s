@@ -20,7 +20,14 @@
         .export _st_bk, _st_c1, _st_c2, _dsp_chain, _dsp_dl, _dsp_prior
         .export _vbi_count, _dl_field, _dsp_front, _dsp_shake
         .import _snd_vbi
+.ifdef __ATARI5200__
+        .import vbi_tail        ; (crt0.s: the clock, the pots, then out)
+.ifndef MENU
+        .import _dlc_sky
+.endif
+.else
         .constructor clrlow, 30
+.endif
 
         .include "hw.inc"
 
@@ -61,6 +68,7 @@ fire:   .byte   $36, $38, $3A, $1C, $1E, $1C, $3A, $38   ; (a hue back on PAL)
 
         .code
 
+.ifndef __ATARI5200__          ; (the 5200's crt0 clears all its RAM)
 ; Low memory ($0480-$09FF: LOWBSS, BSS2) holds variables cc65 doesn't
 ; clear; picoboot used part of it while loading.
 clrlow: lda     #0
@@ -77,9 +85,27 @@ clrlow: lda     #0
         dex
         bpl     @b
         rts
+.endif
 
 ; void dsp_init(void)
 _dsp_init:
+.ifdef __ATARI5200__
+        lda     #0
+        sta     NMIEN
+        lda     #$F8            ; the BIOS's font (the crt0 left CHBASE 0)
+        sta     CHBASE
+        lda     #<tdli
+        sta     VDSLST
+        lda     #>tdli
+        sta     VDSLST+1
+        lda     #<vbi
+        sta     VVBLKI
+        lda     #>vbi
+        sta     VVBLKI+1
+        lda     #$C0
+        sta     NMIEN
+        rts
+.else
         lda     PAL             ; PAL: the fire's hues a step back (scr.c: hue)
         and     #$0E
         bne     @ntsc
@@ -104,6 +130,7 @@ _dsp_init:
         lda     #$C0
         sta     NMIEN
         rts
+.endif
 
 ; ---- the text screen's DLI: the next row's colours, ready since the last --
 tdli:   pha
@@ -137,7 +164,15 @@ prep:   ldx     dli_idx
         rts
 
 ; ---- the VBI ----------------------------------------------------------------
-vbi:    tsx                     ; the stack: Y X A P PCL PCH
+vbi:
+.ifdef __ATARI5200__
+        pha                     ; (the 5200's BIOS pushes nothing: as the OS does)
+        txa
+        pha
+        tya
+        pha
+.endif
+        tsx                     ; the stack: Y X A P PCL PCH
         lda     $0104,x
         and     #$04
         bne     @irq
@@ -175,7 +210,9 @@ vbi:    tsx                     ; the stack: Y X A P PCL PCH
         sta     COLPF2
         lda     #0
         sta     PRIOR
+.ifndef __ATARI5200__
         sta     GPRIOR
+.endif
         sta     GRACTL          ; no players on text (they'd keep their last byte)
         jsr     prep
         jmp     @tail
@@ -203,9 +240,15 @@ vbi:    tsx                     ; the stack: Y X A P PCL PCH
         sta     COLPF1
         lda     _st_c2
         sta     COLPF2
+.if .defined(__ATARI5200__) .and .not .defined(MENU)
+        lda     _dlc_sky        ; the first line's sky now: the 5200's DLI on the
+        sta     COLPF0          ; last text row is late enough that line 0 can
+.endif                          ; show (the status rows don't use COLPF0)
         lda     _dsp_prior
         sta     PRIOR
+.ifndef __ATARI5200__
         sta     GPRIOR
+.endif
         lda     #3
         sta     GRACTL
         lda     _fx_cycle       ; the fire colours turn over
@@ -231,9 +274,15 @@ vbi:    tsx                     ; the stack: Y X A P PCL PCH
 @dli:   lda     #$C0
         sta     NMIEN
 @tail:  jsr     _snd_vbi
+.ifdef __ATARI5200__
+        lda     #1              ; the crt0's shadows not copied (see above)
+        sta     CRITIC
+        jmp     vbi_tail
+.else
         lda     KEYDEL          ; the keyboard's debounce, stage 2's job
         beq     @kd
         dec     KEYDEL
 @kd:    lda     #1              ; no stage 2 (see above)
         sta     CRITIC
         jmp     SYSVBV
+.endif

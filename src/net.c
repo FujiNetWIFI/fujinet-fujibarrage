@@ -35,7 +35,9 @@ static uint8_t stage[STATE_SIZE];
 uint8_t rooms[MAX_ROOMS][ROOM_REC];
 #endif
 uint8_t net_err, net_heard, net_tv = 0xFF, net_terrain;
+#ifndef CAT_ROM
 uint8_t catalog[CAT_MAX];
+#endif
 uint16_t cat_len;
 uint8_t script[SCRIPT_BUF];
 uint16_t seg_len;
@@ -172,7 +174,11 @@ void net_hello(void)
     net_err = 0;
     quiet = q_ping = q_ask = 0;
     resync_owed = 0;
+#ifdef CAT_ROM
+    cat_len = CAT_LEN;                  /* (a RESYNC says we have it all) */
+#else
     cat_len = 0;
+#endif
     cat_ok = 0;
     net_tv = 0xFF;
     seg_len = seg_ready = 0;
@@ -229,11 +235,13 @@ static uint8_t frame(uint8_t n)
         return NET_ERROR;
 #ifndef MENU
     case CS_CATALOG:
+#ifndef CAT_ROM                         /* (ours is in ROM: cat_check compares) */
         off = LE16(p);
         if (off == cat_len && cat_len + n - 3 <= CAT_MAX) {
             memcpy(catalog + cat_len, p + 2, n - 3);
             cat_len += n - 3;
         }
+#endif
         break;
     case CS_TERRAIN:
         /* terrain while a script plays: the server left our shot behind

@@ -16,6 +16,9 @@ void frame_wait(void);
 
 uint8_t plat_rand(void);
 uint8_t plat_hz(void);          /* 50 or 60: the display's frames a second */
+#ifdef __ATARI5200__
+#define NAME_WHEEL              /* no keyboard: the name from a letter wheel (menus.c) */
+#endif
 #ifdef __APPLE2__
 /* Nothing interrupts an Apple II: the clock counts when it is asked
  * (src/apple2/lowlevel.s), so the script's clock is a call that asks. */

@@ -7,6 +7,24 @@
 #include "game.h"
 
 uint8_t cat_ok;
+#ifdef CAT_ROM
+/* the catalog in ROM (no RAM for it: the 5200), indexed there by
+   tools/atari5200/mkcat.py; usable when the server's has its length and sum */
+extern const uint16_t item_at[N_ITEMS], set_at[N_SETTINGS], page_at[4], tier_at[N_TIERS];
+uint8_t cat_stale;
+
+uint8_t cat_check(void)
+{
+    if (cat_ok)
+        return 1;
+    if (LE16(st + OFF_CAT_LEN) != CAT_LEN || st[OFF_CAT_SUM] != CAT_S1 || st[OFF_CAT_SUM + 1] != CAT_S2) {
+        cat_stale = 1;
+        return 0;
+    }
+    cat_ok = 1;
+    return 1;
+}
+#else
 #ifdef __CC65__
 #pragma bss-name (push, "HIGH")
 #endif
@@ -58,6 +76,8 @@ uint8_t cat_check(void)
     cat_ok = at <= len;
     return cat_ok;
 }
+
+#endif
 
 const uint8_t *cat_item(uint8_t i)
 {

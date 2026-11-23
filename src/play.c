@@ -16,7 +16,7 @@
 #include "plat.h"
 #include "sound.h"
 
-#ifdef __ATARI__
+#ifdef __ATARI__                        /* (the 5200's keypad stands in: its input.c) */
 #define CONSOL (*(volatile uint8_t *)0xD01F)
 #define CONSOL_KEYS() (~CONSOL & 7)     /* START, SELECT, OPTION held */
 #else
@@ -36,10 +36,16 @@ static uint8_t nlen(const char *s, uint8_t max)
     return n;
 }
 
+#ifdef __ATARI5200__                    /* (the core's, not the field's bank: its callers */
+#pragma code-name (push, "CODE")        /* pass pointers into their own banks) */
+#endif
 uint16_t entry_len(const uint8_t *e)
 {
     return *e <= T_EMPTY ? 1 : 1 + 2 * (*e - T_SPANS);
 }
+#ifdef __ATARI5200__
+#pragma code-name (pop)
+#endif
 
 static uint8_t in_script;
 #ifdef __CC65__

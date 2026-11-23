@@ -82,7 +82,13 @@ extern uint8_t rooms[MAX_ROOMS][ROOM_REC];
 extern uint8_t net_err, net_heard;
 extern uint8_t net_tv;              /* the field's terrain version (0xFF: none) */
 extern uint8_t net_terrain;         /* columns came since play looked */
+#ifdef CAT_ROM
+#include "catalog.h"                /* CAT_LEN, CAT_S1, CAT_S2 */
+extern const uint8_t catalog[];      /* in ROM (gen/<platform>/catalog.s), not sent */
+extern uint8_t cat_stale;           /* the server's isn't it: UPDATE FUJIBARRAGE */
+#else
 extern uint8_t catalog[CAT_MAX];
+#endif
 extern uint16_t cat_len;
 extern uint8_t script[SCRIPT_BUF];
 extern uint16_t seg_len;

@@ -99,13 +99,22 @@
 #ifdef _COCO_BASIC_                     /* (the CoCo 3: no TAB key, W is one) */
 #define TXT_W_HOSTSET "S SEATS  W PAGE  <> CHANGE  FIRE GO"
 #define TXT_W_SET     "S SEATS  W PAGE"
+#elif defined(__ATARI5200__)            /* (the keypad's 0, the lower button) */
+#define TXT_W_HOSTSET "0 SEATS  LOWER PAGE  <> CHANGE  FIRE GO"
+#define TXT_W_SET     "0 SEATS  LOWER BUTTON PAGE"
 #else
 #define TXT_W_HOSTSET "S SEATS  TAB PAGE  <> CHANGE  FIRE GO"
 #define TXT_W_SET     "S SEATS  TAB PAGE"
 #endif
+#ifdef __ATARI5200__
+#define TXT_W_WAIT    "WAITING FOR THE HOST  0 SETTINGS"
+#define TXT_W_PEOPLE  "FIRE STARTS (2+ PEOPLE)  0 SETTINGS"
+#define TXT_W_BOTS    "FIRE STARTS (BOTS FILL)  0 SETTINGS"
+#else
 #define TXT_W_WAIT    "WAITING FOR THE HOST  S SETTINGS"
 #define TXT_W_PEOPLE  "FIRE STARTS (2+ PEOPLE)  S SETTINGS"
 #define TXT_W_BOTS    "FIRE STARTS (BOTS FILL)  S SETTINGS"
+#endif
 #define TXT_TAGLINE  "ARTILLERY FOR UP TO TEN, ON FUJINET"
 #define TXT_GALORE   "WEAPONS, SHIELDS AND BOTS GALORE."
 #define HUD_ANG_L    10
@@ -138,6 +147,8 @@
 #define ITM_DONE_C   27
 #ifdef _COCO_BASIC_                  /* (the CoCo 3: its key is ENTER) */
 #define TXT_SHOP_HINT "FIRE BUYS  LEFT SELLS  ENTER: DONE"
+#elif defined(__ATARI5200__)
+#define TXT_SHOP_HINT "FIRE BUYS  LEFT SELLS  START: DONE"
 #else
 #define TXT_SHOP_HINT "FIRE BUYS  LEFT SELLS  RETURN: DONE"
 #endif
@@ -147,6 +158,8 @@
 #define TXT_DEFENCES "SET UP DEFENCES, ENTER: DONE"
 #elif defined(__ADAM__)
 #define TXT_DEFENCES "SET UP DEFENCES, RETURN DONE"   /* (28: the timer at 29) */
+#elif defined(__ATARI5200__)
+#define TXT_DEFENCES "SET UP DEFENCES, START: DONE"
 #endif
 
 #endif

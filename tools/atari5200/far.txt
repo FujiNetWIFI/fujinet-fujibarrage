@@ -1,0 +1,35 @@
+# far.txt -- the game's overlay functions called from outside their overlay
+# (tools/atari5200/mkfar.py): each gets a wrapper in the core (REPL, every
+# bank) that picks the overlay's bank, calls it, and puts the caller's bank
+# back. The overlay's own is renamed ovl_<name> when it is compiled.
+# tools/atari5200/farcheck.py fails a build that calls across without one.
+# A far function must not be given a pointer into its caller's bank (it
+# reads with its own bank in): such a function goes in the core instead
+# (src/play.c's entry_len: net.c and test.c give it their own bytes).
+#
+# bank 3: the field (src/play.c)
+3 play_enter
+3 play_state
+3 play_frame
+3 play_script
+3 play_esc
+3 play_skip
+3 c_op
+3 c_anim
+3 play_segment
+# bank 2: the rooms (src/room.c), the catalog (src/cat.c and the ROM's)
+2 wait_enter
+2 wait_state
+2 wait_frame
+2 shop_enter
+2 shop_state
+2 shop_frame
+2 results_enter
+2 results_frame
+2 cat_check
+2 cat_item
+2 cat_name
+2 numstr
+# bank 1: the boot code (src/appkey.c's BOOTCODE), the test scenes (src/test.c)
+1 appkey_load
+1 test_check

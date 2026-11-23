@@ -57,6 +57,8 @@ uint8_t fix_ram[FIX_RAM];
 #endif              /* the shot's start and end, in jiffies: the lag */
 #ifdef __ATARI__                        /* (the OS's clock: frame_count stands still in a script) */
 #define TEST_NOW() ((uint16_t)(*(volatile uint8_t *)0x13 << 8 | *(volatile uint8_t *)0x14))
+#elif defined(__ATARI5200__)            /* (the crt0's) */
+#define TEST_NOW() ((uint16_t)(*(volatile uint8_t *)0x01 << 8 | *(volatile uint8_t *)0x02))
 #else
 #define TEST_NOW() frame_count
 #endif

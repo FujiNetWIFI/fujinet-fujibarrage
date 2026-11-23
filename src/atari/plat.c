@@ -31,6 +31,7 @@
 #define CATCH_UP 30             /* jiffies behind: past this (a stall), let them go */
 #define MAX_SKIP 4              /* passes without drawing, at most, when behind */
 
+#ifndef __ATARI5200__                   /* (the 5200's: src/atari5200/bank.s) */
 /* boot the disk again (the OS's cold start), the display's interrupts
  * off first */
 void plat_reboot(void)
@@ -41,6 +42,7 @@ void plat_reboot(void)
     __asm__("sta $D400");
     __asm__("jmp $E477");
 }
+#endif
 
 uint16_t frame_count;
 static uint8_t last_rt, pal_n, is_pal;

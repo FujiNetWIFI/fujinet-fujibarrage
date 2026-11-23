@@ -16,22 +16,29 @@
 #define PX_DIRT 2
 #define PX_FX   3
 
-#ifdef __ATARI__
+#if defined(__ATARI__) || defined(__ATARI5200__)
+/* (the 5200: the Atari's display in 16K of RAM, src/atari5200) */
 #define FIELD_W 160
 #define FIELD_H 168
 #define TANK_W  7
 #define TANK_H  5
 #define PAR     109             /* pixel aspect, 64ths */
+#ifdef __ATARI5200__
+#define SCRIPT_BUF 1024
+#define PLAT_ID   PLAT_ATARI5200
+#define TXT_ITEMS "#: ITEMS"
+#else
 #ifndef SCRIPT_BUF                  /* (a rig's build may make it smaller) */
 #define SCRIPT_BUF 1536
 #endif
-#define BANDS   4
 #define PLAT_ID   PLAT_ATARI    /* HELLO's platform and capabilities (proto.h) */
+#define TXT_ITEMS "OPTION/I: ITEMS"   /* (the defence window, the items line shut) */
+#endif
+#define BANDS   4
 #define PLAT_CAPS CAP_HOLD
 #define ITEMS_ROW 2             /* the items line: the HUD's third row */
 #define PLY_CATCHUP 4           /* script steps a pass, at most, when behind */
 #define MARK_UP (TANK_H + 7)     /* the turn's arrow, its top: over the barrel */
-#define TXT_ITEMS "OPTION/I: ITEMS"   /* (the defence window, the items line shut) */
 #endif
 
 #ifdef __APPLE2__

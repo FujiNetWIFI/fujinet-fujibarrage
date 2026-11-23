@@ -2,7 +2,7 @@
  * scr.c -- text screens (scr.h) on the Atari: 24 rows of ANTIC 2 in the OS
  * font, each row's colours from dsp.s's row tables.
  */
-#ifdef __ATARI__
+#if defined(__ATARI__) || defined(__ATARI5200__)
 
 #include <string.h>
 #include "atari.h"

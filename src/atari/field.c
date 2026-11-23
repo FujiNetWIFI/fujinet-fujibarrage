@@ -7,7 +7,7 @@
  * balloon is a black box with the phrase in COLPF2 (white while it shows),
  * the pixels under it kept and put back.
  */
-#ifdef __ATARI__
+#if defined(__ATARI__) || defined(__ATARI5200__)
 
 #include <string.h>
 #include "atari.h"
