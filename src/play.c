@@ -595,12 +595,12 @@ void play_frame(void)
             aim_a = aim_a + step > 180 ? 180 : aim_a + step;
         if ((d & IN_RIGHT) && aim_a > 0)
             aim_a = aim_a < step ? 0 : aim_a - step;
-        if ((d & IN_UP) && aim_p < energy[my_seat] * 10u)
+        if ((d & IN_UP) && aim_p < U16(energy[my_seat]) * 10u)
             aim_p += step * 5;
         if ((d & IN_DOWN) && aim_p > 0)
             aim_p = aim_p < step * 5u ? 0 : aim_p - step * 5;
-        if (aim_p > energy[my_seat] * 10u)
-            aim_p = energy[my_seat] * 10u;
+        if (aim_p > U16(energy[my_seat]) * 10u)
+            aim_p = U16(energy[my_seat]) * 10u;
         tk[my_seat].angle = aim_a;
         field_tank(my_seat, 1);
         hud_aim();

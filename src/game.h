@@ -38,6 +38,7 @@ extern const uint8_t seat_off[SEATS];
 #define LE32(p)    (*(uint32_t *)(p))
 #define SEATKIND(s, k) ((s) | (k) << 8)
 #define I16(x)     (x)          /* (cc65 promotes; CMOC needs it said) */
+#define U16(x)     (x)
 #else
 #define LE16(p)    ((uint16_t)(p)[0] | (uint16_t)(p)[1] << 8)
 #define LE16A(a, i) ((uint16_t)(a)[i] | (uint16_t)(a)[(i) + 1] << 8)
@@ -47,6 +48,7 @@ extern const uint8_t seat_off[SEATS];
                            st[SEAT_AT(s) + (f) + 1] = (uint8_t)((uint16_t)(v) >> 8))
 #define SEATKIND(s, k) ((uint16_t)(s) | (uint16_t)(k) << 8)
 #define I16(x)     ((int16_t)(x))  /* a byte in signed 16-bit arithmetic (CMOC keeps byte op byte a byte) */
+#define U16(x)     ((uint16_t)(x))  /* the same, unsigned (energy * 10u was a byte: power stopped at 232) */
 #endif
 #ifdef __CC65__
 #define NAME(s)    ((const char *)st + OFF_SEATS + seat_off[s] + P_NAME)
