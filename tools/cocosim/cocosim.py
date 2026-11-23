@@ -29,7 +29,10 @@ the scenario, one command a line; times are in jiffies of the game's clock
     boot                    (first) start at once, not 25 s in
 
 MACHINE=coco3 (or coco2b, the default) picks the machine; COCO_ARTIFACT=1
-(standard), 2 (reversed) or 0 sets the artifact colours; COCO_BIOS=hdbk12 and
+(standard), 2 (reversed) or 0 sets the artifact colours; COCO_BOOT=TEXT
+types TEXT, not RUN"AUTOEXEC" (also on a FujiNet's disk, "-", where HDB-DOS
+runs AUTOEXEC.BAS itself: RUNM"BARRAGE" is what the lobby types, rig.sh's
+NOAUTO=1 a disk without one); COCO_BIOS=hdbk12 and
 COCO_BECKER=1 for a FujiNet (DISK "-": the FujiNet's disk; always port 65504:
 MAME 0.289 aborts when the drivewire_port setting moves it); COCOWAV=FILE
 records the sound. MAME's settings go in a config directory of our own
@@ -170,7 +173,7 @@ local buzz = 0
 _G.COCOSIM = emu.add_machine_frame_notifier(function()
   frames = frames + 1
   if frames > 60 * %d then manager.machine:exit() end
-  if frames == %d and %s then manager.machine.natkeyboard:post('RUN"AUTOEXEC"\\n') end
+  if frames == %d and %s then manager.machine.natkeyboard:post(%s) end
   -- "mame N": MAME's own frames, whatever the banks
   if started and steps[i] ~= nil and steps[i][1] == "mame" then
     if frames >= steps[i][2] then i = i + 1 end
@@ -268,7 +271,9 @@ _G.COCOSIM = emu.add_machine_frame_notifier(function()
   manager.machine:exit()
 end)
 """ % (sym("frame_count"), out, int(os.environ.get("COCOSIM_SECONDS", "600")),
-       int(os.environ.get("COCO_TYPE_AT", "90")), "false" if disk == "-" and not os.environ.get("COCO_TYPE_AT") else "true"))
+       int(os.environ.get("COCO_TYPE_AT", "90")),
+       "false" if disk == "-" and not (os.environ.get("COCO_TYPE_AT") or os.environ.get("COCO_BOOT")) else "true",
+       json.dumps(os.environ.get("COCO_BOOT", 'RUN"AUTOEXEC"') + "\n")))
     luafile = os.path.join(out, "scenario.lua")
     open(luafile, "w").write("\n".join(lua))
     snapdir = os.path.join(out, "raw")

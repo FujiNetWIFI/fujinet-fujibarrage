@@ -16,7 +16,10 @@
 # hdbk3; the CoCo 1/2's is hdbk12). EXTRA: a command run in the namespace
 # first (e.g. tools/rigs/tapproxy.py). SCRIPT is cocosim.py's language; the
 # game is booted by HDB-DOS from the FujiNet's disk (AUTOEXEC.BAS). The
-# copied FujiNet config loses its cloud sections. Never the production
+# copied FujiNet config loses its cloud sections. NOAUTO=1 takes
+# AUTOEXEC.BAS off the rig's copy of the disk, so HDB-DOS stops at OK;
+# COCO_BOOT (cocosim.py) types the command, e.g. RUNM"BARRAGE" as the
+# lobby does. Never the production
 # server or the lobby.
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")/../.." && pwd)
@@ -58,6 +61,9 @@ for line in open(sys.argv[1]).read().splitlines():
 open(sys.argv[2], "w").write("\n".join(out) + "\n")
 PY
 cp "$HERE/r2r/coco/barrage.dsk" "$RIG/fn/SD/barrage.dsk"
+if [ "${NOAUTO:-0}" = 1 ]; then    # as the lobby leaves it: no AUTOEXEC.BAS run (COCO_BOOT='RUNM"BARRAGE"')
+    "${DECB:-$HOME/Workspace/toolshed/build/unix/decb/decb}" kill "$RIG/fn/SD/barrage.dsk,AUTOEXEC.BAS"
+fi
 [ -n "$NAME" ] && printf '%s' "$NAME" > "$RIG/fn/SD/FujiNet/00010100.key"
 [ -n "$ROOM" ] && printf '%s' "$ROOM" > "$RIG/fn/SD/FujiNet/00010113.key"
 

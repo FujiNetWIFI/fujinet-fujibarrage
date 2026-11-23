@@ -321,7 +321,7 @@ uint8_t chain(const char *name);
 #define GAME_FILE "BARRAGE3"
 #else
 #define MENU_FILE "BMENU   "
-#define GAME_FILE "BARRAGE "
+#define GAME_FILE "BARRAG2 "     /* (BARRAGE.BIN is the launcher: launch.asm) */
 #endif
 
 /* the menu (main.c): it doesn't come back */

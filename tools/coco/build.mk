@@ -5,15 +5,17 @@
 #   ... TEST=1                              with the offline test scenes
 #   ... VIDEO_CARD=1                        M0's test card on the screen
 #
-# Each machine's program is a low core (LOADM'd by AUTOEXEC.BAS: the CoCo
-# 1/2's at $2800, the CoCo 3's at $1F00) and the files src/coco/bank.c
+# Each machine's program is a low core (the CoCo 1/2's at $2800, the CoCo
+# 3's at $1F00) and the files src/coco/bank.c
 # loads after it: <name>H.BIN (the high core at $8000; on the CoCo 1/2 the
 # art at $E000 too) and on the CoCo 3 <name>A.BIN (its art block). CMOC has
 # no section pragma: a module goes high (FB_SECT=hi) or into the art
 # (FB_SECT=art) through tools/coco/lwasm-sect, and tools/coco/lwlink-co.py
 # links with src/coco/barrage{,3}.link, checks the regions and splits the
-# result. AUTOEXEC.BAS picks the CoCo 3's on a CoCo 3 (its IRQ vector is
-# $FEF7, so $FFF8 reads $FE).
+# result. BARRAGE.BIN (src/coco/launch.asm) picks the game: BARRAGE3 on a
+# CoCo 3 (its IRQ vector is $FEF7, so $FFF8 reads $FE), else BARRAG2 (the
+# CoCo 1/2's, built as barrage.bin). The lobby types RUNM"BARRAGE" (the
+# disk's name) and never runs AUTOEXEC.BAS; AUTOEXEC.BAS LOADMs it too.
 
 DECB ?= $(firstword $(wildcard $(HOME)/Workspace/toolshed/build/unix/decb/decb) decb)
 CMOC ?= cmoc
@@ -35,7 +37,7 @@ LDFLAGS := --lwlink=$(TOOLS)/lwlink-co.py --initial-s=8000
 .DEFAULT_GOAL := all
 HDRS := $(wildcard src/*.h src/platform-specific/*.h src/coco/*.h src/coco2/*.h src/coco3/*.h src/coco2/test/*.h src/coco3/test/*.h src/coco/include/*.h) gen/config.h
 
-# the game (BARRAGE, BARRAGE3) and the menu (BMENU, BMENU3: -DMENU, the
+# the game (BARRAG2, BARRAGE3) and the menu (BMENU, BMENU3: -DMENU, the
 # title, the name and the room list), as the Atari's and the Apple's
 SHARED := src/main.c src/menus.c src/appkey.c src/net.c src/cat.c
 GAME := src/play.c src/room.c src/test.c src/6809/ply.asm src/6809/trk.asm src/6809/ops.asm src/6809/pt.asm
@@ -134,14 +136,23 @@ $(R)/barrage3h.bin $(R)/barrage3a.bin: $(R)/barrage3.bin
 $(R)/bmenuh.bin: $(R)/bmenu.bin
 $(R)/bmenu3h.bin $(R)/bmenu3a.bin: $(R)/bmenu3.bin
 
+# chain.asm and launch.asm share the loader
+$(foreach p,$(PROGS),$(B)/$(p)/src/coco/chain.o): src/coco/chainld.asm
+
+# the launcher (no C: its own DECB binary at $1000)
+$(B)/launch.bin: src/coco/launch.asm src/coco/chainld.asm
+	@mkdir -p $(B)
+	lwasm --decb -o $@ --list=$(B)/launch.lst $<
+
 all: $(R)/barrage.dsk
 
-$(R)/barrage.dsk: $(BINS)
+$(R)/barrage.dsk: $(BINS) $(B)/launch.bin
 	rm -f $@
 	$(DECB) dskini $@
-	printf '10 PCLEAR1:IF PEEK(&HFFF8)=&HFE THEN LOADM"BARRAGE3":EXEC\n20 LOADM"BARRAGE":EXEC\n' > $(B)/autoexec.bas
+	printf '10 LOADM"BARRAGE":EXEC\n' > $(B)/autoexec.bas
 	$(DECB) copy -0 -a -l -r $(B)/autoexec.bas $@,AUTOEXEC.BAS
-	$(DECB) copy -b -2 -r $(R)/barrage.bin $@,BARRAGE.BIN
+	$(DECB) copy -b -2 -r $(B)/launch.bin $@,BARRAGE.BIN
+	$(DECB) copy -b -2 -r $(R)/barrage.bin $@,BARRAG2.BIN
 	$(DECB) copy -b -2 -r $(R)/barrageh.bin $@,BARRAGEH.BIN
 	$(DECB) copy -b -2 -r $(R)/barrage3.bin $@,BARRAGE3.BIN
 	$(DECB) copy -b -2 -r $(R)/barrage3h.bin $@,BARRAG3H.BIN
