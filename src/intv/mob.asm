@@ -66,8 +66,9 @@ TANKS_MOB: PROC
 @@x:    PULR    PC
 
 ;; @@put: seat R1's words on MOB R3, in its effect's colours: burning (a
-;; death: the fire's colours, cycling), flashing (a shield: white every
-;; other two frames). R2-R4 kept.
+;; death: the fire's colours, cycling), blinking (our turn: MB_ME, 16
+;; frames lit, 16 not), flashing (a shield: white every other two frames).
+;; R2-R4 kept.
 @@put:  PSHR    R5
         PSHR    R4
         PSHR    R2
@@ -98,7 +99,23 @@ TANKS_MOB: PROC
         MVI@    R2, R2
         ADDR    R2, R0
         B       @@pa
-@@nb:   MOVR    R1, R2
+@@nb:   MVI     const_MB_ME, R2         ; our turn: our tank blinks (16 frames
+        DECR    R2                      ;  lit, 16 not): white, or yellow when
+        CMPR    R1, R2                  ;  it is white already
+        BNEQ    @@nm
+        MVI     _frame, R2
+        ANDI    #16, R2
+        BEQ     @@pa
+        MOVR    R0, R2
+        ANDI    #$1007, R2
+        ANDI    #$EFF8, R0
+        CMPI    #7, R2
+        BEQ     @@yel
+        ADDI    #7, R0
+        B       @@pa
+@@yel:  ADDI    #6, R0
+        B       @@pa
+@@nm:   MOVR    R1, R2
         ADDI    #const_TK_FL, R2
         MVI@    R2, R2
         TSTR    R2

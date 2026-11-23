@@ -127,7 +127,7 @@ FLSKY:  DB      07H,07H,07H,07H,07H,07H,07H,07H ; a flash's sky: white bands
 ; VBISR: the frame interrupt, under the field and its bars (or a text
 ; screen). On the field: the border below and the next frame's HUD in one
 ; HORCB (b6-7 colour 2: the ground's; b0-5 the HUD's split), the HUD's
-; colours, the frame's dirt and fire, the shimmer's phase (FRAMES b0), the
+; colours, the frame's dirt and fire, the bands' table (BANDA), the
 ; first band's entry waiting in the shadow registers. On a text screen:
 ; TEXTISR's table. Then the frame counted, and the sound's jiffy.
 VBISR:  EX      AF,AF'
@@ -180,12 +180,9 @@ VBD:    LD      A,(DIRTC)       ; the dirt, the fire
 VB0:    LD      A,(HL)
 VB1:    OUT     (COL3L),A
         OUT     (COL3R),A
-        LD      HL,BANDA        ; the shimmer's phase
-        LD      A,(FRAMES)
-        RRCA
-        JR      NC,VB2
-        LD      HL,BANDB
-VB2:    LD      E,(HL)          ; the first band's entry, waiting
+        LD      HL,BANDA        ; the bands (one table: two, alternating each
+                                ;  frame, strobed near the ground on a TV)
+        LD      E,(HL)          ; the first band's entry, waiting
         INC     L
         LD      B,(HL)
         INC     L
@@ -314,7 +311,7 @@ TI1:    POP     HL
         RETI
 
 ; FIELDSCR: the field screen's raster from the next frame: LINES lines,
-; the bands (BANDA, BANDB, SKYTB, HUDC, DIRTC, FIREC set). Clobbers A.
+; the bands (BANDA, SKYTB, HUDC, DIRTC, FIREC set). Clobbers A.
 FIELDSCR: LD    A,VERBLV
         OUT     (VERBL),A
         DI
@@ -334,6 +331,7 @@ TEXTSCR: DI
         LD      (TXPAL),HL
         LD      A,(FLAGS)
         AND     0FFH-FL_FIELD
+        OR      FL_WIPED        ; (the field's RAM goes, its version with it)
         LD      (FLAGS),A
         EI
         LD      A,TVERBL

@@ -17,14 +17,20 @@ defending: PROCEDURE
 END
 
 ' next_item: item = the next owned one from item, a step d (1, or 255 back);
-' I_NONE if none
+' I_NONE if none. In the defence window, the defences alone (shields,
+' parachute, battery, fuse). t is spoilt.
 next_item: PROCEDURE
+    GOSUB defending : t = v
     FOR c = 1 TO N_ITEMS - N_WEAPONS
         item = item + d
         IF item < N_WEAPONS OR item >= N_ITEMS THEN
             IF d = 1 THEN item = N_WEAPONS ELSE item = N_ITEMS - 1
         END IF
-        IF inv(item) AND item <> I_DEFENSE_COMPUTER THEN RETURN
+        IF inv(item) AND item <> I_DEFENSE_COMPUTER THEN
+            IF t = 0 THEN RETURN
+            IF item >= I_PARACHUTE AND item <= I_SUPER_DEFLECTOR THEN RETURN
+            IF item = I_IMPACT_FUSE THEN RETURN
+        END IF
     NEXT c
     item = I_NONE
 END
@@ -99,7 +105,7 @@ items_frame: PROCEDURE
             ELSE
                 POKE RAWB + 3, item
                 na_act = ACT_USE : na_n = 1 : GOSUB net_act
-                IF item <> I_PARACHUTE AND item <> I_IMPACT_FUSE THEN GOSUB items_close : RETURN
+                IF v = 0 AND item <> I_PARACHUTE AND item <> I_IMPACT_FUSE THEN GOSUB items_close : RETURN
             END IF
             GOSUB items_line
         END IF

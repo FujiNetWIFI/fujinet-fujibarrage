@@ -868,6 +868,9 @@ PTERR:  LD      A,C
         LD      A,(NTV)
         CP      E
         JR      NZ,PTEX
+        LD      A,(FLAGS)       ; (a text screen took the field's RAM since:
+        AND     FL_WIPED        ;  the shop left in what the diff skips)
+        JR      NZ,PTEX
         LD      A,(SHOWN)       ; ours, on the field with a script under way:
         CP      S_FIELD         ;  the server stopped waiting for our D (a
         RET     NZ              ;  skip). The shot is over for us, but our field
@@ -885,7 +888,11 @@ PTE0:   LD      A,(NTV)         ; (its first frame: a text screen blanked)
         LD      (NTV),A
         LD      A,PG_PLAY
         LD      HL,E_LOAD
-        JP      PGCALL
+        CALL    PGCALL
+        LD      A,(FLAGS)       ; (the field's RAM ours again)
+        AND     0FFH-FL_WIPED
+        LD      (FLAGS),A
+        RET
 PTE1:   CP      1
         JR      NZ,PTE2
         LD      A,E             ; its new version

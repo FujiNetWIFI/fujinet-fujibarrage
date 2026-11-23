@@ -297,27 +297,30 @@ const (
 // STATE layout: the header, the settings, ten seats, then this client's
 // own cash and inventory.
 const (
-	OffPhase   = 0  // Ph*
-	OffRound   = 1  // 1-based, 0: none yet
-	OffRounds  = 2  // in this game
-	OffHost    = 3  // seat that edits the settings and starts (NoSeat)
-	OffTurn    = 4  // seat aiming (NoSeat: everyone, or nobody)
-	OffTimer   = 5  // seconds left (aim, shop, defence, results)
-	OffMode    = 6  // Mode*
-	OffTanks   = 7  // tanks in this game
-	OffWind    = 8  // int16 LE, the settings' wind units (+: to the right)
-	OffWall    = 10 // Wall*, resolved (never Random/Erratic)
-	OffSky     = 11 // Sky*, resolved
-	OffTV      = 12 // terrain version this STATE goes with
-	OffSID     = 13 // the script id last sent (0: none yet)
-	OffEpoch   = 14 // +1 each game
-	OffSeq     = 15 // +1 each round: the client redraws the field
-	OffSpect   = 16 // watchers
-	OffResult  = 17 // round or game winner's seat, or NoSeat
-	OffMySeat  = 18 // this client's seat, or NoSeat
-	OffPalette = 19 // the round's dirt palette, 0-7
-	OffCatLen  = 20 // uint16 LE: CATALOG length
-	OffCatSum  = 22 // its Fletcher-16 (s1, s2)
+	OffPhase     = 0  // Ph*
+	OffRound     = 1  // 1-based, 0: none yet
+	OffRounds    = 2  // in this game
+	OffHost      = 3  // seat that edits the settings and starts (NoSeat)
+	OffTurn      = 4  // seat aiming (NoSeat: everyone, or nobody)
+	OffTimer     = 5  // seconds left (aim, shop, defence, results)
+	OffMode      = 6  // Mode*
+	OffTanks     = 7  // tanks in this game
+	OffWind      = 8  // int16 LE, the settings' wind units (+: to the right)
+	OffWall      = 10 // Wall*, resolved (never Random/Erratic)
+	OffSky       = 11 // Sky*, resolved
+	OffTV        = 12 // terrain version this STATE goes with
+	OffSID       = 13 // the script id last sent (0: none yet)
+	OffEpoch     = 14 // +1 each game
+	OffSeq       = 15 // +1 each round: the client redraws the field
+	OffSpect     = 16 // watchers
+	OffResult    = 17 // round or game winner's seat, or NoSeat
+	OffMySeat    = 18 // this client's seat, or NoSeat
+	OffPalette   = 19 // the round's dirt palette, 0-7
+	OffCatLen    = 20 // uint16 LE: CATALOG length
+	OffCatSum    = 22 // its Fletcher-16 (s1, s2)
+	OffRoomFlags = 24 // Room*: the room's own rules
+
+	RoomPeople = 1 // people only: no bots fill seats or take over tanks
 
 	OffSettings = 32
 	OffSeats    = OffSettings + 40
@@ -511,6 +514,7 @@ var cdefs = []struct {
 	{"OFF_WIND", OffWind}, {"OFF_WALL", OffWall}, {"OFF_SKY", OffSky}, {"OFF_TV", OffTV}, {"OFF_SID", OffSID},
 	{"OFF_EPOCH", OffEpoch}, {"OFF_SEQ", OffSeq}, {"OFF_SPECT", OffSpect}, {"OFF_RESULT", OffResult},
 	{"OFF_MY_SEAT", OffMySeat}, {"OFF_PALETTE", OffPalette}, {"OFF_CAT_LEN", OffCatLen}, {"OFF_CAT_SUM", OffCatSum},
+	{"OFF_ROOM_FLAGS", OffRoomFlags}, {"ROOM_PEOPLE", RoomPeople},
 	{"OFF_SETTINGS", OffSettings}, {"OFF_SEATS", OffSeats}, {"SEAT_SIZE", SeatSize},
 	{"OFF_CASH", OffCash}, {"OFF_FUEL", OffFuel}, {"OFF_GUIDE", OffGuide}, {"OFF_TARGET", OffTarget},
 	{"OFF_INV", OffInv}, {"STATE_SIZE", StateSize},

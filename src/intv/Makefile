@@ -113,6 +113,8 @@ $(B)/barrage.asm: $(BAS) $(ASMS) $(GENS) $(IB)/intybasic $(IB)/intybasic_prologu
 	cp $(BAS) $(ASMS) $(GENS) $(B)/
 	@# TEST=0: no scenes (they need the fixture)
 	@if [ "$(TEST)" != 1 ]; then printf "test_check: PROCEDURE\nEND\n" > $(B)/test.bas; fi
+	@# the scenes' segment: 4 (the ECS's ROM window) for jzIntv's -s0 runs only
+	printf "    SEGMENT %s\n" $(if $(filter 1,$(TEST)),4,0) > $(B)/testseg.bas
 	cd $(B) && $(IB)/intybasic main.bas barrage.asm $(IB)/ 2>&1 | grep -v '^Warning' | tee intybasic.log
 	@! grep -q -i 'error' $(B)/intybasic.log || { rm -f $@; exit 1; }
 	@# its stack 40 words, not 24: the field's asm nests deep, and the frame
@@ -125,7 +127,7 @@ $(B)/barrage.asm: $(BAS) $(ASMS) $(GENS) $(IB)/intybasic $(IB)/intybasic_prologu
 # the .bin and .cfg only for checkcfg (the .cfg is the memory map)
 $(ROM): $(B)/barrage.asm $(ROOT)/tools/intv/checkcfg.py
 	cd $(B) && $(AS1600) -o barrage.bin -l barrage.lst barrage.asm
-	$(PYTHON) $(ROOT)/tools/intv/checkcfg.py $(B)/barrage.cfg
+	$(PYTHON) $(ROOT)/tools/intv/checkcfg.py $(if $(filter 1,$(TEST)),-test) $(B)/barrage.cfg
 	@mkdir -p $(R2R)
 	cd $(B) && $(AS1600) -o $(ROM) -s $(R2R)/barrage.sym barrage.asm
 	@# checkvars: the 16-bit variables (after the 40-word stack) end before

@@ -124,6 +124,11 @@ void scr_hud(uint8_t row, uint8_t col, const char *s)
     put(20 + row, col, s, 0);
 }
 
+void scr_hud_hi(uint8_t row, uint8_t col, const char *s)
+{
+    put(20 + row, col, s, 1);
+}
+
 void scr_hud_clear(uint8_t row)
 {
     memset(ROW(20 + row), 0xA0, SCR_COLS);

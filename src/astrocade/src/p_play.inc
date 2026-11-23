@@ -37,14 +37,33 @@ TARGET  EQU     GAMEV+17        ;  its target (NO_SEAT),
 DRIVEN  EQU     GAMEV+18        ;  frames driving (an ACT_DRIVE each 8),
 PRVD    EQU     GAMEV+19        ;  last frame's stick (a push is an edge)
 HUDLAY  EQU     GAMEV+20        ; what the HUD's right half shows (M_*, M_DEF)
+TURNJ   EQU     GAMEV+24        ; our turn's first frames: YOUR TURN! (left)
+IDLEJ   EQU     GAMEV+25        ; our turn: frames with nothing pressed (16)
+TMK     EQU     GAMEV+27        ; our turn's arrow drawn (items.inc), and where
+TMKX    EQU     GAMEV+28
+TMKY    EQU     GAMEV+29
+DEFOPN  EQU     GAMEV+30        ; the defence window: its items line opened
 M_ITEM  EQU     1
 M_TARGET EQU    2
 M_DRIVE EQU     3
 M_DEF   EQU     4               ; (HUDLAY: the defence window's prompt)
 
 ; ---- entered, a new state ----------------------------------------------------------
-PENTER: XOR     A
+PENTER: LD      A,(FLAGS)       ; a text screen took the field's RAM, and no
+        AND     FL_WIPED        ;  terrain since (a new round's diff fails in
+        JR      Z,PE0           ;  PTERR: FF): all of it asked for
+        LD      A,(NTV)
+        CP      0FEH
+        JR      NC,PE0
+        LD      A,0FFH
+        LD      (NTV),A
+        LD      HL,RHOLD
+        SET     7,(HL)
+PE0:    XOR     A
         LD      (MYTURN),A
+        LD      (TURNJ),A
+        LD      (TMK),A
+        LD      (DEFOPN),A
         LD      (INSCR),A
         LD      (IMENU),A
         LD      (TALKLEFT),A
@@ -106,7 +125,7 @@ PE4:    LD      A,(HL)
         CALL    ISTURN
         LD      (MYTURN),A
         OR      A
-        CALL    NZ,AIMINIT
+        CALL    NZ,TBEGIN       ; (a round may open on our turn)
         CALL    HUD
         FAR     PG_OPS,SOLVE
         JP      FIELDSCR
@@ -130,9 +149,7 @@ PSTATE: LD      A,(INSCR)
         LD      (MYTURN),A
         JR      Z,PS1
         OR      A
-        JR      Z,PS1
-        CALL    AIMINIT         ; our turn begins
-        SND     UI_TURN
+        CALL    NZ,TBEGIN       ; our turn begins
 PS1:    LD      A,1
         LD      (HUDDIRTY),A
         RET
@@ -164,6 +181,15 @@ ISTURN: LD      A,(ST+OFF_PHASE)
 IST1:   LD      A,1
         RET
 IST0:   XOR     A
+        RET
+
+; TBEGIN: our turn begins: the aim, the cue, YOUR TURN! for 3 seconds.
+TBEGIN: CALL    AIMINIT
+        SND     UI_TURN
+        LD      A,180
+        LD      (TURNJ),A
+        LD      HL,0
+        LD      (IDLEJ),HL
         RET
 
 ; AIMINIT: our aim from the state (the server's: where we left it).
@@ -316,6 +342,10 @@ HU1:    LD      (T0),A          ; T0: the seat shown
         LD      (HUDC+2),A
         LD      A,HUDR1
         LD      (HUDC+3),A
+        CALL    HUDLQ           ; T2: the left half is HUDL's (YOUR TURN!, the
+        LD      (T2),A          ;  defences): no name or numbers under it (a
+        OR      A               ;  frame of them each second, as the timer
+        JR      NZ,HUA          ;  redraws the HUD)
         LD      A,(T0)          ; its name
         CALL    SNAME
         LD      HL,WORK
@@ -323,7 +353,7 @@ HU1:    LD      (T0),A          ; T0: the seat shown
         LD      C,1*4+0
         LD      B,8
         CALL    TX5N
-        LD      A,(T0)          ; its aim: ours as we have it
+HUA:    LD      A,(T0)          ; its aim: ours as we have it
         CALL    SEATP
         PUSH    HL
         POP     IX
@@ -348,7 +378,12 @@ HU1:    LD      (T0),A          ; T0: the seat shown
 HU2:    LD      A,C
         LD      (T1),A          ; T1: the weapon shown
         PUSH    HL
-        LD      L,B             ; the angle (3), the power (4), the energy (3)
+        LD      A,(T2)
+        OR      A
+        JR      Z,HUB
+        CALL    HUDL            ; (YOUR TURN!, SET UP DEFENCES in their place)
+        JR      HUC
+HUB:    LD      L,B             ; the angle (3), the power (4), the energy (3)
         LD      H,0
         LD      E,8
         LD      B,3
@@ -366,7 +401,7 @@ HU2:    LD      A,C
         LD      B,3
         LD      C,1*4+0
         CALL    N5AT
-        POP     HL              ; the bars: power / 25, energy * 2 / 5
+HUC:    POP     HL              ; the bars: power / 25, energy * 2 / 5
         LD      DE,25
         CALL    DIVHL
         LD      A,L
@@ -447,6 +482,37 @@ HU7:    LD      E,38
         LD      B,2
         LD      C,1*4+0
         JP      N5AT
+
+; HUDLQ: A = 1 (NZ) if HUDL has the left half, else 0 (Z).
+HUDLQ:  LD      A,(TURNJ)
+        OR      A
+        LD      A,1
+        RET     NZ
+        JP      DEFEND
+
+; HUDL: the HUD's left half, in place of the name and numbers: YOUR TURN! in our
+; turn's first seconds, SET UP DEFENCES and the seconds left in the defence
+; window (PFRAME flashes its colours). Keeps IX.
+HUDL:   LD      A,(TURNJ)
+        OR      A
+        LD      HL,SYOURT
+        LD      B,20
+        JR      NZ,HL1
+        CALL    DEFEND
+        RET     Z
+        LD      HL,SDEFS
+        LD      B,18
+        CALL    HL1
+        LD      A,(ST+OFF_TIMER)
+        LD      L,A
+        LD      H,0
+        LD      E,18
+        LD      B,2
+        LD      C,1*4+0
+        JP      N5AT
+HL1:    LD      E,0
+        LD      C,1*4+0
+        JP      TX5N
 
 ; HUDR: the HUD's right half (cells 21-39) cleared if what it shows changed;
 ; the items line or the defence prompt drawn (NZ), else Z: the usual.
@@ -562,6 +628,8 @@ HRNUM:  LD      L,A             ; A at cell E (2 digits); NZ
         OR      1
         RET
 SDEF:   DB      "X ITEMS = DONE",0
+SYOURT: DB      "    YOUR TURN!",0
+SDEFS:  DB      "SET UP DEFENCES",0
 SDRV:   DB      "DRIVE <> FUEL",0
 STGT:   DB      "TARGET",0
 SONS:    DB      "ON",0
@@ -588,6 +656,71 @@ DEFEND: LD      A,(ST+OFF_PHASE)
 DF0:    XOR     A
         RET
 
+; PSTAND: a frame of what stands out. YOUR TURN!'s seconds counted down
+; (then the HUD as usual); its, or the defence window's, left half flashed
+; (its two colours swapped every 16 frames); our tank's arrow (items.inc);
+; the cue again after 10 seconds of our turn with nothing pressed; the
+; defence window's items line opened by itself, with the cue.
+PSTAND: LD      A,(TURNJ)
+        OR      A
+        JR      Z,PSD1
+        DEC     A
+        LD      (TURNJ),A
+        JR      NZ,PSD2
+        LD      A,1             ; (over: the HUD as it was)
+        LD      (HUDDIRTY),A
+        JR      PSD3
+PSD1:   CALL    DEFEND
+        JR      Z,PSD3
+PSD2:   LD      A,(TALKLEFT)    ; (not a talk over the HUD)
+        OR      A
+        JR      NZ,PSD3
+        LD      A,(FRAMES)      ; flashing: ground and ink swapped
+        AND     15
+        JR      NZ,PSD3
+        LD      HL,(HUDC)
+        LD      A,L
+        LD      L,H
+        LD      H,A
+        LD      (HUDC),HL
+PSD3:   FAR     PG_OPS,TMFRAME
+        LD      A,(MYTURN)
+        OR      A
+        JR      Z,PSD5
+        LD      A,(EVKEY)       ; our turn, idle: the cue again
+        INC     A               ; (K_NONE: 0)
+        LD      HL,INDIR
+        OR      (HL)
+        LD      HL,EVBTN
+        OR      (HL)
+        LD      HL,(IDLEJ)
+        JR      Z,PSD4
+        LD      HL,0
+PSD4:   INC     HL
+        LD      (IDLEJ),HL
+        LD      DE,600
+        OR      A
+        SBC     HL,DE
+        JR      C,PSD5
+        LD      HL,0
+        LD      (IDLEJ),HL
+        SND     UI_TURN
+PSD5:   CALL    DEFEND          ; the defence window: its line at once
+        JR      NZ,PSD6
+        XOR     A
+        LD      (DEFOPN),A
+        RET
+PSD6:   LD      A,(DEFOPN)
+        OR      A
+        RET     NZ
+        INC     A
+        LD      (DEFOPN),A
+        SND     UI_TURN
+        LD      A,1
+        LD      (HUDDIRTY),A
+        FAR     PG_OPS,IDOPEN
+        RET
+
 ; DIVHL: HL = HL / DE (16 bits, DE > 0). Clobbers A, BC, DE.
 DIVHL:  LD      BC,0
 DVH1:   OR      A
@@ -604,7 +737,8 @@ DVH2:   LD      H,B
 ; the angle, faster the longer held; up and down the power), + the next
 ; weapon we have, FIRE fires; our aim to the server every 8 frames while it
 ; changes.
-PFRAME: LD      A,(TALKLEFT)
+PFRAME: CALL    PSTAND          ; (what stands out: YOUR TURN!, the defences)
+        LD      A,(TALKLEFT)
         OR      A
         JR      NZ,PFR0
         LD      A,(HUDDIRTY)

@@ -213,7 +213,7 @@ sx_utick: DECLE 100,$1A, 0,0
 sx_select: DECLE 180,$3C, 0,0
 sx_go:    DECLE 180,$6C, 140,$6C, 110,$CC, 0,0
 sx_error: DECLE 1500,$AC, 0,0
-sx_turn:  DECLE 240,$5C, 180,$5C, 150,$AC, 0,0
+sx_turn:  DECLE 214,$5A, 170,$5B, 143,$5C, 107,$8F, 107,$5D, 107,$4B, 107,$49, 0,0 ; (a fanfare)
 sx_talk:  DECLE 160,$29, 200,$29, 140,$28, 180,$27, 0,0
 
 ;; each cue's (B, C): SND_* 0-15, then a boom's sizes, then the UI's

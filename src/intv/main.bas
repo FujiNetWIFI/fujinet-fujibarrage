@@ -27,7 +27,8 @@
     ' MAP 2's windows (the Makefile cuts them to what checkcfg.py allows):
     '   5 $4810-$4FFF  the art, the field's tables
     '   0 $5000-$6FFF  the tunes, the link, input, sound, the main loop
-    '   1 $A000-$B7FF  the menus, the rooms, the test scenes
+    '   1 $A000-$B7FF  the menus, the rooms, what stands out (turn.bas)
+    '   4 $7100-$7FFF  the test scenes (TEST=1 only: the ECS's ROM, so never on a console)
     '   2 $C040-$DFFF  the field and the shot
     '   3 $F000-$F7FF  the catalog; IntyBASIC's own (its epilogue)
     SEGMENT 5
@@ -63,9 +64,13 @@
     ASM INCLUDE "sfx.asm"
     INCLUDE "menus.bas"
     INCLUDE "room.bas"
+    INCLUDE "turn.bas"
+    ' the test scenes and their fixture: SEGMENT 4 ($7100-$7FFF, the ECS's
+    ' ROM: free in jzIntv's -s0 runs) in a TEST=1 build, else 0 (stubs)
+    INCLUDE "testseg.bas"
     INCLUDE "fixture.bas"
-    SEGMENT 0
     INCLUDE "test.bas"
+    SEGMENT 0
 
     CONST JOIN_WAIT = 900       ' frames for the first state before giving up
     CONST S_NONE    = 0
@@ -116,6 +121,8 @@ play_room: PROCEDURE
     shown = S_NONE : shown_seq = 0 : #pr_t = 0 : my_seat = NONE : cat_ok = 0
     DO
         GOSUB frame_wait
+        #seen = #jiffy : #frame_count = #seen   ' (the clock, as tick has it: the turn's
+                                        ' banner and reminder, the aim's sends read it)
 pt_a:                                   ' (a pass, for intvsim's prof: pt_a-pt_b)
         GOSUB input_take
         IF ev_key = KEY_MUTE THEN GOSUB snd_toggle_mute

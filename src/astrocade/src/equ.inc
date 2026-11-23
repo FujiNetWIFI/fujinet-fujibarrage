@@ -96,6 +96,8 @@ FL_MUTE  EQU    04H             ;   all sound off
 FL_SNDON EQU    10H             ;   the cart is ours: the frame interrupt plays the sound
 FL_FIELD EQU    20H             ;   the field screen's raster (else a text screen's)
 FL_FIRE  EQU    40H             ;   fire is live: its colour cycles
+FL_WIPED EQU    80H             ;   a text screen since a whole field began: a
+                                ;   diff can't apply (PTERR: all of it, asked again)
 
 NONE    EQU     0FFH
 MAX_ROOMS EQU   8               ; the room list's records (src/game.h)

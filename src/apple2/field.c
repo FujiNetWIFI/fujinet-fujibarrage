@@ -4,9 +4,7 @@
  *
  * HGR has no sprites, so the tanks are in the bitmap as the Atari's are:
  * pixel value 0, black. Yours carries a black pennant (tank pixels too);
- * the turn's tank, while it aims, has a white arrow over it that blinks,
- * drawn as fire over sky and taken away before any script plays (so the
- * script never meets it). A tank's talk is the HUD's fourth row.
+ * the turn's arrow is play.c's. A tank's talk is the HUD's fourth row.
  */
 #ifdef __APPLE2__
 
@@ -48,6 +46,7 @@ void fld_dots(void);
 extern uint8_t flashn;
 void hgr_on(void);
 void scr_hud(uint8_t row, uint8_t col, const char *s);
+void scr_hud_hi(uint8_t row, uint8_t col, const char *s);
 void scr_hud_clear(uint8_t row);
 void scr_for_field(void);
 
@@ -117,7 +116,6 @@ void field_open(uint8_t sky, uint8_t pal)
         fld_pal();
     }
     memset(drawn_on, 0, sizeof(drawn_on));
-    field_turn(NONE);
     scr_for_field();
     frame_wait();
     hgr_on();
@@ -251,57 +249,17 @@ void field_colours(void)
 {
 }
 
-/* ---- the turn's marker ---------------------------------------------------- */
-
-#define MK_UP (TANK_H + 9)        /* the arrow's top: over the barrel and pennant */
-
-static uint8_t mk_seat = NONE, mk_on;
-static int16_t mk_x, mk_y;
-static uint16_t mk_at;
-
-/* a down arrow, 5, 3 and 1 pixels wide: fire over sky (only sky changes) */
-static void marker(uint8_t on)
-{
-    uint8_t from = on ? PX_SKY : PX_FX, to = on ? PX_FX : PX_SKY, r;
-    int8_t c;
-    for (r = 0; r < 3; ++r)
-        for (c = r - 2; c <= 2 - r; ++c)
-            field_swap(mk_x + c, mk_y + r, from, to);
-    mk_on = on;
-}
-
-/* the turn's tank, while it aims: a blinking arrow over it (NONE: away) */
-void field_turn(uint8_t s)
-{
-    if (s >= SEATS || !tk[s].on)
-        s = NONE;
-    if (mk_seat != NONE && (s != mk_seat || tk[s].x != mk_x || tk[s].y - MK_UP != mk_y)) {
-        if (mk_on)
-            marker(0);
-        mk_seat = NONE;
-    }
-    if (s == NONE)
-        return;
-    if (mk_seat == NONE) {
-        mk_seat = s;
-        mk_x = tk[s].x;
-        mk_y = tk[s].y - MK_UP;
-        mk_at = frame_count;
-        marker(1);
-        return;
-    }
-    if ((uint16_t)(frame_count - mk_at) >= 15) {
-        mk_at = frame_count;
-        marker(!mk_on);
-    }
-}
-
 /* ---- the HUD: text rows 20-23 ------------------------------------------- */
 
 void field_status(uint8_t row, uint8_t col, const char *s)
 {
     scr_hud(row, col, s);
     frame_tick();               /* (a whole HUD is longer than the 6522 wraps) */
+}
+
+void field_status_hi(uint8_t row, uint8_t col, const char *s)
+{
+    scr_hud_hi(row, col, s);
 }
 
 void field_status_clear(void)

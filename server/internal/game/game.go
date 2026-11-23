@@ -26,7 +26,7 @@ const (
 	Hz         = 60
 	ThinkJ     = 80 // a bot's turn before it fires: its turret swings
 	ShopJ      = 45 * Hz
-	DefenseJ   = 10 * Hz
+	DefenseJ   = 30 * Hz
 	RoundEndJ  = 6 * Hz
 	GameOverJ  = 15 * Hz
 	WaitGoneJ  = 10 * Hz // a person's link down in the waiting room: seat freed
@@ -117,6 +117,10 @@ type Game struct {
 	Wind   float64
 	Pal    int
 	Dev    bool // a dev room: DevKit and DevTier apply
+	// PeopleOnly: a room for people alone. No bots fill seats or take
+	// over a tank; a game needs two people; one who leaves takes their
+	// tank with them, and with fewer than two left the game is over.
+	PeopleOnly bool
 
 	order   []int // turn order this round
 	turnIdx int
@@ -235,13 +239,21 @@ func (g *Game) humans() int {
 func (g *Game) Humans() int { return g.humans() }
 
 // leave turns a person's seat over: freed in the waiting room, a bot's
-// in a game.
+// in a game (in a room for people only, freed: the tank goes too).
 func (g *Game) leave(seat int) {
 	if seat < 0 || g.P[seat].Kind != proto.KindHuman {
 		return
 	}
 	if g.Phase == proto.PhWait {
 		g.P[seat] = Seat{}
+	} else if g.PeopleOnly {
+		g.P[seat] = Seat{}
+		if t := g.tank(seat); t != nil {
+			t.Alive = false
+		}
+		if g.Phase == proto.PhAim && g.Turn == seat {
+			g.beginAim() // (the next tank's turn, or the round's end)
+		}
 	} else {
 		p := &g.P[seat]
 		p.Kind, p.Tier, p.Conn = proto.KindBot, g.botTier(), false
@@ -249,9 +261,17 @@ func (g *Game) leave(seat int) {
 		g.newBotRound(seat)
 	}
 	g.fixHost()
-	if g.humans() == 0 && g.Phase != proto.PhWait {
+	if g.humans() < g.needPeople() && g.Phase != proto.PhWait {
 		g.reset()
 	}
+}
+
+// needPeople: the people a game needs (two in a room for people only).
+func (g *Game) needPeople() int {
+	if g.PeopleOnly {
+		return 2
+	}
+	return 1
 }
 
 // DevKit gives people a bundle of everything at the start (the dev rooms:
@@ -397,6 +417,9 @@ func (g *Game) Played(seat int, sid byte) {
 
 func (g *Game) start() {
 	n := Specs[proto.SetTanks].Min + g.Set[proto.SetTanks]
+	if g.PeopleOnly {
+		n = 0 // (no bots)
+	}
 	for i := range g.P {
 		if g.count() >= n {
 			break
@@ -1005,7 +1028,7 @@ func (g *Game) Act(seat, act int, a []byte) {
 			g.Set[k] = max(min(arg(1), Specs[k].N()-1), 0)
 		}
 	case proto.ActStart:
-		if g.Phase == proto.PhWait && seat == g.Host {
+		if g.Phase == proto.PhWait && seat == g.Host && g.humans() >= g.needPeople() {
 			g.start()
 		}
 	case proto.ActDone:

@@ -130,24 +130,29 @@ hud: PROCEDURE
         IF my_seat < SEATS THEN hud_s = my_seat ELSE hud_s = 0
     END IF
     s = hud_s
-    r = 0 : v = seat_col(s) : GOSUB gfx_bar
-    #cw = fgbg(seat_txt(s), seat_col(s))
-    #p = 0 : n = NAME_LEN : GOSUB gfx_name
-    IF my_turn AND s = my_seat THEN #nv = aim_a ELSE #nv = pl(s, P_ANGLE)
-    #p = 10 : GOSUB gfx_numr
-    IF my_turn AND s = my_seat THEN #nv = #aim_p ELSE #nv = pl16(s, P_POWER)
-    #p = 15 : GOSUB gfx_numr
-    #nv = PEEK(TK_E + s)
-    #p = 19 : GOSUB gfx_numr
+    GOSUB defending
+    IF v THEN
+        GOSUB def_row0                  ' (the defence window: what to do)
+    ELSE
+        r = 0 : v = seat_col(s) : GOSUB gfx_bar
+        #cw = fgbg(seat_txt(s), seat_col(s))
+        #p = 0 : n = NAME_LEN : GOSUB gfx_name
+        IF my_turn AND s = my_seat THEN #nv = aim_a ELSE #nv = pl(s, P_ANGLE)
+        #p = 10 : GOSUB gfx_numr
+        IF my_turn AND s = my_seat THEN #nv = #aim_p ELSE #nv = pl16(s, P_POWER)
+        #p = 15 : GOSUB gfx_numr
+        #nv = PEEK(TK_E + s)
+        #p = 19 : GOSUB gfx_numr
+    END IF
     IF talk_left THEN RETURN            ' (row 1: a phrase)
     IF menu THEN GOSUB items_line : RETURN
     GOSUB defending
     IF v THEN
         r = 1 : GOSUB gfx_clear_row
-        PRINT AT 20 COLOR CW_YELLOW, "DEFEND: R ITEMS"
-        #nv = rb(ST + OFF_TIMER) : #p = 39 : GOSUB gfx_numr
+        PRINT AT 20 COLOR CW_YELLOW, "R:ITEMS  ENTER:DONE"
         RETURN
     END IF
+    IF PEEK(BAN_ON) = 1 THEN GOSUB banner_row1 : RETURN
     r = 1 : GOSUB gfx_clear_row
     IF my_turn AND s = my_seat THEN i = weapon ELSE i = pl(s, P_WEAPON)
     IF i >= N_ITEMS THEN i = 0
@@ -175,9 +180,11 @@ play_enter: PROCEDURE
     GOSUB gram_fixed_in
     in_script = 0
     my_turn = 0
+    POKE BAN_ON, 0 : POKE DEF_OPEN, 0 : POKE MB_ME, 0
     menu = 0 : guide = I_NONE : target = NO_SEAT
     GOSUB field_open
     GOSUB tanks_from_state
+    GOSUB turn_check                    ' (a round may open on our turn)
     GOSUB hud
 END
 
@@ -192,15 +199,7 @@ END
 
 play_state: PROCEDURE
     IF in_script THEN RETURN
-    GOSUB is_my_turn
-    IF v AND my_turn = 0 THEN
-        aim_a = pl(my_seat, P_ANGLE)
-        #aim_p = pl16(my_seat, P_POWER)
-        weapon = pl(my_seat, P_WEAPON)
-        sent_a = aim_a : #sent_p = #aim_p
-        sid = UI_TURN : GOSUB snd_cue
-    END IF
-    my_turn = v
+    GOSUB turn_check
     GOSUB tanks_from_state
     net_terrain = 0
     GOSUB hud
@@ -224,6 +223,7 @@ END
 play_frame: PROCEDURE
     IF net_terrain THEN GOSUB tanks_from_state : net_terrain = 0
     GOSUB field_draw
+    GOSUB turn_frame
     GOSUB defending
     IF my_turn = 0 AND v = 0 THEN
         IF menu THEN GOSUB items_close
@@ -283,7 +283,7 @@ play_frame: PROCEDURE
         POKE RAWB + 8, target
         na_act = ACT_FIRE : na_n = 6 : GOSUB net_act
         guide = I_NONE : target = NO_SEAT
-        my_turn = 0
+        my_turn = 0 : POKE MB_ME, 0
         GOSUB hud
     END IF
 END
@@ -298,7 +298,7 @@ END
 ' The script's last segment: everything stops.
 play_script: PROCEDURE
     in_script = 1
-    my_turn = 0
+    my_turn = 0 : POKE MB_ME, 0 : POKE BAN_ON, 0
     net_skipped = 0
     IF seg_no = 0 THEN CALL PLY_RESET : talk_left = 0
     CALL PLY_START
@@ -363,12 +363,11 @@ ply_events: PROCEDURE
             NEXT i
             POKE PL_NSND, 0
         END IF
-        IF (v AND EV_FIRE) AND talk_left > 0 THEN talk_left = 1
         IF v AND EV_TALK THEN GOSUB talk_show
         IF v AND EV_HUD THEN GOSUB hud
     END IF
     IF talk_left THEN
-        IF talk_left <= owed THEN talk_left = 0 : GOSUB hud ELSE talk_left = talk_left - owed
+        IF talk_left <= owed THEN talk_left = 0 : GOSUB hud ELSE talk_left = talk_left - owed : GOSUB talk_tick
     END IF
     c = PEEK(PL_FALL)                   ' a shell falling: the whistle, lower as it drops
     IF c AND (snd_off AND 1) = 0 THEN
@@ -390,20 +389,4 @@ ply_events: PROCEDURE
     END IF
 END
 
-' talk_show: the phrase in HUD row 1 (its seat's name, then as much as fits)
-talk_show: PROCEDURE
-    s = PEEK(PL_TALK_S)
-    IF PEEK(TK_ON + s) = 0 THEN RETURN
-    talk_left = 120
-    sid = UI_TALK : GOSUB snd_cue
-    r = 1 : GOSUB gfx_clear_row
-    #p = 20 : n = NAME_LEN : #cw = CW_YELLOW : GOSUB gfx_name
-    #a = ST + OFF_SEATS + s * SEAT_SIZE + P_NAME : n = NAME_LEN : GOSUB gfx_clen
-    #p = 20 + n
-    #BACKTAB(#p) = (58 - 32) * 8 + CW_YELLOW        ' :
-    #p = #p + 2
-    #a = PEEK(PL_TALK_P) : n = PEEK(PL_TALK_N)
-    IF n > 40 - #p THEN n = 40 - #p
-    #cw = CW_WHITE : GOSUB gfx_cstr
-END
 

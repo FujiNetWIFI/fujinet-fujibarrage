@@ -17,15 +17,26 @@ IOPEN:  LD      A,N_ITEMS-1
         JR      NZ,IO1
         SND     UI_ERROR
         RET
-IO1:    LD      (ITEM),A
+IO1:    PUSH    AF
+        SND     UI_SELECT
+        POP     AF
+IO2:    LD      (ITEM),A
         LD      A,M_ITEM
         LD      (IMENU),A
         LD      A,(INDIR)
         LD      (PRVD),A
-        SND     UI_SELECT
         LD      A,1
         LD      (HUDDIRTY),A
         RET
+
+; IDOPEN: the defence window's line, opened by itself (its cue already
+; played): its first item (the defences alone: NEXTI), nothing if none
+IDOPEN: LD      A,N_ITEMS-1
+        LD      C,1
+        CALL    NEXTI
+        CP      I_NONE
+        RET     Z
+        JR      IO2
 
 ICLOSE: CALL    MARKOFF
         XOR     A
@@ -104,6 +115,9 @@ IF3:    LD      A,(ITEM)        ; the rest: used now (the parachute and the
         RET     Z
         CP      I_IMPACT_FUSE
         RET     Z
+        LD      A,(T3)          ; (defending: more to set up)
+        OR      A
+        RET     NZ
         JP      ICLOSE
 IFQ:    XOR     A               ; nothing moved
         LD      (HUDDIRTY),A
@@ -161,6 +175,17 @@ INX2:    CP      N_ITEMS
 INX3:    CP      I_DEFENSE_COMPUTER
         JR      Z,INX4
         LD      E,A
+        LD      A,(DEFOPN)      ; the defence window: the defences alone
+        OR      A
+        LD      A,E
+        JR      Z,INX3A
+        CP      I_PARACHUTE
+        JR      C,INX4
+        CP      I_SUPER_DEFLECTOR+1
+        JR      C,INX3A
+        CP      I_IMPACT_FUSE
+        JR      NZ,INX4
+INX3A:   LD      E,A
         LD      D,0
         LD      HL,ST+OFF_INV
         ADD     HL,DE
@@ -196,6 +221,60 @@ ITX3:    LD      A,E
         DJNZ    ITX1
         LD      A,NO_SEAT
         RET
+
+; TMFRAME: our turn's arrow (3 fire pixels over our tank, over the sky
+; only, as the target's): blinking (16 frames on, 16 off) while we aim, off
+; otherwise. TMOFF: off (a script is coming). Where it was drawn is kept:
+; a tank that drives leaves nothing behind.
+TMFRAME: LD     A,(MYTURN)
+        OR      A
+        JR      Z,TMOFF
+        LD      A,(FRAMES)
+        AND     16
+        JR      Z,TMOFF
+        LD      A,(TMK)
+        OR      A
+        RET     NZ
+        LD      A,(MYSEAT)
+        CP      SEATS
+        RET     NC
+        LD      C,A
+        LD      B,0
+        LD      HL,TKX
+        ADD     HL,BC
+        LD      A,(HL)
+        LD      (TMKX),A
+        LD      HL,TKY
+        ADD     HL,BC
+        LD      A,(HL)
+        SUB     TANK_H+4
+        LD      (TMKY),A
+        LD      A,1
+        LD      (TMK),A
+        LD      DE,PX_SKY*256+PX_FX
+        JR      TMK0
+TMOFF:  LD      A,(TMK)
+        OR      A
+        RET     Z
+        XOR     A
+        LD      (TMK),A
+        LD      DE,PX_FX*256+PX_SKY
+TMK0:   LD      A,(TMKX)
+        DEC     A               ; x - 1, y; x, y + 1; x + 1, y
+        LD      B,A
+        LD      A,(TMKY)
+        LD      C,A
+        PUSH    BC
+        CALL    OQ_SWAP
+        POP     BC
+        INC     B
+        INC     C
+        PUSH    BC
+        CALL    OQ_SWAP
+        POP     BC
+        INC     B
+        DEC     C
+        JP      OQ_SWAP
 
 ; MARKON, MARKOFF: an arrow (3 fire pixels) over the target, over the sky
 ; only (play.c mark).

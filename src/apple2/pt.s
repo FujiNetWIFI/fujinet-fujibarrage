@@ -80,7 +80,7 @@ par:    .byte   16, 0,  1,   0,   2, 1, 0, 0,  14   ; rays
         .byte   16, 0,  1,   0,   3, 4, 0, 0,  8    ; ring: a dome round it
         .byte   16, 0,  1,   0,   3, 0, 0, 0,  8    ; burst
 
-        .code
+        .segment "LC"            ; (the language card: barrage.cfg)
 
 _field_sparks:
         sta     tl              ; the tank: tk + 5 seat
@@ -312,7 +312,7 @@ erase:  lda     ox,x
         sta     ox,x
         rts
 
-        .code
+        .segment "LC"            ; (the language card: barrage.cfg)
 
 _pt_clear:
         ldx     #NP-1

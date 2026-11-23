@@ -1,0 +1,18 @@
+# kit=1: the defence window opens its items line by itself, flashing
+wait 600
+key 32
+wait 600
+key 13
+wait 120
+snap d0
+wait 8
+snap d1
+key 21
+wait 20
+snap d2
+key 32
+wait 30
+snap d3
+key 13
+wait 60
+snap d4

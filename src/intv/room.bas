@@ -150,7 +150,11 @@ wait_state: PROCEDURE
     NEXT s
     r = 11 : v = C_BLUE : GOSUB gfx_bar
     IF my_seat = rb(ST + OFF_HOST) THEN
-        PRINT AT 220 COLOR CB_WHITE, "FIRE:START R:SETUP"
+        IF rb(ST + OFF_ROOM_FLAGS) = ROOM_PEOPLE THEN
+            PRINT AT 220 COLOR CB_WHITE, "FIRE:START 2+ PEOPLE"
+        ELSE
+            PRINT AT 220 COLOR CB_WHITE, "FIRE:START R:SETUP"
+        END IF
     ELSE
         PRINT AT 220 COLOR CB_WHITE, "WAITING  R:SETUP"
     END IF

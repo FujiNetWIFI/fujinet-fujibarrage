@@ -44,6 +44,8 @@
     CONST NV_DECE  = $999B
     CONST NV_S1    = $999C      ' its sums
     CONST NV_S2    = $999D
+    CONST DEF_OPEN = $999E      ' the defence window's items line opened (play.bas)
+    CONST BAN_ON   = $999F      ' YOUR TURN! flashing on row 1 (play.bas)
     CONST CELLW    = $99A0      ' 200: each field cell's BACKTAB word as last drawn (cell.asm)
     CONST SKYW     = $9A68      ' 200: each cell's word when it is all sky (a star or not)
     CONST FLDV     = $9B30      ' 72: fld.asm's and cell.asm's variables (below)
@@ -52,7 +54,10 @@
     CONST MB_T     = MBV + 1
     CONST MB_KEEP  = MBV + 2
     CONST MB_DIRTY = MBV + 3
+    CONST MB_ME    = $9B7C      ' our turn: seat + 1 of the tank that blinks (mob.asm), 0 none
     CONST CO_MM    = $9B7D      ' COLUMN's: the column's bits in a word, both rows
+    CONST TURN_AT  = $9B7E      ' our turn began (#frame_count), and our last press
+    CONST IDLE_AT  = $9B7F
     CONST CSV      = $9B80      ' 48: COLS's (fld.asm):
     CONST CS_P0    = CSV        ' where the entries start, where it is,
     CONST CS_P     = CSV + 1
@@ -93,7 +98,11 @@
     CONST SX_N1    = $9BC1
     CONST SX_NZ    = $9BC2      ' its noise (bit 0 B, bit 1 C), the noise's period
     CONST SX_NP    = $9BC3
-    CONST FREE_RAM = $9BC4      ' to $9BEF
+    CONST TALK_TXT = $9BC4      ' 40: a tank's phrase (a copy: the script moves on)
+    CONST TALK_N   = $9BEC      ' its length, its seat, the name's length,
+    CONST TALK_S   = $9BED
+    CONST TALK_L   = $9BEE
+    CONST TALK_K   = $9BEF      ' the scroll: the first character in the row
 
     ' ---- the script player (ply.asm, trk.asm, ops.asm) ------------------------
     ' TRACKS: 16 tracks, 16 words each: on, style, X (lo, hi), Y (lo, hi),

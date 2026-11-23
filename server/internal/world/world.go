@@ -66,6 +66,22 @@ func (t *Terrain) Surface(x int) int {
 	return H
 }
 
+// Floor is the top of the dirt at the bottom of column x: the row under
+// its lowest air (H if the bottom row is air, 0 if it is all dirt). It is
+// the Surface unless dirt hangs over air: a cavern's roof, an overhang.
+func (t *Terrain) Floor(x int) int {
+	if x < 0 || x >= W {
+		return H
+	}
+	c := t.Col(x)
+	for y := H - 1; y >= 0; y-- {
+		if c[y] == 0 {
+			return y + 1
+		}
+	}
+	return 0
+}
+
 // SurfaceBelow is the first solid row in column x at or below y, or H.
 func (t *Terrain) SurfaceBelow(x, y int) int {
 	if x < 0 || x >= W {

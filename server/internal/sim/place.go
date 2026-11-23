@@ -25,12 +25,13 @@ func (s *Sim) Place(order []int) {
 	}
 }
 
-// Sink settles t onto the dirt under it, flattening a pad.
+// Sink settles t onto the dirt under it, flattening a pad: the floor (in
+// a cavern the floor, not the roof over it).
 func (s *Sim) Sink(t *Tank) {
 	x0 := int(math.Floor(t.X - TankW/2))
 	y := 0
 	for x := x0; x < x0+int(TankW); x++ {
-		y = max(y, s.T.Surface(x))
+		y = max(y, s.T.Floor(x))
 	}
 	if y > world.H {
 		y = world.H

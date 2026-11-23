@@ -215,6 +215,15 @@ void field_status(uint8_t row, uint8_t col, const char *s)
     }
 }
 
+/* in inverse video (the status rows are ANTIC mode 2: bit 7) */
+void field_status_hi(uint8_t row, uint8_t col, const char *s)
+{
+    uint8_t *d = STATUS + row * 40 + col;
+    field_status(row, col, s);
+    while (*s++)
+        *d++ |= 0x80;
+}
+
 void field_status_clear(void)
 {
     memset(STATUS, 0, 120);

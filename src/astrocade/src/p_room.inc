@@ -66,9 +66,13 @@ WD4:    INC     B
         CP      CNSETS
         JR      C,WD3
 WD5:    CALL    ISHOST          ; the hint
-        LD      HL,SHSEAT
-        JR      Z,WD6
         LD      HL,SWAIT
+        JR      NZ,WD6
+        LD      HL,SHSEAT
+        LD      A,(ST+OFF_ROOM_FLAGS)   ; (a room for people only: FIRE needs two)
+        AND     ROOM_PEOPLE
+        JR      Z,WD6
+        LD      HL,SHPPL
 WD6:    LD      A,(WSET)
         OR      A
         JR      Z,WD7
@@ -419,6 +423,7 @@ SLINKD: DB      "(LINK DOWN)",0
 SWINS:  DB      "WINS",0
 SHOSTW: DB      "HOST",0
 SHSEAT: DB      "FIRE STARTS (BOTS FILL)    /: SETTINGS",0
+SHPPL:  DB      "FIRE STARTS (2+ PEOPLE)    /: SETTINGS",0
 SWAIT:  DB      "WAITING FOR THE HOST    /: SETTINGS",0
 SHSET:  DB      "/: SEATS  +: PAGE  <>: CHANGE",0
 SWSET:  DB      "/: SEATS  +: PAGE",0

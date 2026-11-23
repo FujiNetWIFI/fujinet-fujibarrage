@@ -1,0 +1,14 @@
+# your turn: the round opens on ours (robin, we're first): YOUR TURN!
+# flashing, the arrow over our tank, at once
+wait 600
+key 32
+wait 600
+key 13
+wait 200
+snap t0
+wait 8
+snap t1
+wait 8
+snap t2
+wait 200
+snap t3

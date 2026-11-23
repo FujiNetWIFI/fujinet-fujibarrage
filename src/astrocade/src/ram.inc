@@ -3,7 +3,7 @@
 ; The Astrocade's only RAM is the 4K of screen RAM, 4000H-4FFFH, 40 bytes a
 ; line, and the cart has none (its edge has no /WR). The field screen shows
 ; LINES lines (the HUD and the field); past them, in order:
-;   the raster's two shimmer phases (the bands' tank colours and splits),
+;   the raster's bands (their tank colours and splits),
 ;   the shot's tables (the script buffer, tracks, blasts, settles, paths,
 ;     flows, beams): the text screens show TLINES lines over all of this,
 ;     so nothing here may live across a text screen,
@@ -29,10 +29,9 @@ nm      EQU     RAMP
 RAMP    DEFL    RAMP+sz
         ENDM
 
-; ---- the raster: phases A and B (VBISR picks by FRAMES b0), a band's entry
+; ---- the raster: a band's entry
 ; HORCB, L0, R0 (3 bytes; a table never crosses a 256-byte page: INC L)
         VAR     BANDA,3*NBANDS
-        VAR     BANDB,3*NBANDS
 
 ; ---- the shot (p_ply, p_ops): free between shots ---------------------------------
 SHOT    EQU     RAMP

@@ -122,7 +122,8 @@ EFFECTS = {
     "ui_select": {"B": [tone(620, 11, 3, 1)]},
     "ui_go": {"B": [tone(620, 11, 4), tone(800, 11, 4), tone(1020, 11, 8, 2)]},
     "ui_error": {"B": [tone(140, 13, 6), tone(130, 11, 8, 2)]},
-    "ui_turn": {"B": [tone(466, 12, 5), tone(620, 12, 5), tone(745, 13, 12, 3)]},
+    "ui_turn": {"B": [tone(523, 10, 5), tone(659, 11, 5), tone(784, 12, 5),   # a fanfare,
+                      tone(1047, 15, 21, 4)]},                                  #  loudest last
     "ui_talk": {"B": [tone(700, 7, 1), tone(560, 6, 1)]},
 }
 # SND_* 0-15 (src/proto.h's order), then the dense ids p_snd.inc keeps

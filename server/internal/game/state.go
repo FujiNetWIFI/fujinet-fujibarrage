@@ -39,6 +39,9 @@ func (g *Game) State(v Viewer) []byte {
 		left := (g.DeadJ - g.J + Hz - 1) / Hz
 		st[proto.OffTimer] = byte(max(min(left, 255), 0))
 	}
+	if g.PeopleOnly {
+		st[proto.OffRoomFlags] = proto.RoomPeople
+	}
 	st[proto.OffMode] = byte(g.Set[proto.SetMode])
 	st[proto.OffTanks] = byte(g.count())
 	w := int(math.Round(g.Wind))

@@ -152,6 +152,8 @@
 #define OFF_PALETTE        19
 #define OFF_CAT_LEN        20
 #define OFF_CAT_SUM        22
+#define OFF_ROOM_FLAGS     24
+#define ROOM_PEOPLE        1
 #define OFF_SETTINGS       32
 #define OFF_SEATS          72
 #define SEAT_SIZE          25

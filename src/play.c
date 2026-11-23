@@ -106,6 +106,98 @@ static uint8_t defending(void)
            (PL(my_seat, P_FLAGS) & (PF_DEFENSE | PF_DONE)) == PF_DEFENSE;
 }
 
+/* ---- your turn, the defence window: what stands out ------------------------ */
+
+#define BANNER_J 180                    /* YOUR TURN! flashes this long */
+#define REMIND_J 600                    /* idle this long on your turn: the cue again */
+#define TXT_DEFENCES "SET UP DEFENCES, RETURN: DONE"
+
+/* one HUD field flashes (inverse and back, 16 jiffies each): the banner
+ * (row 2, "YOUR TURN!") or the defence window's prompt (row 1) */
+enum { FL_NONE, FL_BANNER, FL_DEFENCE };
+static uint8_t fl_kind, fl_lit, def_open;
+static uint16_t turn_at, idle_at;
+
+static void hud(void);
+static void flash_frame(void)
+{
+    uint8_t lit, row, col;
+    const char *t;
+    if (fl_kind == FL_BANNER) {
+        if (!my_turn || (uint16_t)(frame_count - turn_at) >= BANNER_J) {
+            fl_kind = FL_NONE;
+            hud();                      /* (its usual words) */
+            return;
+        }
+#if ITEMS_ROW == 2
+        if (menu)
+            return;                     /* (row 2 is the items line) */
+#endif
+        row = 2;
+        col = 16;
+        t = "YOUR TURN!";
+    } else if (fl_kind == FL_DEFENCE) {
+        if (!defending()) {
+            fl_kind = FL_NONE;
+            return;
+        }
+        row = 1;
+        col = 0;
+        t = "SET UP DEFENCES";
+    } else
+        return;
+    lit = !(frame_count & 16);
+    if (lit == fl_lit)
+        return;
+    fl_lit = lit;
+    if (lit)
+        field_status_hi(row, col, t);
+    else
+        field_status(row, col, t);
+}
+
+/* the turn's arrow: blinking over the tank whose turn it is (ours, when
+ * everyone aims and we haven't fired); off the field before any script */
+static uint8_t mk_seat = NONE, mk_on;
+static int16_t mk_x, mk_y;
+static uint16_t mk_at;
+
+/* a down arrow, 5, 3 and 1 pixels wide: fire over sky (only sky changes) */
+static void mk_draw(uint8_t on)
+{
+    uint8_t from = on ? PX_SKY : PX_FX, to = on ? PX_FX : PX_SKY, r;
+    int8_t c;
+    for (r = 0; r < 3; ++r)
+        for (c = r - 2; c <= 2 - r; ++c)
+            field_swap(mk_x + c, mk_y + r, from, to);
+    mk_on = on;
+}
+
+static void turn_mark(uint8_t s)
+{
+    if (s >= SEATS || !tk[s].on)
+        s = NONE;
+    if (mk_seat != NONE && (s != mk_seat || tk[s].x != mk_x || tk[s].y - MARK_UP != mk_y)) {
+        if (mk_on)
+            mk_draw(0);
+        mk_seat = NONE;
+    }
+    if (s == NONE)
+        return;
+    if (mk_seat == NONE) {
+        mk_seat = s;
+        mk_x = tk[s].x;
+        mk_y = tk[s].y - MARK_UP;
+        mk_at = frame_count;
+        mk_draw(1);
+        return;
+    }
+    if ((uint16_t)(frame_count - mk_at) >= 15) {
+        mk_at = frame_count;
+        mk_draw(!mk_on);
+    }
+}
+
 /* the items line (OPTION) into line: what is open, the item, guidance and
  * its target */
 static void items_line(void)
@@ -139,6 +231,7 @@ static void hud(void)
     uint8_t s = st[OFF_TURN];
     int16_t w = (int16_t)(st[OFF_WIND] | st[OFF_WIND + 1] << 8);
     char nm[17];
+    fl_lit = 0;                         /* (all of it in plain text again) */
     if (s == NO_SEAT || s >= SEATS)
         s = my_seat < SEATS ? my_seat : 0;
     memset(line, ' ', 40);
@@ -152,19 +245,28 @@ static void hud(void)
     putn(35, energy[s]);
     field_status(0, 0, line);
     memset(line, ' ', 40);
-    cat_name(cat_item(my_turn && s == my_seat ? weapon : PL(s, P_WEAPON)) + 6, nm, 16);
-    put(0, nm);
-    if (s == my_seat && weapon != I_MINI_MISSILE) {
-        put(17, "X");
-        putn(18, INV(weapon));
+    if (defending()) {                  /* the defence window: what to do */
+        put(0, TXT_DEFENCES);
+        putn(37, st[OFF_TIMER]);
+    } else {
+        cat_name(cat_item(my_turn && s == my_seat ? weapon : PL(s, P_WEAPON)) + 6, nm, 16);
+        put(0, nm);
+        if (s == my_seat && weapon != I_MINI_MISSILE) {
+            put(17, "X");
+            putn(18, INV(weapon));
+        }
+        put(24, "WIND");
+        if (w < 0) {
+            put(29, "<");
+            w = -w;
+        } else if (w > 0)
+            put(29, ">");
+        putn(31, (uint16_t)w);
+#if ITEMS_ROW == 2
+        if (menu)
+            putn(37, st[OFF_TIMER]);    /* (row 2 is the items line) */
+#endif
     }
-    put(24, "WIND");
-    if (w < 0) {
-        put(29, "<");
-        w = -w;
-    } else if (w > 0)
-        put(29, ">");
-    putn(31, (uint16_t)w);
     field_status(1, 0, line);
     memset(line, ' ', 40);
     put(0, "ROUND");
@@ -176,16 +278,19 @@ static void hud(void)
         items_line();
     else
 #endif
-    if (defending())
-        put(15, TXT_DEFEND);
-    else if (my_turn)
-        put(16, "YOUR TURN: AIM, FIRE");
-    else if (st[OFF_PHASE] == PH_AIM && st[OFF_TURN] < SEATS) {
-        memcpy(line + 16, NAME(st[OFF_TURN]), nlen(NAME(st[OFF_TURN]), NAME_LEN));
-        put(16 + nlen(NAME(st[OFF_TURN]), NAME_LEN), " AIMS");
-    } else if (st[OFF_PHASE] == PH_AIM)
-        put(16, "EVERYONE AIMS");
-    putn(37, st[OFF_TIMER]);
+    {
+        if (defending())
+            put(16, TXT_ITEMS);
+        else if (my_turn)
+            put(16, fl_kind == FL_BANNER ? "YOUR TURN!" : "YOUR TURN: AIM, FIRE");
+        else if (st[OFF_PHASE] == PH_AIM && st[OFF_TURN] < SEATS) {
+            memcpy(line + 16, NAME(st[OFF_TURN]), nlen(NAME(st[OFF_TURN]), NAME_LEN));
+            put(16 + nlen(NAME(st[OFF_TURN]), NAME_LEN), " AIMS");
+        } else if (st[OFF_PHASE] == PH_AIM)
+            put(16, "EVERYONE AIMS");
+        if (!defending())
+            putn(37, st[OFF_TIMER]);    /* (defending: row 1 has it) */
+    }
     field_status(2, 0, line);
 #if ITEMS_ROW == 3
     if (menu) {                         /* its own row (talk's, in a script) */
@@ -219,13 +324,19 @@ static void hud_aim(void)
 
 /* ---- entering the field, and the STATE changing ------------------------- */
 
+static void turn_check(void);
+
 void play_enter(void)
 {
     in_script = 0;
     my_turn = 0;
+    fl_kind = FL_NONE;
+    def_open = 0;
+    mk_seat = NONE;                     /* (the field is drawn afresh: no arrow) */
     memset(tk, 0, sizeof(tk));
     field_open(st[OFF_SKY], st[OFF_PALETTE]);
     tanks_from_state(1);
+    turn_check();                       /* (a round may open on our turn) */
     hud();
 }
 
@@ -238,21 +349,28 @@ static uint8_t is_my_turn(void)
     return st[OFF_TURN] == NO_SEAT && !(PL(my_seat, P_FLAGS) & PF_DONE);
 }
 
-void play_state(void)
+/* our turn begins: the aim as the server has it, the cue, YOUR TURN! */
+static void turn_check(void)
 {
-    uint8_t t;
-    if (in_script)
-        return;
-    tanks_from_state(net_terrain);
-    net_terrain = 0;
-    t = is_my_turn();
+    uint8_t t = is_my_turn();
     if (t && !my_turn) {
         aim_a = PL(my_seat, P_ANGLE);
         aim_p = PL16(my_seat, P_POWER);
         weapon = PL(my_seat, P_WEAPON);
         snd_cue(UI_TURN, 0);
+        turn_at = idle_at = frame_count;
+        fl_kind = FL_BANNER;
     }
     my_turn = t;
+}
+
+void play_state(void)
+{
+    if (in_script)
+        return;
+    tanks_from_state(net_terrain);
+    net_terrain = 0;
+    turn_check();
     hud();
 }
 
@@ -284,8 +402,9 @@ static uint8_t next_item(uint8_t i, int8_t d)
             i = N_ITEMS - 1;
         else if (i >= N_ITEMS)
             i = N_WEAPONS;
-        if (INV(i) && i != I_DEFENSE_COMPUTER)
-            return i;
+        if (INV(i) && i != I_DEFENSE_COMPUTER &&
+            (!defending() || (i >= I_PARACHUTE && i <= I_SUPER_DEFLECTOR) || i == I_IMPACT_FUSE))
+            return i;                   /* (the defence window: defences alone) */
     }
     return I_NONE;
 }
@@ -352,8 +471,8 @@ static void items_frame(uint8_t close)
                 menu = M_DRIVE;
             else {
                 net_act(ACT_USE, &item, 1);
-                if (item != I_PARACHUTE && item != I_IMPACT_FUSE)
-                    menu = M_OFF;
+                if (item != I_PARACHUTE && item != I_IMPACT_FUSE && !defending())
+                    menu = M_OFF;       /* (defending: more to set up) */
             }
         }
     } else if (menu == M_TARGET) {
@@ -390,8 +509,30 @@ void play_frame(void)
         tanks_from_state(1);
         net_terrain = 0;
     }
-    field_turn(st[OFF_PHASE] == PH_AIM ? st[OFF_TURN] : NONE);
+    turn_mark(my_turn ? my_seat : st[OFF_PHASE] == PH_AIM ? st[OFF_TURN] : NONE);
+    flash_frame();
     def = defending();
+    if (!def)
+        def_open = 0;
+    else if (!def_open) {               /* the window opens: its items line, at once */
+        def_open = 1;
+        snd_cue(UI_TURN, 0);
+        fl_kind = FL_DEFENCE;
+        item = next_item(N_ITEMS - 1, 1);
+        if (item != I_NONE) {
+            menu = M_ITEM;
+            dir_prev = inp_dir;
+        }
+        hud();
+    }
+    if (my_turn) {                      /* idle on our turn: the cue again */
+        if (inp_dir || ev_btn || ev_key)
+            idle_at = frame_count;
+        else if ((uint16_t)(frame_count - idle_at) >= REMIND_J) {
+            idle_at = frame_count;
+            snd_cue(UI_TURN, 0);
+        }
+    }
     c = CONSOL_KEYS();
     opt = ((c & 4) && !(consol_prev & 4)) || ev_key == 'I';
     if (!my_turn && !def) {
@@ -653,7 +794,7 @@ void play_segment(void)
     uint8_t last, behind;
     in_script = 1;
     my_turn = 0;
-    field_turn(NONE);                   /* (no marker in the field a script plays on) */
+    turn_mark(NONE);                    /* (no arrow in the field a script plays on) */
     if (seg_no == 0)                    /* a new shot */
         ply_reset();
     ply_pc = 0;

@@ -13,7 +13,7 @@ _txt_max: .res 1        ; cells at most
 _txt_inv: .res 1        ; 0 normal, else inverse
 src:      .res 2
 
-        .code
+        .segment "LOWCODE"       ; (below the field: barrage.cfg)
 
 ; void __fastcall__ txt_put(const char *s)
 _txt_put:

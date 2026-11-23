@@ -40,7 +40,8 @@ static const uint8_t s_tick[]   = { 60, 0xA6, 1, END };
 static const uint8_t s_select[] = { 47, 0xA8, 3, END };
 static const uint8_t s_go[]     = { 47, 0xAA, 6, 35, 0xAA, 6, 29, 0xAA, 12, END };
 static const uint8_t s_error[]  = { 200, 0xC8, 10, END };
-static const uint8_t s_turn[]   = { 60, 0xAA, 5, 47, 0xAA, 5, 40, 0xAA, 10, END };
+static const uint8_t s_turn[]   = { 60, 0xA9, 5, 47, 0xAA, 5, 40, 0xAB, 5, 30, 0xAE, 8, 30, 0xAC, 5,
+                                    30, 0xAA, 4, 30, 0xA7, 4, END };   /* a fanfare, loudest last */
 static const uint8_t s_napalm[] = { 12, 0x88, 2, 30, 0x86, 2, 8, 0x87, 2, 40, 0x85, 3, 16, 0x86, 3,
                                     60, 0x84, 4, 20, 0x83, 4, 50, 0x82, 6, END };   /* a crackle */
 static const uint8_t s_laser[]  = { 10, 0xAA, 1, 14, 0xAA, 1, 20, 0xA9, 1, 28, 0xA8, 1, 40, 0xA7, 2,

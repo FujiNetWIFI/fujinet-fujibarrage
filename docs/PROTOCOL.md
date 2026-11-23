@@ -114,7 +114,8 @@ shown with `decimals` places.
 A fixed record of `STATE_SIZE` bytes, built for each client and sent as
 patches (`Q`) then a commit (`C`). The layout is in `proto.h` (`OFF_*`,
 `P_*`): the phase, round, turn, timer, wind, resolved walls and sky, the
-settings, then ten seats (name, colour, kind, tier, energy, shield, angle,
+room's own rules (`OFF_ROOM_FLAGS`: `ROOM_PEOPLE`, no bots, two people to
+start), the settings, then ten seats (name, colour, kind, tier, energy, shield, angle,
 power, **x and y in the client's pixels**, weapon, flags, wins, score), then
 this client's own cash, fuel and inventory.
 

@@ -1,13 +1,13 @@
-; solver.inc -- the shimmer: each field band's two tank colours and their
-; split, in two phases (VBISR shows A on even frames, B on odd), from the
-; tanks as drawn (TKON, TKX, TKY) and the seats' colours (SEATC). A band
-; shows at most two tanks' own colours: left of HORCB's split L0, right of
-; it R0. Each phase places tanks in turn -- ours (MYSEAT), the turn's
-; (ST+OFF_TURN), then the rest, the phase's half of them first, in an order
-; SROT turns -- and shows a tank only where every band it touches has room,
-; so a tank shown is one colour top to bottom. One not shown wears its
-; side's colour that phase. Then the bars: the power and energy bars'
-; lengths (BARPW, BARENG, bytes 0-40).
+; solver.inc -- each field band's two tank colours and their split (BANDA),
+; from the tanks as drawn (TKON, TKX, TKY) and the seats' colours (SEATC).
+; A band shows at most two tanks' own colours: left of HORCB's split L0,
+; right of it R0. Tanks are placed in turn -- ours (MYSEAT), the turn's
+; (ST+OFF_TURN), then the rest, in an order SROT turns -- and one is shown
+; only where every band it touches has room, so a tank shown is one colour
+; top to bottom. One not shown wears its side's colour. (There were two
+; such phases, shown on alternate frames: a shimmer that strobed near the
+; ground on a real TV.) Then the bars: the power and energy bars' lengths
+; (BARPW, BARENG, bytes 0-40).
 
 SVS1    EQU     WORK            ; each band's first tank shown (NONE)
 SVS2    EQU     WORK+NFB        ;  and its second
@@ -16,10 +16,10 @@ SVPH    EQU     WORK+2*NFB+SEATS        ; the phase
 SVK     EQU     SVPH+1          ; the rest's count
 SVSPL   EQU     SVPH+2          ; SPLIT's split
 
-; SOLVE: BANDA and BANDB. Clobbers all but IX, IY.
+; SOLVE: BANDA. Clobbers all but IX, IY.
 SOLVE:  XOR     A
         LD      (SVPH),A
-SV0:    LD      HL,SVS1         ; no tank shown in any band
+        LD      HL,SVS1         ; no tank shown in any band
         LD      B,2*NFB+SEATS
 SV1:    LD      (HL),NONE
         INC     HL
@@ -54,12 +54,8 @@ SV6:    CALL    SVTRY
         INC     A
         CP      SEATS
         JR      C,SV2
-        LD      HL,BANDA        ; the phase's table
-        LD      A,(SVPH)
-        OR      A
-        JR      Z,SV7
-        LD      HL,BANDB
-SV7:    LD      B,0             ; each band (its index)
+        LD      HL,BANDA        ; the table
+        LD      B,0             ; each band (its index)
 SV8:    PUSH    BC
         PUSH    HL
         LD      C,B
@@ -93,17 +89,10 @@ SV10:   POP     HL
         LD      A,B
         CP      NFB
         JR      C,SV8
-        LD      A,(SVPH)
-        INC     A
-        LD      (SVPH),A
-        CP      2
-        JP      C,SV0
-; the bars (the same in both phases): HORCB = the length (b6-7 0: the
-; border shows colour 0, L0 left of the split, R0 right)
+; the bars: HORCB = the length (b6-7 0: the border shows colour 0, L0 left
+; of the split, R0 right)
 SOBARS: LD      HL,BANDA+3*NFB
-        CALL    SOB1
-        LD      HL,BANDB+3*NFB
-SOB1:   LD      A,(BARPW)
+        LD      A,(BARPW)
         LD      (HL),A
         INC     HL
         LD      (HL),C_POWER

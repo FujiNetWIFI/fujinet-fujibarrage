@@ -81,7 +81,8 @@ ML1:    LD      A,(NLINK)               ; no state yet: nothing to show
         JR      Z,ML1A
         LD      A,S_FIELD
         CALL    ENTERS
-ML1A:   LD      A,1                     ; the segment played (the PLY page),
+ML1A:   FAR     PG_OPS,TMOFF            ; (our turn's arrow off the field first)
+        LD      A,1                     ; the segment played (the PLY page),
         LD      (INSCR),A               ;  then our D. A shot's states are the
         XOR     A                       ;  seats before it: none is taken until
         LD      (MYTURN),A              ;  its last segment ends (INSCR). Here,

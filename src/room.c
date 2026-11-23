@@ -87,7 +87,9 @@ static void wait_hint(void)
 {
     scr_clear_row(23);
     scr_text(23, 1, set_on ? (hosting() ? "S SEATS  TAB PAGE  <> CHANGE  FIRE GO" : "S SEATS  TAB PAGE")
-                           : (hosting() ? "FIRE STARTS (BOTS FILL)  S SETTINGS" : "WAITING FOR THE HOST  S SETTINGS"));
+                           : !hosting() ? "WAITING FOR THE HOST  S SETTINGS"
+                           : st[OFF_ROOM_FLAGS] & ROOM_PEOPLE ? "FIRE STARTS (2+ PEOPLE)  S SETTINGS"
+                           : "FIRE STARTS (BOTS FILL)  S SETTINGS");
 }
 
 static void wait_draw(void)

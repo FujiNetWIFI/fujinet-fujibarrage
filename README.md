@@ -85,8 +85,16 @@ The host's settings:
 | Walls | The walls (none, wrap, padded, rubber, spring, concrete, random, erratic) and how far the edges extend |
 | Game | Tanks (2–10, default 10), rounds (1–100, default 10), play (take turns, all at once, or aim together), turn order and timer, talking tanks and how often, arms level, starting cash, interest, whether bots shop |
 
-The server's four rooms are OPEN RANGE, BOUNCE HOUSE (rubber walls),
-WRAPAROUND, and MAYHEM (erratic walls and changing wind, all at once).
+The server's six rooms are OPEN RANGE, BOUNCE HOUSE (rubber walls),
+WRAPAROUND, MAYHEM (erratic walls and changing wind, all at once), and two
+for people only: PEOPLE ONLY (OPEN RANGE's settings) and PEOPLE MAYHEM
+(MAYHEM's). Those never have bots: a game needs two people to start, a
+person who leaves loses their tank, and a game left with one person ends.
+
+Each round opens with a 30-second defence window if anyone has a defence
+computer; its items line opens by itself with the defences only (shields,
+parachute, battery, impact fuse). Your turn flashes YOUR TURN!, marks your
+tank, and plays its fanfare again after 10 seconds without a press.
 
 ## Layout
 

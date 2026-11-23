@@ -1,0 +1,6 @@
+# a room for people only, alone: FIRE doesn't start it, the footer says why
+wait 600
+snap p0
+key 32
+wait 300
+snap p1

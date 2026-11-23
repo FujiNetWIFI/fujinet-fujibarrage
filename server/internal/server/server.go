@@ -46,28 +46,35 @@ type Room struct {
 	cache map[string][][]byte // terrain columns by client shape, round and version
 }
 
-// roomDefs: the public rooms, each with its own flavour of settings.
+// roomDefs: the public rooms, each with its own flavour of settings; the
+// last two for people only (no bots: game.Game's PeopleOnly).
 var roomDefs = []struct {
 	id, name string
 	set      func(*[proto.NSettings]int)
+	people   bool
 }{
-	{"room1", "OPEN RANGE", func(s *[proto.NSettings]int) {}},
-	{"room2", "BOUNCE HOUSE", func(s *[proto.NSettings]int) { s[proto.SetWalls] = proto.WallRubber }},
-	{"room3", "WRAPAROUND", func(s *[proto.NSettings]int) { s[proto.SetWalls] = proto.WallWrap }},
-	{"room4", "MAYHEM", func(s *[proto.NSettings]int) {
-		s[proto.SetWalls] = proto.WallErratic
-		s[proto.SetChangeWind] = 1
-		s[proto.SetMaxWind] = 12
-		s[proto.SetCash] = 40
-		s[proto.SetMode] = proto.ModeSimultaneous
-	}},
+	{"room1", "OPEN RANGE", func(s *[proto.NSettings]int) {}, false},
+	{"room2", "BOUNCE HOUSE", func(s *[proto.NSettings]int) { s[proto.SetWalls] = proto.WallRubber }, false},
+	{"room3", "WRAPAROUND", func(s *[proto.NSettings]int) { s[proto.SetWalls] = proto.WallWrap }, false},
+	{"room4", "MAYHEM", mayhem, false},
+	{"room5", "PEOPLE ONLY", func(s *[proto.NSettings]int) {}, true},
+	{"room6", "PEOPLE MAYHEM", mayhem, true},
+}
+
+func mayhem(s *[proto.NSettings]int) {
+	s[proto.SetWalls] = proto.WallErratic
+	s[proto.SetChangeWind] = 1
+	s[proto.SetMaxWind] = 12
+	s[proto.SetCash] = 40
+	s[proto.SetMode] = proto.ModeSimultaneous
 }
 
 // DevSettings are the dev rooms' settings, changed from the defaults (rigs
-// and tests: -devset).
+// and tests: -devset); DevPeople makes them rooms for people only.
 var DevSettings = map[int]int{}
+var DevPeople bool
 
-// New makes a server with the public rooms room1..4 and the dev rooms
+// New makes a server with the public rooms room1..6 and the dev rooms
 // dev1..3 (listed only when asked for).
 func New(seed uint64, book *talk.Book) *Server {
 	s := &Server{Now: time.Now, cat: game.Catalog()}
@@ -75,21 +82,22 @@ func New(seed uint64, book *talk.Book) *Server {
 	for i, d := range roomDefs {
 		set := game.Defaults()
 		d.set(&set)
-		s.add(d.id, d.name, false, set, seed+uint64(i+1), book)
+		s.add(d.id, d.name, false, d.people, set, seed+uint64(i+1), book)
 	}
 	for i := 1; i <= 3; i++ {
 		set := game.Defaults()
 		for k, v := range DevSettings {
 			set[k] = v
 		}
-		s.add("dev"+string(rune('0'+i)), "DEV "+string(rune('0'+i)), true, set, seed+100+uint64(i), book)
+		s.add("dev"+string(rune('0'+i)), "DEV "+string(rune('0'+i)), true, DevPeople, set, seed+100+uint64(i), book)
 	}
 	return s
 }
 
-func (s *Server) add(id, name string, dev bool, set [proto.NSettings]int, seed uint64, book *talk.Book) {
+func (s *Server) add(id, name string, dev, people bool, set [proto.NSettings]int, seed uint64, book *talk.Book) {
 	r := &Room{ID: id, Name: name, Dev: dev, s: s, g: game.New(seed, set, book), t0: s.Now(), conns: map[*conn]struct{}{}}
 	r.g.Dev = dev
+	r.g.PeopleOnly = people
 	r.info = r.infoLocked()
 	s.rooms = append(s.rooms, r)
 }

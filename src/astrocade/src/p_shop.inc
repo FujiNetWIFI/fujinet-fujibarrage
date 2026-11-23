@@ -58,7 +58,10 @@ SE3:    INC     C
         CALL    SHALL
 ; SSTATE: the shop's heading, its rows (the stock), its line; the results:
 ; nothing new.
-SSTATE: LD      A,(SHOWN)
+SSTATE: LD      A,(NTV)         ; (a whole field coming has the screen)
+        CP      0FEH
+        RET     Z
+        LD      A,(SHOWN)
         CP      S_SHOP
         RET     NZ
         TXT     SHTITLE,0,1,3*4 ; "SHOP  ROUND n   CASH $n"
@@ -277,7 +280,10 @@ MB2:    RLCA
 ; SFRAME: a frame of the shop: up and down choose (the list scrolls), FIRE
 ; buys one bundle (if the cash is there), a LEFT push sells one, = is done.
 ; Not ours (watching, or done): nothing. The results: nothing.
-SFRAME: LD      A,(SHOWN)
+SFRAME: LD      A,(NTV)         ; (a whole field coming has the screen)
+        CP      0FEH
+        RET     Z
+        LD      A,(SHOWN)
         CP      S_SHOP
         RET     NZ
         LD      A,(MYSEAT)

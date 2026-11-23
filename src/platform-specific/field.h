@@ -26,8 +26,8 @@
 #define PLAT_CAPS CAP_HOLD
 #define ITEMS_ROW 2             /* the items line: the HUD's third row */
 #define PLY_CATCHUP 4           /* script steps a pass, at most, when behind */
-#define TXT_DEFEND "DEFEND: OPTION/RETURN"
-#define field_turn(seat) ((void)0)
+#define MARK_UP (TANK_H + 7)     /* the turn's arrow, its top: over the barrel */
+#define TXT_ITEMS "OPTION/I: ITEMS"   /* (the defence window, the items line shut) */
 #endif
 
 #ifdef __APPLE2__
@@ -46,8 +46,8 @@
 #define PLAT_CAPS CAP_HOLD
 #define ITEMS_ROW 3             /* the items line: the HUD's fourth row (talk's, in a script) */
 #define PLY_CATCHUP 8
-#define TXT_DEFEND "DEFEND: I, RETURN"
-void field_turn(uint8_t seat);  /* a blinking marker over the turn's tank (NONE: away) */
+#define MARK_UP (TANK_H + 9)     /* the turn's arrow, its top: over the barrel and pennant */
+#define TXT_ITEMS "I: ITEMS"
 #endif
 
 void field_init(void);                      /* at start-up: all sky */
@@ -66,6 +66,7 @@ void field_balloon(uint8_t seat, const char *s, uint8_t n);  /* n 0: take it awa
  * gone by the segment's end. */
 void __fastcall__ field_sparks(uint16_t seat_kind);
 void field_status(uint8_t row, uint8_t col, const char *s);
+void field_status_hi(uint8_t row, uint8_t col, const char *s);  /* the same, to stand out (inverse) */
 void field_status_clear(void);
 void field_flash(uint8_t frames);
 void field_fire(uint8_t on);                    /* the fire colours cycle */

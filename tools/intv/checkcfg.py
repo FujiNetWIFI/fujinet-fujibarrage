@@ -6,7 +6,8 @@
   $B800-$BFFF, $F800-$FFFF                GRAM shows through there on some consoles
 After M.U.L.E.'s (fujinet-multiplayer-mule, clients/intv/tools/checkcfg.py), with the ECS's ROM added.
 Prints each segment's use.
-usage: checkcfg.py fujiblst.cfg"""
+usage: checkcfg.py [-test] fujiblst.cfg
+  -test: a TEST=1 build (jzIntv with no ECS, never a console): $7100-$7FFF allowed"""
 import re
 import sys
 
@@ -15,6 +16,9 @@ BAD = [(0x2000, 0x2FFF, "the ECS's ROM"), (0x7000, 0x7FFF, "the ECS's ROM"), (0x
        (0xF800, 0xFFFF, "a GRAM mirror")]
 bad = 0
 words = 0
+if sys.argv[1] == "-test":
+    del sys.argv[1]
+    BAD = [b for b in BAD if b[0] != 0x7000] + [(0x7000, 0x70FF, "the word the EXEC runs at $7000")]
 for ln in open(sys.argv[1]):
     m = re.match(r"\s*\$([0-9A-Fa-f]+)\s*-\s*\$([0-9A-Fa-f]+)\s*=\s*\$([0-9A-Fa-f]+)", ln)
     if not m:

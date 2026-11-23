@@ -131,6 +131,10 @@ func parseDevset(s string) error {
 			game.DevKit = v == "1"
 			continue
 		}
+		if k == "people" { // the dev rooms for people only (no bots)
+			server.DevPeople = v == "1"
+			continue
+		}
 		if k == "tier" { // every bot this tier (0 Rookie ... 7 Wildcard)
 			n, err := strconv.Atoi(v)
 			if err != nil || n < 0 || n >= proto.NTiers {
