@@ -25,6 +25,9 @@
 #                                  tools/atari5200/build.mk: cc65 in defoogi, TEST=1, TEST_SCENE=n)
 #   make adam                      r2r/adam/barrage.ddp (Coleco Adam; tools/adam/build.mk:
 #                                  z88dk in defoogi, TEST=1, TEST_SCENE=n and VIDEO_CARD=1)
+#   make msdos                     r2r/msdos/barrage.img (an IBM PC: CGA, 128K, PCjr; or VGA
+#                                  and MCGA: tools/msdos/build.mk, Watcom in defoogi;
+#                                  TEST=1, TEST_SCENE=n, STATS=1, VIDEO_CARD=1, FIXDIR=)
 #
 # src/ is platform neutral; src/platform-specific/*.h is what each platform
 # implements in src/<platform>/. The server sends every client its field and
@@ -125,6 +128,8 @@ proto:
 	sed -n 's/^#define \([A-Z_0-9]*\) *\([0-9][0-9]*\)$$/\1 EQU \2/p' src/proto.h > src/6809/proto.inc
 	@mkdir -p src/z80
 	sed -n 's/^#define \([A-Z_0-9]*\) *\([0-9][0-9]*\)$$/\tdefc \1 = \2/p' src/proto.h > src/z80/proto.inc
+	@mkdir -p src/8086
+	sed -n 's/^#define \([A-Z_0-9]*\) *\([0-9][0-9]*\)$$/\1 EQU \2/p' src/proto.h > src/8086/proto.inc
 
 # ---- Atari 5200 (the FujiNet 5200 cartridge) ---------------------------------
 # The Atari's client (src/atari) assembled for the 5200 (src/atari5200): cc65
@@ -171,6 +176,25 @@ build/fnlib-adam/fujinet-adam.lib:
 	tools/z80/fnlib_adam.sh $(FNLIB_EXP) $(FNLIB_COMMIT) build/fnlib-adam
 
 .PHONY: adam
+
+# ---- MS-DOS: an IBM PC, XT or PCjr (CGA, 128K) or a VGA/MCGA PC, one disk ----
+# Open Watcom in defoogi (tools/msdos/build.mk, the whole make there):
+# BARRAGE.EXE and BMENU.EXE for CGA (src/msdos/cga), BARRVGA.EXE and
+# BMENUVGA.EXE for VGA and MCGA (src/msdos/vga), BSEL.COM picks.
+# fujinet-lib is 5.1.0's msdos release (small model), fetched here.
+MSDOS_FNLIB = _cache/fujinet-lib/$(FUJINET_LIB)-msdos
+msdos: gen/config.h $(MSDOS_FNLIB)/fujinet-msdos-$(FUJINET_LIB).lib
+	defoogi $(MAKE) -f tools/msdos/build.mk $(if $(TEST),TEST=$(TEST)) \
+	    $(if $(TEST_SCENE),TEST_SCENE=$(TEST_SCENE) TEST_ARG=$(TEST_ARG)) $(if $(STATS),STATS=$(STATS)) \
+	    $(if $(VIDEO_CARD),VIDEO_CARD=$(VIDEO_CARD)) $(if $(XFLAGS),XFLAGS="$(XFLAGS)") $(if $(FIXDIR),FIXDIR=$(FIXDIR))
+
+$(MSDOS_FNLIB)/fujinet-msdos-$(FUJINET_LIB).lib:
+	@mkdir -p $(MSDOS_FNLIB)
+	curl -sSL -o _cache/fujinet-lib/fujinet-lib-msdos-$(FUJINET_LIB).zip \
+	    https://github.com/FujiNetWIFI/fujinet-lib/releases/download/v$(FUJINET_LIB)/fujinet-lib-msdos-$(FUJINET_LIB).zip
+	cd $(MSDOS_FNLIB) && unzip -oq ../fujinet-lib-msdos-$(FUJINET_LIB).zip
+
+.PHONY: msdos
 
 # ---- TRS-80 Color Computer: CoCo 1/2 (PMODE 4) and CoCo 3 (GIME), one disk ----
 # CMOC + lwtools + toolshed's decb, outside defoogi: tools/coco/build.mk

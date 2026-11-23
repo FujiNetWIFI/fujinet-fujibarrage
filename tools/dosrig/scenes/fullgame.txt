@@ -1,0 +1,154 @@
+# a whole game: start as host, done in each shop, fire on each turn; a snapshot every ~20 s
+wait 600
+snap 00wait
+press
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 01
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 02
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 03
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 04
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 05
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 06
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 07
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 08
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 09
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 10
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 11
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 12
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 13
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 14
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 15
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 16
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 17
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 18
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 19
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 20
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 21
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 22
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 23
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 24
+wait 400
+key 13
+wait 300
+press
+wait 500
+snap 25

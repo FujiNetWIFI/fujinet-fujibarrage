@@ -23,6 +23,8 @@
 #define PLAT_COCO3         6
 #define PLAT_ADAM          7
 #define PLAT_ATARI5200     8
+#define PLAT_MSDOS         9
+#define PLAT_MSDOS_VGA     10
 #define SC_HELLO           72
 #define SC_ROOMS           84
 #define SC_ACT             65

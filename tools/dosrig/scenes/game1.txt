@@ -1,0 +1,29 @@
+# a live game: join as host, start, leave the shop, aim, fire; snapshots
+wait 600
+snap 01wait
+press
+wait 400
+snap 02shop
+key 13
+wait 500
+snap 03field
+dump field1.bin B800 16384
+wait 300
+snap 04aim
+hold u
+wait 30
+hold none
+press
+wait 600
+snap 05shot
+wait 900
+snap 06later
+press
+wait 900
+snap 07later
+press
+wait 1500
+snap 08later
+press
+wait 1500
+snap 09later

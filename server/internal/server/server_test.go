@@ -167,6 +167,14 @@ func TestAtari5200GameAgainstBots(t *testing.T) {
 	}
 }
 
+// The PC's shapes (CGA and VGA: 320x176, a 4096-byte buffer).
+func TestMsdosGameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.Msdos, mode)
+		botGame(t, client.MsdosVga, mode)
+	}
+}
+
 func botGame(t *testing.T, caps project.Caps, mode int) {
 	t.Helper()
 	s, ck, addr := serve(t)

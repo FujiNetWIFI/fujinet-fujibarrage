@@ -1,0 +1,5 @@
+wait 600
+snap waiting
+key 27
+mwait 2400
+snap after

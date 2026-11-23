@@ -114,6 +114,31 @@
 #define TXT_ITEMS "I: ITEMS"
 #endif
 
+#ifdef __MSDOS__
+/* an IBM PC: CGA's 320x200 in 4 colours (src/msdos/cga) or VGA's and
+ * MCGA's 256 (DOS_VGA: src/msdos/vga), the field 320x176 over a 3-row HUD;
+ * the screen is the field, the tanks in it */
+#define FIELD_W 320
+#define FIELD_H 176
+#define TANK_W  12
+#define TANK_H  6
+#define PAR     55              /* pixel aspect, 64ths (the CoCo 3's 7.16 MHz pixel) */
+#ifndef SCRIPT_BUF
+#define SCRIPT_BUF 4096
+#endif
+#define BANDS   0               /* the tanks are in the bitmap */
+#ifdef DOS_VGA
+#define PLAT_ID   PLAT_MSDOS_VGA
+#else
+#define PLAT_ID   PLAT_MSDOS
+#endif
+#define PLAT_CAPS CAP_HOLD
+#define ITEMS_ROW 2
+#define PLY_CATCHUP 8
+#define MARK_UP (TANK_H + 8)
+#define TXT_ITEMS "I: ITEMS"
+#endif
+
 void field_init(void);                      /* at start-up: all sky */
 void field_loading(void);                   /* a whole field is coming */
 void field_open(uint8_t sky, uint8_t pal);  /* the field screen on */

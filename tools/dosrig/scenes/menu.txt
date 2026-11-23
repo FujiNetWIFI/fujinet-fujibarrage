@@ -1,0 +1,8 @@
+wait 120
+snap title
+press
+wait 400
+snap rooms
+press
+mwait 1800
+snap joined

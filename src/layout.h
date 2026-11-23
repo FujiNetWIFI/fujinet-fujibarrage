@@ -145,7 +145,7 @@
 #define ITM_ON_TGT_C 29
 #define ITM_FUEL_C   15
 #define ITM_DONE_C   27
-#ifdef _COCO_BASIC_                  /* (the CoCo 3: its key is ENTER) */
+#if defined(_COCO_BASIC_) || defined(__MSDOS__)  /* (the CoCo 3, the PC: the key is ENTER) */
 #define TXT_SHOP_HINT "FIRE BUYS  LEFT SELLS  ENTER: DONE"
 #elif defined(__ATARI5200__)
 #define TXT_SHOP_HINT "FIRE BUYS  LEFT SELLS  START: DONE"
@@ -154,12 +154,16 @@
 #endif
 #endif
 
-#ifdef _COCO_BASIC_
+#if defined(_COCO_BASIC_) || defined(__MSDOS__)
 #define TXT_DEFENCES "SET UP DEFENCES, ENTER: DONE"
 #elif defined(__ADAM__)
 #define TXT_DEFENCES "SET UP DEFENCES, RETURN DONE"   /* (28: the timer at 29) */
 #elif defined(__ATARI5200__)
 #define TXT_DEFENCES "SET UP DEFENCES, START: DONE"
+#endif
+
+#ifdef __MSDOS__
+#define QUIT_HINT "ESC: LOBBY"          /* the title: ESC goes back to the lobby (menus.c) */
 #endif
 
 #endif

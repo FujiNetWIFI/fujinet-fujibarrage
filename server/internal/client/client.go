@@ -113,6 +113,16 @@ var Adam = project.Caps{FieldW: 256, FieldH: 168, Par: 73, Hz: 60, TankW: 7, Tan
 var Atari5200 = project.Caps{FieldW: 160, FieldH: 168, Par: 109, Hz: 60, TankW: 7, TankH: 5, Buf: 1024,
 	Bands: 4, Flags: proto.CapHold, Plat: proto.PlatAtari5200}
 
+// Msdos is the PC client's shape with CGA: 320x200 in 4 colours, the field
+// 320x176 over a 3-row HUD (the CoCo 3's shape, a bigger buffer).
+var Msdos = project.Caps{FieldW: 320, FieldH: 176, Par: 55, Hz: 60, TankW: 12, TankH: 6, Buf: 4096,
+	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatMsdos}
+
+// MsdosVga is the PC client's shape with VGA or MCGA (mode 13h): the CGA
+// build's.
+var MsdosVga = project.Caps{FieldW: 320, FieldH: 176, Par: 55, Hz: 60, TankW: 12, TankH: 6, Buf: 4096,
+	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatMsdosVga}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps

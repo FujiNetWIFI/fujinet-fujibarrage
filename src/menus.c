@@ -80,6 +80,10 @@ void title(void)
     snd_tune(t_title1, t_title2);       /* (it plays on through the menus) */
     do {
         tick();
+#ifdef QUIT_HINT                         /* (a platform that can quit: its title says so) */
+        if (ev_key == KEY_ESC)
+            plat_quit();
+#endif
     } while (!ev_btn && ev_key == KEY_NONE);
     snd_cue(UI_GO, 0);
 }

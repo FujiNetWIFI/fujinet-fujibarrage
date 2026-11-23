@@ -13,10 +13,11 @@
  *   6  a tune (ARG 0 a round's end, 1 the game's end, 2 the shop)
  *   7  every effect, 3 seconds apart: SND_* 0-15 (a boom small), the
  *      boom's sizes 1-3, then the UI_* cues (the sound's WAVs)
- *   8  (the CoCo) scene 5 for the art: [3] bits 0-2 the sky, 3-5 the dirt
- *      palette, 6 a balloon, 7 a ball of fire (its colours cycling)
- *   9  (the CoCo) the whistle held at 442.9, 885.8 and 1771.7 Hz, 1.5 s
- *      each with 0.5 s between (the engines' tuning)
+ *   8  (the CoCo, the Adam, the PC) scene 5 for the art: [3] bits 0-2
+ *      the sky, 3-5 the dirt palette, 6 a balloon, 7 a ball of fire (its
+ *      colours cycling)
+ *   9  (the CoCo, the Adam, the PC) the whistle held at 442.9, 885.8 and
+ *      1771.7 Hz, 1.5 s each with 0.5 s between (the engines' tuning)
  */
 #ifndef TEST_SCENES
 #include "game.h"
@@ -40,6 +41,8 @@ void test_check(void)
 #include "coco2/test/fixture.h"
 #elif defined(__ADAM__)
 #include "adam/test/fixext.h"       /* (the rig's: tools/adamsim/fixture.py) */
+#elif defined(__MSDOS__)
+#include "msdos/test/fixext.h"      /* (files on the disk: tools/dossim/fixture.py) */
 #else
 #include "fixture.h"
 #endif
@@ -112,7 +115,7 @@ static void ground(void)
 #endif
 }
 
-#if defined(_COCO_BASIC_) || defined(__ADAM__)
+#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__)
 static uint8_t show;                    /* scene 8's extras */
 #endif
 
@@ -121,7 +124,7 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
     uint16_t t;
     ground();
     play_enter();
-#if defined(_COCO_BASIC_) || defined(__ADAM__)
+#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__)
     if (show & 0x40)
         field_balloon(0, "NICE SHOT. NOW WATCH THIS ONE!", 30);
     if (show & 0x80) {
@@ -142,9 +145,13 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
         {                               /* every segment in turn, from the rig */
             uint16_t played = 0, t0;
             for (seg_no = 0; seg_no < FIX_NSEG; ++seg_no) {
+#ifdef FIX_FILES
+                fix_seg(seg_no);        /* (the platform's: SEGn.BIN) */
+#else
                 test_hook[0] = (uint8_t)(0x80 | seg_no);
                 while (test_hook[0] & 0x80)
                     frame_wait();
+#endif
                 seg_flags = S_LAST_FRAME | (seg_no == FIX_NSEG - 1 ? S_LAST_SEG : 0);
                 t0 = TEST_NOW();
                 play_segment();
@@ -214,6 +221,9 @@ void test_check(void)
     if (test_hook[0] != 0x5A)
         return;
     test_hook[0] = 0xA5;
+#ifdef FIX_FILES
+    fix_load();                         /* (the platform's: FIX.BIN) */
+#endif
     field_init();
     canned();
     strcpy(my_name, "ANN");
@@ -228,7 +238,7 @@ void test_check(void)
         if (test_hook[3] & 0x80)
             st[OFF_SKY] = test_hook[3] & 7;
         field_scene(0, 0);
-#if defined(_COCO_BASIC_) || defined(__ADAM__)
+#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__)
     case 8:
         st[OFF_TURN] = 0;
         st[OFF_SKY] = test_hook[3] & 7;

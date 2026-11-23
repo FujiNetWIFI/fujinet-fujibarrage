@@ -1,0 +1,14 @@
+# the PCjr: join, the field, a shot; memory and stack
+wait 600
+snap 01wait
+peek plat_mem 8
+press
+wait 400
+key 13
+wait 600
+snap 02field
+press
+wait 900
+snap 03shot
+stack
+peek plat_mem 8

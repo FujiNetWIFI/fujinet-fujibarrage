@@ -1,7 +1,8 @@
 # Porting FujiBarrage
 
 The Atari 400/800 is the first client, and the Intellivision the second;
-the Apple II, the Astrocade and the Color Computers followed. These notes say
+the Apple II, the Astrocade, the Color Computers, the 5200, the Adam and the
+PC followed. These notes say
 what another machine needs, and what the ports taught.
 
 ## What the server does for you
@@ -191,9 +192,64 @@ share: `src/tms9918/` (the VDP), `src/sound/` (the engine) and
 - **Sound:** the engine steps the effects (the Intellivision's), the tunes and the whistle each frame in the NMI, as three voices with AY-style periods and volumes; C only queues requests, so nothing is half done when the NMI lands. The SN76489 back end writes only what changed (a write to the noise's control restarts it). The noise goes to the voice that wants it; a tone below about 109 Hz becomes true bass in the noise's periodic mode, clocked by tone 3 at a fifteenth of the period; white noise is clocked by tone 3 at the effect's own rate unless voice C needs tone 3. Volumes map the AY's 3 dB steps onto the SN's 2 dB ones. An AY back end (the MSX's) only has to set its registers from the same three voices.
 - **Tests:** `tools/adamsim/` (`adamrun` on adamcore's library: no FujiNet, as fast as the host; `refcheck.py`, `terrcheck.py`, `vramcheck.py`) and `tools/adamrig/rig.sh` (adamcore-cli and fujinet-pc's Adam build in a network namespace).
 
+## The PC (MS-DOS)
+
+`src/msdos/` is the Atari's C again on Open Watcom (small model, 8086
+instructions), with FujiBlast's DOS link, keyboard and lobby return, and the
+script player in 8086 (`src/8086/`, the Z80's). There are two builds on one
+disk, CGA (`src/msdos/cga/`) and VGA/MCGA (`src/msdos/vga/`); everything
+else is both's. What it took:
+- **The lobby runs the disk's `AUTOEXEC.BAT`** on the PC's own DOS (its
+  boot disk holds FUJINET.SYS). `BSEL.COM` types the build's name into the
+  BIOS's keyboard buffer and ends: `BARRVGA` on a VGA or MCGA (INT 10h
+  AX=1A00h), `BARRAGE` on anything else. The game and the menu start each
+  other the same way (`plat_chain`), and quitting mounts the lobby's disk
+  and types `AUTOEXEC` (FujiBlast's `lobby.c`).
+- **The screen is the field on both.** CGA's mode 4 is 320x200 in four
+  colours, and the game has four values: a pixel's two bits are its value's
+  colour (`fld.asm`'s `fillt`): sky colour 0, the background, any of 16;
+  tank 1, fire 2, dirt 3, the palette's (green, red and brown, their bright
+  set, or cyan, magenta and grey or white). A round's look is the
+  palette, set through the BIOS (AH=0Bh; AH=10h on an EGA or a PCjr, whose
+  AH=0Bh would load CGA's palette 1), never a redraw; the tanks are one
+  colour, yours with a pennant. VGA's mode 13h is a byte a pixel: a value's
+  colour comes from its line and x (`vcol`: a sky ramp, stars, dirt strata
+  and a grain, fire bands) and back through a table of colours' values; a
+  round's look is the DAC, and ten tanks are in their seats' colours. Both
+  fields are 320x176, the CoCo 3's shape, over a HUD of three text rows.
+- **Exact by the CoCo's engines:** CGA's `fld.asm` is the CoCo 1/2's
+  `fld2.asm` (settles write a byte's four columns at once, the rows stepping
+  through CGA's interleaved banks), VGA's the CoCo 3's `fld3.asm` with a
+  loop a value for columns.
+- **The clock and the speaker are one interrupt** (`timer.asm`): the PIT
+  ticks four times a jiffy, puts the sound's top two voices on PIT channel
+  2 by turns (a noise a random divisor about its middle), counts the jiffy
+  every fourth tick and chains to the BIOS's every 65536 counts. It is
+  assembly and short, and on the ticks it doesn't chain it tells the 8259
+  at once and turns interrupts on: at 115200 bps the UART's interrupt can't
+  wait long, and the C version lost three times the bytes. The sequencer
+  is the CoCo's (`sound.c`), the effects the Intellivision's at PIT
+  divisors (`tools/msdos/mksfx_dos.py`).
+- **The link** is FujiBlast's: FUJINET.SYS's serial port driven by the
+  UART's interrupt, a transaction in flight at a time, never waited on; no
+  STATUS while a script plays (`CAP_HOLD`).
+- **Memory:** a 128K PCjr keeps about 24K free with the game loaded (DOS
+  2.1, FUJINET.SYS and its 16K screen in it); the game's stack uses a few
+  hundred of its 4K. The titles are packed (the CoCo's `lz_pack`) and
+  unpacked onto the screen (`lzd.asm`).
+- **CPU:** a 4.77 MHz 8088. A MEGA MIRV on a flat field ends about 0.6 s
+  behind its script on an IBM 5150 with CGA, 0.3 s on an 8 MHz 8086 with
+  VGA, 4.3 s on a 4.77 MHz XT with an 8-bit VGA (86Box, which keeps a real
+  PC's time: MAME's 8088 runs two or three times too fast to time
+  anything).
+- **Tests:** `tools/dossim/` (MAME 0.289: `dossim.py`, `refcheck.py`,
+  `terrcheck.py`, the fixture on the test build's disk) and `tools/dosrig/`
+  (`rig.sh` live; `86box.sh` the timing and, `LIVE=1`, the serial bytes
+  lost).
+
 ## Testing a port
 
-- **Exact pictures:** `refview -fixture FILE` writes a field and one shot as a C header (`src/test/fixture.h`). A test build plays it offline: the `src/test.c` scenes are the field, a shot, the rooms, the results and the tunes. Compare your field after the shot with refview's `shot1.px`, pixel for pixel, for every weapon. `tools/atarisim/refcheck.py` does this for the Atari: 0 pixels must differ. `tools/a2sim/refcheck.py` does it for the Apple II (`src/apple2/test/fixture.h`, `make fixture-apple2`), with each shot's lag, `tools/cocosim/refcheck.py` for both Color Computers (`-fixture-all`: every segment, 16-bit x), `tools/adamsim/refcheck.py` for the Adam (the fixture loaded at run time, so one test build serves every weapon), and `tools/a52sim/refcheck.py` for the 5200 (`-fixture-all`: a 1024-byte buffer splits the biggest shots).
+- **Exact pictures:** `refview -fixture FILE` writes a field and one shot as a C header (`src/test/fixture.h`). A test build plays it offline: the `src/test.c` scenes are the field, a shot, the rooms, the results and the tunes. Compare your field after the shot with refview's `shot1.px`, pixel for pixel, for every weapon. `tools/atarisim/refcheck.py` does this for the Atari: 0 pixels must differ. `tools/a2sim/refcheck.py` does it for the Apple II (`src/apple2/test/fixture.h`, `make fixture-apple2`), with each shot's lag, `tools/cocosim/refcheck.py` for both Color Computers (`-fixture-all`: every segment, 16-bit x), `tools/adamsim/refcheck.py` for the Adam (the fixture loaded at run time, so one test build serves every weapon), `tools/a52sim/refcheck.py` for the 5200 (`-fixture-all`: a 1024-byte buffer splits the biggest shots), and `tools/dossim/refcheck.py` for both PC builds (the fixture read from the test build's disk).
   - `-shield I_*` puts shields on every other tank.
   - `-flat` puts all ten tanks on the same lines.
   - `-angle` and `-power` aim the shot.
