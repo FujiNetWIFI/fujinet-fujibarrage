@@ -21,6 +21,7 @@
 #define PLAT_APPLE2        4
 #define PLAT_COCO          5
 #define PLAT_COCO3         6
+#define PLAT_ADAM          7
 #define SC_HELLO           72
 #define SC_ROOMS           84
 #define SC_ACT             65

@@ -3,9 +3,9 @@
 FujiBarrage is an artillery game for two to ten tanks over FujiNet. Seats with
 no player get bots. It runs on the Atari 400/800/XL/XE with 48K, on the Apple
 //e, //c and IIgs with 128K, on the Color Computer 1 and 2 with 64K and the
-Color Computer 3 (one disk for all three), and on the Intellivision (NTSC or
-PAL) and the Bally Astrocade with the FujiNet cartridge; other FujiNet
-machines are to follow (see `docs/PORTING.md`).
+Color Computer 3 (one disk for all three), on the Coleco Adam, and on the
+Intellivision (NTSC or PAL) and the Bally Astrocade with the FujiNet
+cartridge; other FujiNet machines are to follow (see `docs/PORTING.md`).
 
 The server plays the whole game. A client only shows it: the server sends each
 one its field and every shot already worked out at that machine's resolution
@@ -60,6 +60,18 @@ On the Color Computer:
 | CLEAR | The colours: the CoCo 1/2's artifact colours the other way round, the CoCo 3's RGB or composite palette |
 | SHIFT-CLEAR | Sound off and on |
 
+On the Coleco Adam:
+
+| | |
+|---|---|
+| Arrows left / right, or the joystick | Angle (hold to go faster) |
+| Arrows up / down, or the joystick | Power |
+| SPACE or either fire button | Shoot |
+| W, TAB, SmartKey II or keypad 0 | Next weapon |
+| I, SmartKey I or keypad 1 | The items line, as the Atari's: the arrows pick, SPACE uses |
+| RETURN or keypad # | Done (shop, defence window) |
+| ESCAPE or keypad * | Close the items line; otherwise leave the room |
+
 On the Intellivision:
 
 | | |
@@ -91,6 +103,7 @@ On the Bally Astrocade:
 - **The Intellivision's name:** the disc's up and down pick a letter, right or a top button takes it, left or CLEAR takes one back, the keypad's digits type themselves, and ENTER is done.
 - **The Apple II:** the screens are the Atari's, in text; the name is typed, and the left arrow or DELETE takes a letter back.
 - **The Color Computer:** the screens are the Atari's: 32 columns in colour on the CoCo 1/2, 40 on the CoCo 3; W (or SHIFT-RIGHT) turns the settings' pages; the name is typed, and LEFT takes a letter back. At power-on the CoCo 1/2 asks whether the screen is blue (which way round its artifact colours are) and the CoCo 3 whether the monitor is RGB or composite; CLEAR changes either later.
+- **The Adam:** the screens are the Atari's, 32 columns in colour; S (SmartKey III, keypad 2) shows the waiting room's settings and TAB turns their pages; the name is typed, and BACKSPACE takes a letter back.
 - **The Astrocade:** the shop and waiting room are the Atari's, with the trigger for Fire and = for Return; ÷ shows the settings and + turns their pages. The name: the stick's up and down pick a letter, right or the trigger takes it, left, C or CE takes one back, = is done.
 
 The host's settings:
@@ -129,12 +142,16 @@ tank, and plays its fanfare again after 10 seconds without a press.
 | `src/coco2/` | The CoCo 1/2: PMODE 4's artifact colours are the field's four values (tank black, sky blue, dirt orange, fire white), 128x168 at $1000, drawn by `fld2.asm`; the text, HUD included, is 32 columns of a 3x7 font in colour. Its sound is three voices mixed by the CPU while it would otherwise wait. |
 | `src/coco3/` | The CoCo 3: the GIME's 320x200 in 16 colours, the field 320x176 (`fld3.asm`): each value a colour pattern a line (sky gradients by dither, stars, dirt strata), fire cycled through the palette, ten tanks in their seats' colours, RGB and composite palettes; 40-column text in an 8x8 font. Its sound is three voices the GIME timer's IRQ makes. |
 | `src/6809/` | The script player both Color Computers share (`ply.asm`, `ops.asm`, `trk.asm`, `pt.asm`: the 6502's, with 16-bit x), drawing through the machine's own `fld*.asm`. |
+| `src/adam/` | The Coleco Adam client: z88dk (zsdcc and z80asm), EOS. The menu and the game are two programs in one DDP (`chain.asm` loads either from the device it booted from), plus a block of art (the sprites and the font) loaded into the VRAM at start-up. The VDP's interrupt (an NMI) is the clock; the FujiNet is AdamNet DCBs, read without waiting (`nstrans.c`). |
+| `src/tms9918/` | The TMS9918A's field, text and title, all assembly, for the Adam now and the ColecoVision and the MSX to come: Graphics II, the field 256x168 kept as two exact bit planes (`fld.asm`) and drawn a changed 8x8 cell at a time (`render.asm`), each line's colours from the round's sky and dirt (solid bands, no dither); the tanks are sprites in their seats' colours, and a tank that would be a fifth on a line is drawn into the cells instead (`field.asm`). |
+| `src/z80/` | The script player in Z80 (`ply.asm`, `ops.asm`, `trk.asm`, `pt.asm`: the 6809's), drawing through `src/tms9918/fld.asm`. |
+| `src/sound/`, `src/sn76489/` | The Z80 machines' sound: a chip-neutral engine (`snd.asm`: effects, tunes, the shell's whistle, as three voices) and its SN76489 back end (`sn.asm`: the Adam's and the ColecoVision's). |
 | `src/astrocade/` | The Bally Astrocade client, for the FujiNet cartridge: Z80 assembly (zmac), an APPBANK image of 4K pages. The field is the screen's own 160x56 bitmap, as on the Atari; a band interrupt every 4 lines gives each band its sky, two tank colours and the split between them (past two tanks in a band, the extra ones shimmer at 30 Hz). The 4K of screen RAM is all the RAM there is. |
 | `music/` | The tunes, in FujiBlast's text format (`tools/mus.py`). |
 | `docs/PROTOCOL.md` | The wire protocol, the state layout and the script ops. |
 | `docs/OPS.md` | How every weapon and item reaches the client as script ops. |
 | `docs/PORTING.md` | How to bring FujiBarrage to another machine. |
-| `tools/` | The font, art and music converters; the Atari rigs (`atarisim/`); the Apple II's (`a2sim/`, `a2rig/`); the Intellivision's (`intvsim/`, `intvrig/`); the Color Computer's (`cocosim/`). |
+| `tools/` | The font, art and music converters; the Atari rigs (`atarisim/`); the Apple II's (`a2sim/`, `a2rig/`); the Intellivision's (`intvsim/`, `intvrig/`); the Color Computer's (`cocosim/`); the Adam's (`adamsim/`, `adamrig/`). |
 
 ## Building
 
@@ -147,6 +164,7 @@ make test               # the server's tests
 make intv               # r2r/intv/barrage.rom
 make astrocade          # r2r/astrocade/barrage.bin
 make coco               # r2r/coco/barrage.dsk
+make adam               # r2r/adam/barrage.ddp (and barrage.dsk)
 ```
 
 - **Default server:** `make SERVER=host:port` sets the server the game uses when the lobby gave none. It is remembered.
@@ -157,6 +175,7 @@ make coco               # r2r/coco/barrage.dsk
 - **The Apple II's disk:** a 140K ProDOS disk holding two programs, as the Atari's: `BARRAGE` (the game) and `MENU` (the title, the name and the rooms), each loaded by its own `.SYSTEM` loader (`tools/a2loader`), which skips the 8K of high-res page 1 in the file. Either runs the other by loading its loader (`src/apple2/chain.s`). It needs a 128K //e, //c or IIgs; `/RAM` is unplugged. The clock is a Mockingboard's timer if there is one, else the vertical blank. `src/apple2/barrage.cfg` says what goes where: code below the field, above it to $BDFF, and in the language card. `SERVER=host:port` works as the Atari's.
 - **The Astrocade's image:** `r2r/astrocade/barrage.bin`, 52K for the FujiNet cartridge's APPBANK: 8K at $2000 (page 0, then the resident code at $3000), then 4K pages that the code maps at $2000 one at a time. `src/astrocade/build.sh` needs zmac 1.3's source (`~/Workspace/zmac-1.3`, or `ZMACSRC=`) and builds it with a bigger symbol table. It writes the catalog into the image from `barraged -catalog`. Its checks fail a build that overruns a page, the resident code or RAM, or jumps between pages without `FAR`. `SERVER=host:port` works as the Atari's.
 - **The Color Computer's disk:** `r2r/coco/barrage.dsk`, a Disk BASIC disk for both machines: `BARRAGE.BIN` (`src/coco/launch.asm`) loads the CoCo 3's game on a CoCo 3, else the CoCo 1/2's; the lobby types `RUNM"BARRAGE"` (the disk's name) and `AUTOEXEC.BAS` LOADMs it. Each machine has a game (`BARRAG2`, `BARRAGE3`) and a menu (`BMENU`, `BMENU3`), as the Atari's two programs, and each program is a low core LOADM'd by BASIC and the files its `bank.c` loads after it into all-RAM (the high core at $8000, the art; the CoCo 3's art in a block of its own). The FujiNet boots it over DriveWire (HDB-DOS). `tools/coco/build.mk` needs CMOC 0.1.101, lwtools and toolshed's `decb` (`~/Workspace/toolshed`); `src/coco/barrage{,3}.link` say what goes where, and `tools/coco/lwlink-co.py` fails a link that overruns a region. `SERVER=host:port` works as the Atari's.
+- **The Adam's image:** `r2r/adam/barrage.ddp`, a 256K tape image (the FujiNet boots it), and the same blocks as `barrage.dsk`, a 160K disk. Block 0 is z88dk's bootstrap; then the game, the menu and the art block. The game boots; the menu, the art and the game again are read with EOS's READ_BLOCK from the device it booted from. `tools/adam/build.mk` runs z88dk in the defoogi container (`tools/z80/z88dk`), at `-SO2` (`-SO3` miscompiles), and builds its fujinet-lib. `tools/adam/mkimage.py` writes the blocks and fails a build whose program overruns C800h (the bootstrap) or whose variables reach the field's store at A700h. `SERVER=host:port` works as the Atari's.
 - **The Intellivision's ROM:** `r2r/intv/barrage.rom`, for the FujiNet cartridge, which gives it 7K words of 16-bit RAM at $8000-$9BFF. It needs `as1600` (jzIntv's SDK) on the PATH and IntyBASIC 1.5's source (`IB_SRC`, default `~/Workspace/IntyBASIC`): the Makefile builds the compiler, since 1.4 has no `OPTION MAP`. The ROM is about 24K words of the 26.5K in the windows no other hardware uses; `tools/intv/checkcfg.py` fails a build that strays outside them. `SERVER=host:port` works as the Atari's.
 
 ## Running a server
@@ -200,6 +219,12 @@ tools/cocosim/refcheck.py coco2|coco3 [-gate] OUTDIR [WEAPON...]
 tools/cocosim/terrcheck.py --fixture OUTDIR
 tools/cocosim/rig.sh SCRIPT OUTDIR
 tools/cocosim/mixed.sh SCRIPT2 SCRIPT3 OUTDIR
+make adam TEST=1
+tools/adamsim/adamrun r2r/adam/barrage.ddp build/adam/game.map SCENARIO OUTDIR
+tools/adamsim/refcheck.py [-gate] OUTDIR [WEAPON...]
+tools/adamsim/terrcheck.py OUTDIR
+tools/adamsim/vramcheck.py RAM.bin VRAM.bin
+tools/adamrig/rig.sh OUTDIR
 ```
 
 - **`go test`** covers:
@@ -227,4 +252,8 @@ tools/cocosim/mixed.sh SCRIPT2 SCRIPT3 OUTDIR
 - **`tools/cocosim/refcheck.py`** is `refcheck.py` for either machine, with each shot's lag; `-gate` runs every weapon on hilly and flat fields and with shields (99 shots), all at 0 pixels on both. The slowest shot (MEGA MIRV on a flat field) ends about 0.8 s behind its script on the CoCo 1/2 and 2.2 s on the CoCo 3.
 - **`tools/cocosim/terrcheck.py`** holds the field against its terrain: `--fixture` offline, `--live` against `tapproxy.py`'s log.
 - **`tools/cocosim/rig.sh`** plays a Color Computer live: MAME with HDB-DOS on the Becker port, a copy of fujinet-pc (the CoCo build) and the server and bots in a network namespace; `MACHINE=coco3` for the CoCo 3, `EXTRA` and `ROOM` as the Apple's. **`mixed.sh`** puts a CoCo 1/2 and a CoCo 3 in one room (MAME's Becker port can't move from 65504, so the CoCo 3 gets a namespace of its own inside the first).
+- **`adamrun`** runs the Adam's image in adamcore (FujiNet Go Adam's core, as a library) with no FujiNet, as fast as the host goes: the test scenes, RAM and VRAM dumps, screenshots, sound (`wav`), CPU profiles (`hist`, `prof`), and a shot's segments served from files. Build it with `gcc -O2 -o tools/adamsim/adamrun tools/adamsim/adamrun.c -I$ADAMCORE/include $ADAMCORE/build/libadamcore.a -lm -lpthread`. Scene 7 plays every effect, 6 the tunes, 9 the whistle.
+- **`tools/adamsim/refcheck.py`** is `refcheck.py` for the Adam, with each shot's lag; `-gate` runs every weapon on hilly and flat fields and with shields (99 shots), all at 0 pixels. The slowest shot (MEGA MIRV on a flat field) ends about 1.7 s behind its script.
+- **`tools/adamsim/terrcheck.py`** holds the field's store against its terrain (`--live` against `tapproxy.py`'s log), and **`vramcheck.py`** holds the screen against the store: every field cell's pattern and colours as `render.asm` should make them.
+- **`tools/adamrig/rig.sh`** plays the Adam live: adamcore with a copy of fujinet-pc (the Adam build) over AdamNet, the server and bots in a network namespace. `KEYS` types at given seconds, `WAV` records the sound, `CONFIG=1` boots through CONFIG as a real FujiNet would, and `EXTRA` and `ROOM` put the proxies in the link.
 - **`tools/intvrig/rig.sh`** plays the Intellivision live, as `rig.sh` does the Atari, with a copy of fujinet-pc on BoIP and the FujiNet build of jzIntv. `EXTRA` runs `tools/rigs/cutproxy.py` or `dropproxy.py` in the namespace to drop the link.

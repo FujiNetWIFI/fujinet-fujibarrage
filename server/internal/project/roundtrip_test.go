@@ -28,6 +28,8 @@ var shapes = []Caps{
 	{FieldW: 128, FieldH: 168, Hz: 60, Buf: 1536, TankW: 5, TankH: 5},  // CoCo 1/2 (PMODE 4 artifact)
 	{FieldW: 128, FieldH: 168, Hz: 50, Buf: 1536, TankW: 5, TankH: 5},  // the same, PAL
 	{FieldW: 320, FieldH: 176, Hz: 60, Buf: 1536, TankW: 12, TankH: 6}, // CoCo 3 (GIME 320x200)
+	{FieldW: 256, FieldH: 168, Hz: 60, Buf: 1536, TankW: 7, TankH: 5},  // Coleco Adam (TMS9918)
+	{FieldW: 256, FieldH: 168, Hz: 50, Buf: 1536, TankW: 7, TankH: 5},  // the same, PAL
 }
 
 func field(seed uint64) *sim.Sim {

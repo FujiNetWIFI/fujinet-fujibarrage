@@ -251,10 +251,19 @@ static uint8_t frame(uint8_t n)
             field_loading();            /* (over a text screen: blank it) */
         }
         x = LE16(p + 3);
+#ifdef FIELD_COLUMNS
+        {   /* the frame's columns at once: a byte's columns written together */
+            uint16_t x0 = x;
+            for (i = 6; i < n && x < FIELD_W; ++x)
+                i += entry_len(nst_buf + i);
+            field_columns(x0, nst_buf + 6, x - x0);
+        }
+#else
         for (i = 6; i < n && x < FIELD_W; ++x) {
             field_column(x, nst_buf + i);
             i += entry_len(nst_buf + i);
         }
+#endif
         if (p[2] & G_LAST)
             net_tv = p[1];
         net_terrain = 1;

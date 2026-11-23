@@ -38,6 +38,8 @@ void test_check(void)
 #include "coco3/test/fixture.h"     /* (refview -fixture-all: every segment) */
 #elif defined(_COCO_BASIC_)
 #include "coco2/test/fixture.h"
+#elif defined(__ADAM__)
+#include "adam/test/fixext.h"       /* (the rig's: tools/adamsim/fixture.py) */
 #else
 #include "fixture.h"
 #endif
@@ -49,7 +51,10 @@ typedef char fixture_fits[sizeof(fix_script) <= SCRIPT_BUF ? 1 : -1];
 #endif
 
 uint8_t test_hook[4];
-uint16_t test_t0, test_t1;              /* the shot's start and end, in jiffies: the lag */
+uint16_t test_t0, test_t1;
+#ifdef FIX_EXTERN
+uint8_t fix_ram[FIX_RAM];
+#endif              /* the shot's start and end, in jiffies: the lag */
 #ifdef __ATARI__                        /* (the OS's clock: frame_count stands still in a script) */
 #define TEST_NOW() ((uint16_t)(*(volatile uint8_t *)0x13 << 8 | *(volatile uint8_t *)0x14))
 #else
@@ -94,14 +99,18 @@ static void canned(void)
 
 static void ground(void)
 {
+#ifdef FIELD_COLUMNS
+    field_columns(0, fix_terrain, FIELD_W);
+#else
     uint16_t x, at = 0;
     for (x = 0; x < FIELD_W; ++x) {
         field_column(x, fix_terrain + at);
         at += entry_len(fix_terrain + at);
     }
+#endif
 }
 
-#ifdef _COCO_BASIC_
+#if defined(_COCO_BASIC_) || defined(__ADAM__)
 static uint8_t show;                    /* scene 8's extras */
 #endif
 
@@ -110,7 +119,7 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
     uint16_t t;
     ground();
     play_enter();
-#ifdef _COCO_BASIC_
+#if defined(_COCO_BASIC_) || defined(__ADAM__)
     if (show & 0x40)
         field_balloon(0, "NICE SHOT. NOW WATCH THIS ONE!", 30);
     if (show & 0x80) {
@@ -125,7 +134,25 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
         }
         if (!shots)
             continue;
-#ifdef FIX_NSEG
+#ifdef FIX_EXTERN
+        if (!stream_only)
+            snd_full(1);
+        {                               /* every segment in turn, from the rig */
+            uint16_t played = 0, t0;
+            for (seg_no = 0; seg_no < FIX_NSEG; ++seg_no) {
+                test_hook[0] = (uint8_t)(0x80 | seg_no);
+                while (test_hook[0] & 0x80)
+                    frame_wait();
+                seg_flags = S_LAST_FRAME | (seg_no == FIX_NSEG - 1 ? S_LAST_SEG : 0);
+                t0 = TEST_NOW();
+                play_segment();
+                played += (uint16_t)(TEST_NOW() - t0);
+            }
+            test_t0 = 0;
+            test_t1 = played;           /* (the time played, the asking left out) */
+            test_hook[0] = 0xDD;
+        }
+#elif defined(FIX_NSEG)
         if (!stream_only)
             snd_full(1);
         {                               /* every segment in turn */
@@ -195,7 +222,7 @@ void test_check(void)
         if (test_hook[3] & 0x80)
             st[OFF_SKY] = test_hook[3] & 7;
         field_scene(0, 0);
-#ifdef _COCO_BASIC_
+#if defined(_COCO_BASIC_) || defined(__ADAM__)
     case 8:
         st[OFF_TURN] = 0;
         st[OFF_SKY] = test_hook[3] & 7;

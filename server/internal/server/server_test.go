@@ -154,6 +154,13 @@ func TestCocoGameAgainstBots(t *testing.T) {
 	}
 }
 
+// The Adam's shape (256x168: the TMS9918's full width).
+func TestAdamGameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.Adam, mode)
+	}
+}
+
 func botGame(t *testing.T, caps project.Caps, mode int) {
 	t.Helper()
 	s, ck, addr := serve(t)

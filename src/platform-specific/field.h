@@ -86,10 +86,34 @@
 #define TXT_ITEMS "I: ITEMS"
 #endif
 
+#ifdef __ADAM__
+/* TMS9918 Graphics II: the field 256x168 (character rows 0-20) over a
+ * 3-row HUD; the tanks are sprites (src/tms9918/) */
+#define FIELD_W 256
+#define FIELD_H 168
+#define TANK_W  7
+#define TANK_H  5
+#define PAR     73              /* pixel aspect, 64ths (5.37 MHz pixels) */
+#ifndef SCRIPT_BUF
+#define SCRIPT_BUF 1536
+#endif
+#define BANDS   4               /* sprites on a line (the rest go in the bitmap) */
+#define FIELD_COLUMNS           /* field_columns: a frame's columns at once */
+#define PLAT_ID   PLAT_ADAM
+#define PLAT_CAPS CAP_HOLD
+#define ITEMS_ROW 2
+#define PLY_CATCHUP 8
+#define MARK_UP (TANK_H + 7)     /* the turn's arrow, its top: over the barrel */
+#define TXT_ITEMS "I: ITEMS"
+#endif
+
 void field_init(void);                      /* at start-up: all sky */
 void field_loading(void);                   /* a whole field is coming */
 void field_open(uint8_t sky, uint8_t pal);  /* the field screen on */
 void field_column(uint16_t x, const uint8_t *entry);
+#ifdef FIELD_COLUMNS
+void field_columns(uint16_t x, const uint8_t *entry, uint16_t n);  /* n columns, entries in a row */
+#endif
 void field_plot(int16_t x, int16_t y, uint8_t v);
 uint8_t field_get(int16_t x, int16_t y);
 void field_swap(int16_t x, int16_t y, uint8_t from, uint8_t to);

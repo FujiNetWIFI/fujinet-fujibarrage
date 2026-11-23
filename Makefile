@@ -21,6 +21,8 @@
 #   make coco                      r2r/coco/barrage.dsk (CoCo 1/2 64K and CoCo 3, one disk;
 #                                  tools/coco/build.mk: CMOC, TEST=1 and VIDEO_CARD=1 as above)
 #   make fixture-astrocade         src/astrocade/test/fixture.inc: its test scenes' field and shot
+#   make adam                      r2r/adam/barrage.ddp (Coleco Adam; tools/adam/build.mk:
+#                                  z88dk in defoogi, TEST=1, TEST_SCENE=n and VIDEO_CARD=1)
 #
 # src/ is platform neutral; src/platform-specific/*.h is what each platform
 # implements in src/<platform>/. The server sends every client its field and
@@ -119,6 +121,25 @@ proto:
 	cd server && go run ./cmd/barraged -cheader > ../src/proto.h
 	sed -n 's/^#define \([A-Z_0-9]*\) *\([0-9][0-9]*\)$$/\1 = \2/p' src/proto.h > src/6502/proto.inc
 	sed -n 's/^#define \([A-Z_0-9]*\) *\([0-9][0-9]*\)$$/\1 EQU \2/p' src/proto.h > src/6809/proto.inc
+	@mkdir -p src/z80
+	sed -n 's/^#define \([A-Z_0-9]*\) *\([0-9][0-9]*\)$$/\tdefc \1 = \2/p' src/proto.h > src/z80/proto.inc
+
+# ---- Coleco Adam (the TMS9918A, the SN76489) --------------------------------
+# z88dk's zcc with zsdcc and z80asm, in the defoogi container unless z88dk is
+# installed (tools/z80/z88dk): tools/adam/build.mk. fujinet-lib is
+# fujinet-lib-experimental built with zsdcc (tools/z80/fnlib_adam.sh, on
+# the host: it reads the other repository).
+FNLIB_EXP ?= $(HOME)/Workspace/fujinet-lib-experimental
+FNLIB_COMMIT ?= a29e57f
+adam: gen/config.h build/fnlib-adam/fujinet-adam.lib
+	tools/z80/z88dk $(MAKE) -f tools/adam/build.mk $(if $(TEST),TEST=$(TEST)) \
+	    $(if $(TEST_SCENE),TEST_SCENE=$(TEST_SCENE) TEST_ARG=$(TEST_ARG)) $(if $(VIDEO_CARD),VIDEO_CARD=$(VIDEO_CARD)) \
+	    $(if $(TESTX),TESTX="$(TESTX)") $(if $(XFLAGS),XFLAGS="$(XFLAGS)")
+
+build/fnlib-adam/fujinet-adam.lib:
+	tools/z80/fnlib_adam.sh $(FNLIB_EXP) $(FNLIB_COMMIT) build/fnlib-adam
+
+.PHONY: adam
 
 # ---- TRS-80 Color Computer: CoCo 1/2 (PMODE 4) and CoCo 3 (GIME), one disk ----
 # CMOC + lwtools + toolshed's decb, outside defoogi: tools/coco/build.mk

@@ -103,6 +103,11 @@ var Coco = project.Caps{FieldW: 128, FieldH: 168, Par: 109, Hz: 60, TankW: 5, Ta
 var Coco3 = project.Caps{FieldW: 320, FieldH: 176, Par: 55, Hz: 60, TankW: 12, TankH: 6, Buf: 1536,
 	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatCoco3}
 
+// Adam is the Coleco Adam client's shape: TMS9918 Graphics II, the field
+// 256x168 (21 character rows) over a 3-row HUD; the tanks are sprites.
+var Adam = project.Caps{FieldW: 256, FieldH: 168, Par: 73, Hz: 60, TankW: 7, TankH: 5, Buf: 1536,
+	Bands: 4, Flags: proto.CapHold, Plat: proto.PlatAdam}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps

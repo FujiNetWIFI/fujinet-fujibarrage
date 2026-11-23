@@ -1,5 +1,5 @@
 /* layout.h -- where the text screens and the HUD put things: 40 columns
- * (the Atari, the Apple II, the CoCo 3) or 32 (the CoCo 1/2: SCR_COLS,
+ * (the Atari, the Apple II, the CoCo 3) or 32 (the CoCo 1/2, the Adam: SCR_COLS,
  * scr.h). The 40-column values are the literals the screens always had. */
 #ifndef LAYOUT_H
 #define LAYOUT_H
@@ -29,10 +29,16 @@
 #define SHOP_CASH_C  20
 #define SHOP_TIMER_C 30
 #define TXT_SHOP_HEAD "ITEM          PRICE BUY  OWN"
+#ifdef __ADAM__                 /* (the Adam: RETURN, and a TAB key) */
+#define TXT_SHOP_HINT "FIRE BUY  LEFT SELL  RETURN DONE"
+#define TXT_W_HOSTSET "S SEATS TAB PAGE <> SET FIRE GO"
+#define TXT_W_SET     "S SEATS  TAB PAGE"
+#else
 #define TXT_SHOP_HINT "FIRE BUY  LEFT SELL  ENTER DONE"
 /* the waiting room's last row */
 #define TXT_W_HOSTSET "S SEATS  W PAGE  <> SET FIRE GO"
 #define TXT_W_SET     "S SEATS  W PAGE"
+#endif
 #define TXT_W_WAIT    "WAITING FOR THE HOST  S: SET"
 #define TXT_W_PEOPLE  "FIRE STARTS (2+ PEOPLE) S: SET"
 #define TXT_W_BOTS    "FIRE STARTS (BOTS FILL) S: SET"
@@ -139,6 +145,8 @@
 
 #ifdef _COCO_BASIC_
 #define TXT_DEFENCES "SET UP DEFENCES, ENTER: DONE"
+#elif defined(__ADAM__)
+#define TXT_DEFENCES "SET UP DEFENCES, RETURN DONE"   /* (28: the timer at 29) */
 #endif
 
 #endif
