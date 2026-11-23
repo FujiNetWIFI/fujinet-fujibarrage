@@ -203,7 +203,11 @@ void test_check(void)
 #ifdef TEST_SCENE                        /* a rig that can't poke memory: built in */
     test_hook[0] = 0x5A;
     test_hook[2] = TEST_SCENE;
+#ifdef TEST_ARG
+    test_hook[3] = TEST_ARG;
+#else
     test_hook[3] = 0;
+#endif
 #endif
     for (n = 0; n < 20 && test_hook[0] != 0x5A; ++n)
         frame_wait();

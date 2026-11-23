@@ -82,6 +82,10 @@ l:      .res 1
 evi:    .res 1
 gb:     .res 1
 rh:     .res 1          ; a register's high byte (sti)
+.ifdef __ATARI5200__
+late:   .res 1          ; 1: this routine sets VDSLST after its colours (head, tail)
+nxt:    .res 2          ; (tail: where the next routine starts)
+.endif
 bf:     .res 1          ; the back pair: 0 or 2
 cbh:    .res 1          ; its code's page
 sky:    .res 1
@@ -189,8 +193,28 @@ emit:   ldy     #0
 
 ; head: PHA, then VDSLST to the next routine (tail fills it in) first thing
 ; -- a DLI that came while this one ran would otherwise find VDSLST half
-; changed
-head:   lda     cp
+; changed. (The 5200's, unless it moves players: PHA only, and tail sets
+; VDSLST after the colours. Its NMI takes 15 or 16 cycles to get here, the
+; 800's 11, and with the VDSLST stores first the WSYNC came on this line or
+; the next from frame to frame: the bands shook. After the colours is safe:
+; a free line keeps the next DLI two lines off, and this one is done early
+; in the line after its own.)
+head:
+.ifdef __ATARI5200__
+        lda     late
+        beq     @first
+        lda     cp
+        sta     pp
+        lda     cp+1
+        sta     pp+1
+        lda     #$48
+        jsr     emit
+        lda     #>GTIA
+        sta     rh
+        rts
+@first:
+.endif
+        lda     cp
         sta     pp
         lda     cp+1
         sta     pp+1
@@ -207,7 +231,34 @@ head:   lda     cp
         rts
 
 ; tail: PLA, RTI; the head's VDSLST gets where the next one starts
-tail:   lda     #$68
+tail:
+.ifdef __ATARI5200__
+        lda     late            ; (the 5200's: VDSLST here, then PLA, RTI;
+        beq     @first          ; the next routine starts 12 bytes on)
+        lda     cp
+        clc
+        adc     #12
+        sta     nxt
+        lda     cp+1
+        adc     #0
+        sta     nxt+1
+        lda     #>VDSLST
+        sta     rh
+        lda     nxt
+        ldx     #<VDSLST
+        jsr     sti
+        lda     nxt+1
+        ldx     #<VDSLST+1
+        jsr     sti
+        lda     #>GTIA
+        sta     rh
+        lda     #$68
+        jsr     emit
+        lda     #$40
+        jmp     emit
+@first:
+.endif
+        lda     #$68
         jsr     emit
         lda     #$40
         jsr     emit
@@ -598,6 +649,10 @@ _dlc_build:
         sta     (dp),y
 
         ; the routines: R0, the players' first places
+.ifdef __ATARI5200__
+        lda     #0              ; (it moves players: VDSLST first)
+        sta     late
+.endif
         jsr     head
         lda     #0
 @r0:    sta     j
@@ -615,6 +670,10 @@ _dlc_build:
         bne     @r0
         jsr     tail
         ; R1: the field's colours, line 0
+.ifdef __ATARI5200__
+        lda     #1              ; (colours only: VDSLST after them)
+        sta     late
+.endif
         jsr     head
         ldx     #0
         jsr     grad
@@ -636,7 +695,13 @@ _dlc_build:
         tax
         lda     is_tank,x
         ora     is_grad,x
+.ifdef __ATARI5200__
+        bne     @dl             ; (the 5200's is longer: out of a branch's reach)
+        jmp     @lx
+@dl:
+.else
         beq     @lx
+.endif
         lda     cp+1            ; (can't overflow: the bound holds)
         sec
         sbc     cbh
@@ -662,6 +727,14 @@ _dlc_build:
         lda     (dp),y
         ora     #$80
         sta     (dp),y
+.ifdef __ATARI5200__
+        ldy     #1              ; VDSLST after the colours unless players move here
+        ldx     l
+        lda     is_tank,x
+        beq     @lt
+        dey
+@lt:    sty     late
+.endif
         jsr     head
         ldx     l
         lda     is_tank,x

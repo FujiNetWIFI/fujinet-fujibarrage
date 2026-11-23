@@ -40,6 +40,9 @@ _rw_bk:  .res ROWS      ; each text row's border, text brightness, background
 _rw_c1:  .res ROWS
 _rw_c2:  .res ROWS
 dli_idx: .res 1
+.ifdef __ATARI5200__
+        .segment "ZEROPAGE"     ; (tdli reads them before its WSYNC: zero page is quicker)
+.endif
 nx_bk:   .res 1
 nx_c1:   .res 1
 nx_c2:   .res 1
@@ -133,6 +136,27 @@ _dsp_init:
 .endif
 
 ; ---- the text screen's DLI: the next row's colours, ready since the last --
+.ifdef __ATARI5200__
+; The 5200's NMI takes 15 or 16 cycles to get here (the BIOS's, Altirra's),
+; the 800's 11: with the 800's code the WSYNC came, from frame to frame, on
+; this line or the next, and the rows' colours shook. So as little as can
+; be before it: one register, zero page.
+tdli:   pha
+        lda     nx_c2
+        sta     WSYNC
+        sta     COLPF2
+        lda     nx_bk
+        sta     COLBK
+        lda     nx_c1
+        sta     COLPF1
+        txa
+        pha
+        jsr     prep
+        pla
+        tax
+        pla
+        rti
+.else
 tdli:   pha
         txa
         pha
@@ -148,6 +172,7 @@ tdli:   pha
         tax
         pla
         rti
+.endif
 
 prep:   ldx     dli_idx
         inx

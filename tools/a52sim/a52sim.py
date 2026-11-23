@@ -35,6 +35,7 @@ command a line:
     swaps N                     N MAME frames later, print the cart's swaps
     wcount N SYMBOL             for N frames, count the stores to SYMBOL
     wpc N SYMBOL|0xADDR         for N frames, print each store's PC and value (WPC)
+    burst N PREFIX              a snapshot every frame for N frames: OUTDIR/PREFIX-001.png...
 
 The input goes through the game's test hook (inp_hook in input.c) but for
 pad; the addresses come from the linker map (the game's: the menu, bank 0,
@@ -125,6 +126,8 @@ def main():
             steps.append(("wcount", int(w[1]), sym(w[2])))
         elif c == "watch":
             steps.append(("watch", int(w[1]), [sym(x) for x in w[2:]]))
+        elif c == "burst":
+            steps.append(("burst", int(w[1]), w[2]))
         elif c == "wpc":
             a = int(w[2], 16) if w[2].startswith("0x") else sym(w[2])
             steps.append(("wpc", int(w[1]), a))
@@ -153,6 +156,8 @@ def main():
             lua.append('{"wcount", %d, %d},' % (s[1], s[2]))
         elif s[0] == "watch":
             lua.append('{"watch", %d, {%s}},' % (s[1], ", ".join(str(a) for a in s[2])))
+        elif s[0] == "burst":
+            lua.append('{"burst", %d, "%s"},' % (s[1], s[2]))
         elif s[0] == "wpc":
             lua.append('{"wpc", %d, %d},' % (s[1], s[2]))
         elif s[0] == "dump":
@@ -294,6 +299,13 @@ _G.__a52sim = emu.add_machine_frame_notifier(function()
         _G.__wtap:remove(); _G.__wtap = nil
         watch_until = nil; i = i + 1
       else return end
+    elseif s[1] == "burst" then
+      -- a snapshot every MAME frame for N frames (OUTDIR/PREFIX-nnn.png)
+      _G.__burst = (_G.__burst or 0) + 1
+      manager.machine.video:snapshot()
+      local f = io.open(out .. "/snaps.txt", "a"); f:write(string.format("%%s-%%03d\\n", s[3], _G.__burst)); f:close()
+      if _G.__burst >= s[2] then _G.__burst = nil; i = i + 1 end
+      return
     elseif s[1] == "wpc" then
       if watch_until == nil then
         watch_until = now + s[2]
