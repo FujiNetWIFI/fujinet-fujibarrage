@@ -145,6 +145,15 @@ func TestApple2GameAgainstBots(t *testing.T) {
 	}
 }
 
+// The CoCo 1/2's shape (128x168) and the CoCo 3's (320x176: a field wider
+// than 256, its tank x past a byte).
+func TestCocoGameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.Coco, mode)
+		botGame(t, client.Coco3, mode)
+	}
+}
+
 func botGame(t *testing.T, caps project.Caps, mode int) {
 	t.Helper()
 	s, ck, addr := serve(t)

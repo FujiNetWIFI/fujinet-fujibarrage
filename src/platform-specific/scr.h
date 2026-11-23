@@ -6,7 +6,11 @@
 #include <stdint.h>
 
 #define SCR_ROWS 24
+#if defined(_COCO_BASIC_) && !defined(COCO3)
+#define SCR_COLS 32             /* the CoCo 1/2: 4 colour pixels a column (src/coco2/scr2.c) */
+#else
 #define SCR_COLS 40
+#endif
 
 /* palettes for a row */
 enum { PAL_TEXT, PAL_TITLE, PAL_HEAD, PAL_HILITE, PAL_DIM, PAL_SEAT };
@@ -19,5 +23,9 @@ void scr_inverse(uint8_t row, uint8_t col, uint8_t n);  /* highlight n cells */
 void scr_clear_row(uint8_t row);
 void scr_scroll(uint8_t row, uint8_t n, uint8_t up);    /* rows row..row+n-1 move a row */
 void scr_show(void);                            /* on, from the next frame */
+#ifdef _COCO_BASIC_
+#define SCR_PICTURE 1
+void scr_picture(void);                         /* the title: a picture, its words in it */
+#endif
 
 #endif

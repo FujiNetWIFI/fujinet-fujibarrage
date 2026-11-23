@@ -25,6 +25,9 @@ var shapes = []Caps{
 	{FieldW: 160, FieldH: 56, Hz: 60, Buf: 240, TankW: 7, TankH: 5},    // Astrocade
 	{FieldW: 140, FieldH: 160, Hz: 60, Buf: 1536, TankW: 5, TankH: 5},  // Apple II (HGR colour pixels)
 	{FieldW: 140, FieldH: 160, Hz: 50, Buf: 1536, TankW: 5, TankH: 5},  // the same, PAL
+	{FieldW: 128, FieldH: 168, Hz: 60, Buf: 1536, TankW: 5, TankH: 5},  // CoCo 1/2 (PMODE 4 artifact)
+	{FieldW: 128, FieldH: 168, Hz: 50, Buf: 1536, TankW: 5, TankH: 5},  // the same, PAL
+	{FieldW: 320, FieldH: 176, Hz: 60, Buf: 1536, TankW: 12, TankH: 6}, // CoCo 3 (GIME 320x200)
 }
 
 func field(seed uint64) *sim.Sim {
@@ -135,6 +138,8 @@ func TestEveryWeaponRoundTrip(t *testing.T) {
 func TestSegmentCounts(t *testing.T) {
 	segmentCounts(t, Caps{FieldW: 160, FieldH: 56, Hz: 60, TankW: 7, TankH: 5}, []int{240, 320, 400})
 	segmentCounts(t, Caps{FieldW: 140, FieldH: 160, Hz: 60, TankW: 5, TankH: 5}, []int{1024, 1536})
+	segmentCounts(t, Caps{FieldW: 128, FieldH: 168, Hz: 60, TankW: 5, TankH: 5}, []int{1024, 1536})
+	segmentCounts(t, Caps{FieldW: 320, FieldH: 176, Hz: 60, TankW: 12, TankH: 6}, []int{1536, 3072})
 }
 
 func segmentCounts(t *testing.T, shape Caps, bufs []int) {

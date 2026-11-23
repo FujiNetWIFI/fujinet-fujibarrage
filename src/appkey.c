@@ -17,18 +17,26 @@
 #define AK_NAME    0
 #define AK_SERVER  0x13
 
+#ifdef __CC65__
 #pragma bss-name (push, "BSS2")     /* low memory: MAIN is full */
+#endif
 char my_name[NAME_LEN + 1];
 char srv_host[61];
 uint16_t srv_port;
 char srv_table[ROOM_LEN + 1];
 
 static uint8_t akbuf[68];
+#ifdef __CC65__
 #pragma bss-name (pop)
+#endif
 
 #ifndef MENU
+#ifdef __CC65__
 #pragma code-name (push, "BOOTCODE")     /* the game: run once, at start-up */
+#endif
+#ifdef __CC65__
 #pragma rodata-name (push, "BOOTCODE")
+#endif
 #endif
 /* The buffer is zeroed first: an unset key can read back as zeros. */
 static uint8_t ak_read(uint8_t key)
@@ -55,8 +63,12 @@ static uint8_t ak_read(uint8_t key)
 }
 
 #ifndef MENU
+#ifdef __CC65__
 #pragma rodata-name (pop)
+#endif
+#ifdef __CC65__
 #pragma code-name (pop)
+#endif
 #endif
 
 static void ak_write(uint8_t key, uint8_t n)
@@ -73,8 +85,12 @@ static void ak_write(uint8_t key, uint8_t n)
 }
 
 #ifndef MENU
+#ifdef __CC65__
 #pragma code-name (push, "BOOTCODE")     /* the game: run once, at start-up */
+#endif
+#ifdef __CC65__
 #pragma rodata-name (push, "BOOTCODE")
+#endif
 #endif
 /* "tcp://host:port/?table=id" (or host:port): the host, the port, the table
  * (letters and digits). False if there is no host. */
@@ -131,8 +147,12 @@ void appkey_load(void)
 }
 
 #ifndef MENU
+#ifdef __CC65__
 #pragma rodata-name (pop)
+#endif
+#ifdef __CC65__
 #pragma code-name (pop)
+#endif
 #endif
 
 #ifdef MENU

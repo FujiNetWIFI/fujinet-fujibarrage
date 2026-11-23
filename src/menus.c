@@ -4,6 +4,7 @@
  */
 #include <string.h>
 #include "game.h"
+#include "layout.h"
 #include "scr.h"
 #include "input.h"
 #include "plat.h"
@@ -34,7 +35,7 @@ static void tick_dir(void)
 static void centre(uint8_t row, const char *s)
 {
     uint8_t n = strlen(s);
-    scr_text(row, n < 40 ? (40 - n) / 2 : 0, s);
+    scr_text(row, n < SCR_COLS ? (SCR_COLS - n) / 2 : 0, s);
 }
 
 void message(const char *a, const char *b, uint8_t frames)
@@ -61,17 +62,21 @@ void message(const char *a, const char *b, uint8_t frames)
 
 void title(void)
 {
+#ifdef SCR_PICTURE
+    scr_picture();
+#else
     uint8_t r;
     scr_begin();
     for (r = 3; r < 8; ++r)
         scr_row(r, PAL_TITLE);
     centre(4, "F U J I B A R R A G E");
-    centre(6, "ARTILLERY FOR UP TO TEN, ON FUJINET");
+    centre(6, TXT_TAGLINE);
     centre(12, "AIM, FIRE, TALK TRASH.");
-    centre(14, "WEAPONS, SHIELDS AND BOTS GALORE.");
+    centre(14, TXT_GALORE);
     scr_row(20, PAL_HILITE);
     centre(20, "PRESS FIRE");
     scr_show();
+#endif
     snd_tune(t_title1, t_title2);       /* (it plays on through the menus) */
     do {
         tick();
@@ -89,8 +94,8 @@ void name_entry(void)
     scr_show();
     for (;;) {
         scr_clear_row(12);
-        scr_text(12, 16, my_name);
-        scr_inverse(12, 16 + n, 1);
+        scr_text(12, (SCR_COLS - NAME_LEN) / 2, my_name);
+        scr_inverse(12, (SCR_COLS - NAME_LEN) / 2 + n, 1);
         tick();
         if (ev_key == KEY_RETURN && n)
             break;
@@ -134,10 +139,14 @@ uint8_t room_list(void)
         for (i = 0; i < n; ++i)
             scr_row(5 + i * 2, i == sel ? PAL_HILITE : PAL_TEXT);
         tick();
-        if (pressed(IN_UP) && sel)
-            --sel, snd_cue(UI_TICK, 0);
-        if (pressed(IN_DOWN) && sel + 1 < n)
-            ++sel, snd_cue(UI_TICK, 0);
+        if (pressed(IN_UP) && sel) {
+            --sel;
+            snd_cue(UI_TICK, 0);
+        }
+        if (pressed(IN_DOWN) && sel + 1 < n) {
+            ++sel;
+            snd_cue(UI_TICK, 0);
+        }
         tick_dir();
         if (ev_btn) {
             memset(srv_table, 0, sizeof(srv_table));

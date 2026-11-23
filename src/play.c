@@ -10,6 +10,7 @@
  */
 #include <string.h>
 #include "game.h"
+#include "layout.h"
 #include "field.h"
 #include "input.h"
 #include "plat.h"
@@ -41,9 +42,13 @@ uint16_t entry_len(const uint8_t *e)
 }
 
 static uint8_t in_script;
+#ifdef __CC65__
 #pragma bss-name (push, "HIGH")
+#endif
 static uint8_t energy[SEATS];
+#ifdef __CC65__
 #pragma bss-name (pop)
+#endif
 
 /* the tanks as the STATE has them: those that changed redrawn */
 static void tanks_from_state(uint8_t all)
@@ -75,13 +80,17 @@ static void tanks_from_state(uint8_t all)
 
 /* ---- the status rows ------------------------------------------------------ */
 
+#ifdef __CC65__
 #pragma bss-name (push, "PMGFREE")
+#endif
 static char line[41];
+#ifdef __CC65__
 #pragma bss-name (pop)
+#endif
 
 static void put(uint8_t col, const char *s)
 {
-    while (*s && col < 40)
+    while (*s && col < SCR_COLS)
         line[col++] = *s++;
 }
 
@@ -110,7 +119,9 @@ static uint8_t defending(void)
 
 #define BANNER_J 180                    /* YOUR TURN! flashes this long */
 #define REMIND_J 600                    /* idle this long on your turn: the cue again */
+#ifndef TXT_DEFENCES
 #define TXT_DEFENCES "SET UP DEFENCES, RETURN: DONE"
+#endif
 
 /* one HUD field flashes (inverse and back, 16 jiffies each): the banner
  * (row 2, "YOUR TURN!") or the defence window's prompt (row 1) */
@@ -134,7 +145,7 @@ static void flash_frame(void)
             return;                     /* (row 2 is the items line) */
 #endif
         row = 2;
-        col = 16;
+        col = HUD_MSG_C;
         t = "YOUR TURN!";
     } else if (fl_kind == FL_DEFENCE) {
         if (!defending()) {
@@ -203,76 +214,76 @@ static void turn_mark(uint8_t s)
 static void items_line(void)
 {
     char nm[17];
-    memset(line, ' ', 40);
+    memset(line, ' ', SCR_COLS);
     switch (menu) {
     case M_ITEM:
-        cat_name(cat_item(item) + 6, nm, 16);
+        cat_name(cat_item(item) + 6, nm, ITM_NAME_N);
         put(0, nm);
-        put(19, "X");
-        putn(20, INV(item));
+        put(ITM_X_C, "X");
+        putn(ITM_X_C + 1, INV(item));
         if (item == I_PARACHUTE || item == I_IMPACT_FUSE)
-            put(24, PL(my_seat, P_FLAGS) & (item == I_PARACHUTE ? PF_CHUTE : PF_FUSE) ? "ON" : "OFF");
-        put(29, "<> FIRE USE");
+            put(ITM_ON_C, PL(my_seat, P_FLAGS) & (item == I_PARACHUTE ? PF_CHUTE : PF_FUSE) ? "ON" : "OFF");
+        put(ITM_USE_C, "<> FIRE USE");
         break;
     case M_TARGET:
         put(0, "TARGET");
         memcpy(line + 7, NAME(target), nlen(NAME(target), NAME_LEN));
-        put(29, "<> FIRE ON");
+        put(ITM_ON_TGT_C, "<> FIRE ON");
         break;
     default:
         put(0, "DRIVE <>  FUEL");
-        putn(15, INV(I_FUEL));
-        put(27, "FIRE DONE");
+        putn(ITM_FUEL_C, INV(I_FUEL));
+        put(ITM_DONE_C, "FIRE DONE");
     }
 }
 
 static void hud(void)
 {
     uint8_t s = st[OFF_TURN];
-    int16_t w = (int16_t)(st[OFF_WIND] | st[OFF_WIND + 1] << 8);
+    int16_t w = (int16_t)LE16(st + OFF_WIND);
     char nm[17];
     fl_lit = 0;                         /* (all of it in plain text again) */
     if (s == NO_SEAT || s >= SEATS)
         s = my_seat < SEATS ? my_seat : 0;
-    memset(line, ' ', 40);
-    line[40] = 0;
+    memset(line, ' ', SCR_COLS);
+    line[SCR_COLS] = 0;
     memcpy(line, NAME(s), nlen(NAME(s), NAME_LEN));
-    put(10, "ANGLE");
-    putn(16, my_turn && s == my_seat ? aim_a : PL(s, P_ANGLE));
-    put(21, "POWER");
-    putn(27, my_turn && s == my_seat ? aim_p : PL16(s, P_POWER));
-    put(33, "E");
-    putn(35, energy[s]);
+    put(HUD_ANG_L, TXT_ANGLE);
+    putn(HUD_ANG_C, my_turn && s == my_seat ? aim_a : PL(s, P_ANGLE));
+    put(HUD_POW_L, TXT_POWER);
+    putn(HUD_POW_C, my_turn && s == my_seat ? aim_p : PL16(s, P_POWER));
+    put(HUD_E_L, "E");
+    putn(HUD_E_C, energy[s]);
     field_status(0, 0, line);
-    memset(line, ' ', 40);
+    memset(line, ' ', SCR_COLS);
     if (defending()) {                  /* the defence window: what to do */
         put(0, TXT_DEFENCES);
-        putn(37, st[OFF_TIMER]);
+        putn(HUD_TIMER_C, st[OFF_TIMER]);
     } else {
-        cat_name(cat_item(my_turn && s == my_seat ? weapon : PL(s, P_WEAPON)) + 6, nm, 16);
+        cat_name(cat_item(my_turn && s == my_seat ? weapon : PL(s, P_WEAPON)) + 6, nm, HUD_WPN_N);
         put(0, nm);
         if (s == my_seat && weapon != I_MINI_MISSILE) {
-            put(17, "X");
-            putn(18, INV(weapon));
+            put(HUD_X_C, "X");
+            putn(HUD_X_C + 1, INV(weapon));
         }
-        put(24, "WIND");
+        put(HUD_WIND_C, "WIND");
         if (w < 0) {
-            put(29, "<");
+            put(HUD_DIR_C, "<");
             w = -w;
         } else if (w > 0)
-            put(29, ">");
-        putn(31, (uint16_t)w);
+            put(HUD_DIR_C, ">");
+        putn(HUD_WV_C, (uint16_t)w);
 #if ITEMS_ROW == 2
         if (menu)
-            putn(37, st[OFF_TIMER]);    /* (row 2 is the items line) */
+            putn(HUD_TIMER_C, st[OFF_TIMER]);    /* (row 2 is the items line) */
 #endif
     }
     field_status(1, 0, line);
-    memset(line, ' ', 40);
-    put(0, "ROUND");
-    putn(6, st[OFF_ROUND]);
-    put(9, "OF");
-    putn(12, st[OFF_ROUNDS]);
+    memset(line, ' ', SCR_COLS);
+    put(0, TXT_ROUND);
+    putn(HUD_RD_C, st[OFF_ROUND]);
+    put(HUD_OF_C, TXT_OF);
+    putn(HUD_RDS_C, st[OFF_ROUNDS]);
 #if ITEMS_ROW == 2
     if (menu)
         items_line();
@@ -280,16 +291,16 @@ static void hud(void)
 #endif
     {
         if (defending())
-            put(16, TXT_ITEMS);
+            put(HUD_MSG_C, TXT_ITEMS);
         else if (my_turn)
-            put(16, fl_kind == FL_BANNER ? "YOUR TURN!" : "YOUR TURN: AIM, FIRE");
+            put(HUD_MSG_C, fl_kind == FL_BANNER ? "YOUR TURN!" : TXT_AIM_FIRE);
         else if (st[OFF_PHASE] == PH_AIM && st[OFF_TURN] < SEATS) {
-            memcpy(line + 16, NAME(st[OFF_TURN]), nlen(NAME(st[OFF_TURN]), NAME_LEN));
-            put(16 + nlen(NAME(st[OFF_TURN]), NAME_LEN), " AIMS");
+            memcpy(line + HUD_MSG_C, NAME(st[OFF_TURN]), nlen(NAME(st[OFF_TURN]), NAME_LEN));
+            put(HUD_MSG_C + nlen(NAME(st[OFF_TURN]), NAME_LEN), " AIMS");
         } else if (st[OFF_PHASE] == PH_AIM)
-            put(16, "EVERYONE AIMS");
+            put(HUD_MSG_C, "EVERYONE AIMS");
         if (!defending())
-            putn(37, st[OFF_TIMER]);    /* (defending: row 1 has it) */
+            putn(HUD_TIMER_C, st[OFF_TIMER]);    /* (defending: row 1 has it) */
     }
     field_status(2, 0, line);
 #if ITEMS_ROW == 3
@@ -297,7 +308,7 @@ static void hud(void)
         items_line();
         field_status(3, 0, line);
     } else if (!in_script) {
-        memset(line, ' ', 40);
+        memset(line, ' ', SCR_COLS);
         field_status(3, 0, line);
     }
 #endif
@@ -318,8 +329,8 @@ static void hud_num(uint8_t col, uint16_t v, uint8_t w)
 
 static void hud_aim(void)
 {
-    hud_num(16, aim_a, 3);
-    hud_num(27, aim_p, 4);
+    hud_num(HUD_ANG_C, aim_a, 3);
+    hud_num(HUD_POW_C, aim_p, 4);
 }
 
 /* ---- entering the field, and the STATE changing ------------------------- */
@@ -429,7 +440,7 @@ static void mark(uint8_t on)
     if (target >= SEATS)
         return;
     for (k = -1; k <= 1; ++k)
-        field_swap(tk[target].x + k, tk[target].y - TANK_H - 4 + (k ? 0 : 1),
+        field_swap(tk[target].x + k, I16(tk[target].y) - TANK_H - 4 + (k ? 0 : 1),
                    on ? PX_SKY : PX_FX, on ? PX_FX : PX_SKY);
 }
 
@@ -625,16 +636,9 @@ void play_frame(void)
 
 /* ---- the script player ------------------------------------------------------ */
 
-/* ply.s plays the timeline; the ops about tanks, talk, damage and sound
- * come here (c_op), their arguments read at ply_pc */
-extern uint16_t ply_pc, ply_wait;
-#pragma zpsym ("ply_pc")
-extern uint8_t ply_done;
-void ply_reset(void);
-void ply_step(void);
-void ply_draw(void);
-void ply_end(void);
-void ops_beams_off(void);
+/* the player (ply.h) plays the timeline; the ops about tanks, talk, damage
+ * and sound come here (c_op), their arguments read at ply_pc */
+#include "ply.h"
 
 static uint8_t talk_seat = NONE, talk_left, talk_n, talk_i;
 static uint8_t recolour;        /* tanks moved: their colours at the next draw
@@ -648,7 +652,7 @@ static uint8_t rd8(void)
 
 static int16_t rd16(void)
 {
-    int16_t v = (int16_t)(script[ply_pc] | script[ply_pc + 1] << 8);
+    int16_t v = (int16_t)LE16A(script, ply_pc);
     ply_pc += 2;
     return v;
 }
@@ -710,7 +714,7 @@ void __fastcall__ c_op(uint8_t o)
         n = rd8();
         ++ply_pc;
         if (s != NONE)
-            field_sparks(s | (n + 8) << 8);
+            field_sparks(SEATKIND(s, n + 8));
         break;
     case OP_DAMAGE:
         rd8();
@@ -732,7 +736,7 @@ void __fastcall__ c_op(uint8_t o)
             field_tank(s, 0);
             tk[s].on = 0;
             recolour = 1;
-            field_sparks(s | n << 8);
+            field_sparks(SEATKIND(s, n));
         }
         break;
     case OP_TANK:

@@ -13,6 +13,10 @@
  *   6  a tune (ARG 0 a round's end, 1 the game's end, 2 the shop)
  *   7  every effect, 3 seconds apart: SND_* 0-15 (a boom small), the
  *      boom's sizes 1-3, then the UI_* cues (the sound's WAVs)
+ *   8  (the CoCo) scene 5 for the art: [3] bits 0-2 the sky, 3-5 the dirt
+ *      palette, 6 a balloon, 7 a ball of fire (its colours cycling)
+ *   9  (the CoCo) the whistle held at 442.9, 885.8 and 1771.7 Hz, 1.5 s
+ *      each with 0.5 s between (the engines' tuning)
  */
 #ifndef TEST_SCENES
 #include "game.h"
@@ -30,13 +34,19 @@ void test_check(void)
 #include "field.h"
 #ifdef __APPLE2__
 #include "apple2/test/fixture.h"    /* (its own shape: make fixture-apple2) */
+#elif defined(_COCO_BASIC_) && defined(COCO3)
+#include "coco3/test/fixture.h"     /* (refview -fixture-all: every segment) */
+#elif defined(_COCO_BASIC_)
+#include "coco2/test/fixture.h"
 #else
 #include "fixture.h"
 #endif
 
+#ifndef FIX_NSEG
 /* a fixture bigger than the script buffer can't be played: make it with
  * refview -buf SCRIPT_BUF */
 typedef char fixture_fits[sizeof(fix_script) <= SCRIPT_BUF ? 1 : -1];
+#endif
 
 uint8_t test_hook[4];
 uint16_t test_t0, test_t1;              /* the shot's start and end, in jiffies: the lag */
@@ -72,10 +82,10 @@ static void canned(void)
         PL(s, P_TIER) = s % N_TIERS;
         PL(s, P_ENERGY) = 100 - s * 7;
         PL(s, P_FLAGS) = PF_ALIVE | PF_CONN;
-        PL16(s, P_X) = fix_tx[s];
+        PL16_SET(s, P_X, fix_tx[s]);
         PL(s, P_Y) = fix_ty[s];
         PL(s, P_ANGLE) = fix_ta[s];
-        PL16(s, P_POWER) = 400;
+        PL16_SET(s, P_POWER, 400);
         PL(s, P_WINS) = s & 3;
     }
     INV(I_MINI_MISSILE) = 99;
@@ -91,11 +101,23 @@ static void ground(void)
     }
 }
 
+#ifdef _COCO_BASIC_
+static uint8_t show;                    /* scene 8's extras */
+#endif
+
 static void field_scene(uint8_t shots, uint8_t stream_only)
 {
     uint16_t t;
     ground();
     play_enter();
+#ifdef _COCO_BASIC_
+    if (show & 0x40)
+        field_balloon(0, "NICE SHOT. NOW WATCH THIS ONE!", 30);
+    if (show & 0x80) {
+        field_ellipse(tk[4].x, tk[4].y - 40, 14, 12, PX_FX, 0);
+        field_fire(1);
+    }
+#endif
     for (;;) {
         for (t = 0; t < 300; ++t) {
             tick();
@@ -103,6 +125,22 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
         }
         if (!shots)
             continue;
+#ifdef FIX_NSEG
+        if (!stream_only)
+            snd_full(1);
+        {                               /* every segment in turn */
+            uint16_t at = 0;
+            test_t0 = TEST_NOW();
+            for (seg_no = 0; seg_no < FIX_NSEG; ++seg_no) {
+                seg_len = fix_seglen[seg_no];
+                memcpy(script, fix_seg + at, seg_len);
+                at += seg_len;
+                seg_flags = S_LAST_FRAME | (seg_no == FIX_NSEG - 1 ? S_LAST_SEG : 0);
+                play_segment();
+            }
+            test_t1 = TEST_NOW();
+        }
+#else
         memcpy(script, fix_script, sizeof(fix_script));
         seg_len = sizeof(fix_script);
         seg_no = 0;
@@ -112,6 +150,7 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
         test_t0 = TEST_NOW();
         play_segment();
         test_t1 = TEST_NOW();
+#endif
         for (t = 0; t < 40 && snd_busy(); ++t)
             frame_wait();
         snd_full(0);
@@ -156,6 +195,26 @@ void test_check(void)
         if (test_hook[3] & 0x80)
             st[OFF_SKY] = test_hook[3] & 7;
         field_scene(0, 0);
+#ifdef _COCO_BASIC_
+    case 8:
+        st[OFF_TURN] = 0;
+        st[OFF_SKY] = test_hook[3] & 7;
+        st[OFF_PALETTE] = (test_hook[3] >> 3) & 7;
+        show = test_hook[3];
+        field_scene(0, 0);
+    case 9:
+        for (;;) {
+            static const uint8_t pit[3] = { 71, 35, 17 };
+            for (n = 0; n < 3; ++n) {
+                snd_whistle(1, pit[n]);
+                for (t = 0; t < 90; ++t)
+                    tick();
+                snd_whistle(0, 0);
+                for (t = 0; t < 30; ++t)
+                    tick();
+            }
+        }
+#endif
     case 6:                             /* a tune: 0 the round's, 1 the game's end, 2 the shop */
         snd_tune(test_hook[3] == 1 ? t_over1 : test_hook[3] == 2 ? t_shop1 : t_win1,
                  test_hook[3] == 1 ? t_over2 : test_hook[3] == 2 ? t_shop2 : t_win2);

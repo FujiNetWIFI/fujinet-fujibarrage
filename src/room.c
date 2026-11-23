@@ -4,6 +4,7 @@
  */
 #include <string.h>
 #include "game.h"
+#include "layout.h"
 #include "scr.h"
 #include "input.h"
 #include "plat.h"
@@ -28,7 +29,7 @@ static uint8_t rep(void)
 
 static void at(uint8_t col, const char *t)
 {
-    while (*t && col < 40)
+    while (*t && col < SCR_COLS)
         ln[col++] = *t++;
 }
 
@@ -38,25 +39,25 @@ static void seat_line(uint8_t row, uint8_t s)
     scr_clear_row(row);
     if (k == KIND_EMPTY) {
         scr_row(row, PAL_DIM);
-        scr_text(row, 2, "- OPEN -");
+        scr_text(row, SEAT_NAME_C, "- OPEN -");
         return;
     }
     scr_row(row, PAL_SEAT + s);
     memset(b, 0, sizeof(b));
     memcpy(b, NAME(s), NAME_LEN);
-    scr_text(row, 2, b);
+    scr_text(row, SEAT_NAME_C, b);
     if (k == KIND_BOT) {
-        cat_name(cat_tier(PL(s, P_TIER)), b, 12);
-        scr_text(row, 12, "BOT");
-        scr_text(row, 16, b);
+        cat_name(cat_tier(PL(s, P_TIER)), b, SEAT_TIER_N);
+        scr_text(row, SEAT_KIND_C, "BOT");
+        scr_text(row, SEAT_TIER_C, b);
     } else
-        scr_text(row, 12, PL(s, P_FLAGS) & PF_CONN ? "" : "(LINK DOWN)");
+        scr_text(row, SEAT_KIND_C, PL(s, P_FLAGS) & PF_CONN ? "" : "(LINK DOWN)");
     if (s == st[OFF_HOST])
-        scr_text(row, 30, "HOST");
+        scr_text(row, SEAT_HOST_C, "HOST");
     numstr(b, PL(s, P_WINS));
     if (st[OFF_PHASE] != PH_WAIT) {
-        scr_text(row, 30, "WINS");
-        scr_text(row, 35, b);
+        scr_text(row, SEAT_HOST_C, "WINS");
+        scr_text(row, SEAT_WN_C, b);
     }
 }
 
@@ -74,11 +75,11 @@ static uint8_t hosting(void)
 static void set_line(uint8_t i)
 {
     uint8_t k = set_ks[i];
-    memset(ln, ' ', 40);
-    cat_name(cat_setting(k) + 2, b, 20);
-    at(2, b);
+    memset(ln, ' ', SCR_COLS);
+    cat_name(cat_setting(k) + 2, b, SET_NAME_N);
+    at(SET_NAME_C, b);
     cat_value(k, SET(k), b);
-    at(26, b);
+    at(SET_VAL_C, b);
     scr_row(3 + i, hosting() && i == set_sel ? PAL_HILITE : PAL_TEXT);
     scr_text(3 + i, 0, ln);
 }
@@ -86,10 +87,10 @@ static void set_line(uint8_t i)
 static void wait_hint(void)
 {
     scr_clear_row(23);
-    scr_text(23, 1, set_on ? (hosting() ? "S SEATS  TAB PAGE  <> CHANGE  FIRE GO" : "S SEATS  TAB PAGE")
-                           : !hosting() ? "WAITING FOR THE HOST  S SETTINGS"
-                           : st[OFF_ROOM_FLAGS] & ROOM_PEOPLE ? "FIRE STARTS (2+ PEOPLE)  S SETTINGS"
-                           : "FIRE STARTS (BOTS FILL)  S SETTINGS");
+    scr_text(23, 1, set_on ? (hosting() ? TXT_W_HOSTSET : TXT_W_SET)
+                           : !hosting() ? TXT_W_WAIT
+                           : st[OFF_ROOM_FLAGS] & ROOM_PEOPLE ? TXT_W_PEOPLE
+                           : TXT_W_BOTS);
 }
 
 static void wait_draw(void)
@@ -187,20 +188,24 @@ void wait_frame(void)
 #define SHOP_TOP  2
 #define SHOP_ROWS 19
 
+#ifdef __CC65__
 #pragma bss-name (push, "BSS2")
+#endif
 static uint8_t shop_ids[N_ITEMS], shop_own[N_ITEMS];    /* shown, and the stock shown */
+#ifdef __CC65__
 #pragma bss-name (pop)
+#endif
 static uint8_t shop_n, shop_sel, shop_top;
 
 static uint32_t cash(void)
 {
-    return *(uint32_t *)&st[OFF_CASH];
+    return LE32(st + OFF_CASH);
 }
 
 static uint16_t price(uint8_t it)
 {
     const uint8_t *r = cat_item(it);
-    return r[3] | r[4] << 8;
+    return LE16(r + 3);
 }
 
 /* list entry i on its row (if it is shown), in one go: no flicker */
@@ -210,20 +215,20 @@ static void shop_line(uint8_t i)
     const uint8_t *r;
     if (i < shop_top || i >= shop_top + SHOP_ROWS)
         return;
-    memset(ln, ' ', 40);
+    memset(ln, ' ', SCR_COLS);
     if (i < shop_n) {
         it = shop_ids[i];
         r = cat_item(it);
-        cat_name(r + 6, b, 18);
+        cat_name(r + 6, b, SHOP_NAME_N);
         at(1, b);
         numstr(b, price(it));
-        at(21, b);
+        at(SHOP_PRICE_C, b);
         b[0] = 'X';
         numstr(b + 1, r[2]);
-        at(27, b);
+        at(SHOP_BUNDLE_C, b);
         if ((shop_own[it] = INV(it)) != 0) {
             numstr(b, INV(it));
-            at(34, b);
+            at(SHOP_OWN_C, b);
         }
     }
     scr_row(SHOP_TOP + i - shop_top, i == shop_sel ? PAL_HILITE : PAL_TEXT);
@@ -234,22 +239,22 @@ static void shop_line(uint8_t i)
 void shop_state(void)
 {
     uint8_t i;
-    memset(ln, ' ', 40);
-    at(1, "SHOP   ROUND");
+    memset(ln, ' ', SCR_COLS);
+    at(1, SHOP_ROUND_L);
     numstr(b, st[OFF_ROUND] + 1);
-    at(14, b);
-    at(24, "CASH");
+    at(SHOP_ROUND_C, b);
+    at(SHOP_CASH_L, "CASH");
     num32(b, cash());
-    at(29, b);
+    at(SHOP_CASH_C, b);
     scr_text(0, 0, ln);
     for (i = shop_top; i < shop_top + SHOP_ROWS && i < shop_n; ++i)
         if (shop_own[shop_ids[i]] != INV(shop_ids[i]))
             shop_line(i);
-    memset(ln, ' ', 40);
+    memset(ln, ' ', SCR_COLS);
     if (my_seat < SEATS && (PL(my_seat, P_FLAGS) & PF_DONE))
         at(1, "DONE: WAITING FOR THE OTHERS");
     numstr(b, st[OFF_TIMER]);
-    at(36, b);
+    at(SHOP_TIMER_C, b);
     scr_text(23, 0, ln);
 }
 
@@ -265,8 +270,8 @@ void shop_enter(void)
     uint8_t i;
     scr_begin();
     scr_row(0, PAL_HEAD);
-    scr_text(1, 1, "ITEM                PRICE  BUNDLE  OWN");
-    scr_text(22, 1, "FIRE BUYS  LEFT SELLS  RETURN: DONE");
+    scr_text(1, 1, TXT_SHOP_HEAD);
+    scr_text(22, 1, TXT_SHOP_HINT);
     shop_n = shop_sel = shop_top = 0;
     if (cat_ok)
         for (i = 0; i < N_ITEMS; ++i)

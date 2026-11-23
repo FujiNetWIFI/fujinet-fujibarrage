@@ -93,6 +93,16 @@ var Astrocade = project.Caps{FieldW: 160, FieldH: 56, Par: 54, Hz: 60, TankW: 7,
 var Apple2 = project.Caps{FieldW: 140, FieldH: 160, Par: 117, Hz: 60, TankW: 5, TankH: 5, Buf: 1536,
 	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatApple2}
 
+// Coco is the CoCo 1/2 client's shape: PMODE 4 artifact colour, 128 colour
+// pixels (two dots each) by 168 lines over a 3-row HUD.
+var Coco = project.Caps{FieldW: 128, FieldH: 168, Par: 109, Hz: 60, TankW: 5, TankH: 5, Buf: 1536,
+	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatCoco}
+
+// Coco3 is the CoCo 3 client's shape: GIME 320x200 in 16 colours, the field
+// 320x176 over a 3-row HUD.
+var Coco3 = project.Caps{FieldW: 320, FieldH: 176, Par: 55, Hz: 60, TankW: 12, TankH: 6, Buf: 1536,
+	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatCoco3}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps

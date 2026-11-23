@@ -24,9 +24,13 @@
 #define RESYNC_GAP 30           /* frames between RESYNCs */
 
 uint8_t st[STATE_SIZE];
+#ifdef __CC65__
 #pragma bss-name (push, "BSS2")
+#endif
 static uint8_t stage[STATE_SIZE];
+#ifdef __CC65__
 #pragma bss-name (pop)
+#endif
 #ifdef MENU
 uint8_t rooms[MAX_ROOMS][ROOM_REC];
 #endif
@@ -60,9 +64,13 @@ static uint16_t quiet, q_ping;
 static uint8_t q_ask, q_d;
 
 static void send_d(void);
+#ifdef __CC65__
 #pragma bss-name (push, "PMGFREE")
+#endif
 static uint8_t raw[40];
+#ifdef __CC65__
 #pragma bss-name (pop)
+#endif
 
 /* a + b, mod 255, with no division (256 is 1, mod 255) */
 static uint8_t add255(uint8_t a, uint8_t b)
@@ -191,7 +199,7 @@ static uint8_t frame(uint8_t n)
 #ifndef MENU
     case CS_PATCH:
         for (i = 1; i + 3 <= n; i += len) {
-            off = nst_buf[i] | nst_buf[i + 1] << 8;
+            off = LE16A(nst_buf, i);
             len = nst_buf[i + 2];
             i += 3;
             if (i + len > n || off + len > STATE_SIZE)
@@ -221,7 +229,7 @@ static uint8_t frame(uint8_t n)
         return NET_ERROR;
 #ifndef MENU
     case CS_CATALOG:
-        off = p[0] | p[1] << 8;
+        off = LE16(p);
         if (off == cat_len && cat_len + n - 3 <= CAT_MAX) {
             memcpy(catalog + cat_len, p + 2, n - 3);
             cat_len += n - 3;
@@ -242,7 +250,7 @@ static uint8_t frame(uint8_t n)
             net_tv = 0xFE;              /* being built */
             field_loading();            /* (over a text screen: blank it) */
         }
-        x = p[3] | p[4] << 8;
+        x = LE16(p + 3);
         for (i = 6; i < n && x < FIELD_W; ++x) {
             field_column(x, nst_buf + i);
             i += entry_len(nst_buf + i);
@@ -252,7 +260,7 @@ static uint8_t frame(uint8_t n)
         net_terrain = 1;
         break;
     case CS_SCRIPT:
-        off = p[3] | p[4] << 8;
+        off = LE16(p + 3);
         if (off == 0) {
             seg_len = 0;
             seg_sid = p[0];

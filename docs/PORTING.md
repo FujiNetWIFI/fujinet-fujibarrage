@@ -1,7 +1,8 @@
 # Porting FujiBarrage
 
-The Atari 400/800 is the first client, and the Intellivision the second.
-These notes say what another machine needs, and what those two taught.
+The Atari 400/800 is the first client, and the Intellivision the second;
+the Apple II, the Astrocade and the Color Computers followed. These notes say
+what another machine needs, and what the ports taught.
 
 ## What the server does for you
 
@@ -47,7 +48,7 @@ implements `src/platform-specific/*.h` in `src/<platform>/`:
 | `plat.h` | Start-up, the frame clock (`frame_count` in 60ths, `vbi_count` in display frames), random numbers, rebooting |
 | `input.h` | The stick, the button and keys, latched as events; `inp_hook*` lets the rigs drive it |
 | `nstrans.h` | The link: open, frames in (COBS + Fletcher-16), bytes out, and hold/wake for a script |
-| `scr.h` | A text screen of 24x40 with a palette per row (the menus, the rooms, the shop, the results) |
+| `scr.h` | A text screen of 24x40 with a palette per row (the menus, the rooms, the shop, the results); `SCR_COLS` 32 for a narrower one, whose columns and words are `src/layout.h`'s |
 | `field.h` | The playfield: a bitmap of four pixel values (`PX_SKY`, `PX_DIRT`, `PX_FX`, `PX_TANK`), the tanks, the status rows, the balloon, the sparks, the tracks (`trk_*`). Its sizes (`FIELD_W` and so on) are per platform, under `#ifdef`. |
 | `sound.h` | Cues by meaning (`SND_*`, `UI_*`), the falling shell's whistle, the talk blip, two-voice tunes |
 
@@ -55,7 +56,7 @@ implements `src/platform-specific/*.h` in `src/<platform>/`:
 - **Who calls it:** `play.c` drives the player through `ply_reset`, `ply_step`, `ply_draw` and `ply_end`.
 - **The Atari's:** assembly (`src/6502/ply.s`, `ops.s`, `trk.s`, shared by every 6502 port: each brings its own `fld.s`). It calls back into `play.c` for what C does better: `c_op` handles TALK, SOUND, SHIELD, DAMAGE, FALL, DEATH, TANK, FLASH and FIRE, and `c_anim` handles the talk chatter.
 - **For a new machine:** write one from `docs/PROTOCOL.md`, or start from `server/internal/view/view.go`, the reference player in Go. It follows PROTOCOL.md to the letter, and `refview` draws with it.
-- **Before porting:** the `ply_*` declarations sit in `play.c` with a cc65 `zpsym`; move them to a platform header first.
+- **Its declarations:** `src/platform-specific/ply.h` (with the cc65 `zpsym`). The Color Computer's player is the 6502's in 6809 (`src/6809/`).
 
 ## Exact, and your own
 
@@ -138,9 +139,26 @@ is, on the FujiNet cartridge's APPBANK pages. What it took:
 - **The link:** `CAP_HOLD`. While a script waits for its next segment, the link runs its transactions back to back. Every read asks only for what STATUS says is waiting, because older firmware loses a short read's bytes.
 - **Sound:** three tones and a noise on one master oscillator. The tunes keep the master at 26 (from about 130 Hz up, so the bass is an octave or two up). On the field, where no tune plays, an effect's noise may set the master and modulate it: that gives thumps down to about 30 Hz and the nuke's roar. The tunes are voiced by instrument from music/*.txt, at 3 bytes a note.
 
+## The Color Computer
+
+`src/coco/`, `src/coco2/` and `src/coco3/` are the Atari's C again on CMOC
+(lwtools), FujiBlast's CoCo build and link, with the 6502 script player in
+6809 (`src/6809/`) drawing through each machine's `fld*.asm`. One disk
+serves the CoCo 1/2 and the CoCo 3: `AUTOEXEC.BAS` loads one machine's
+programs or the other's. What it took:
+- **CMOC is not cc65.** Its ints are big-endian, and an operation on two bytes is done in a byte: `b | b << 8`, `a + b` and `st[OFF + seat_off[s] + f]` wrap at 256. `game.h`'s `LE16`, `PL16`, `PL16_SET`, `SEATKIND` and `SEAT_AT` read the state byte by byte; under cc65 they are the old text, so the Atari's and the Apple's builds stay byte for byte the same. Build with `-Wgives-byte`. It ignores `volatile` and section pragmas: what goes high is per module (`FB_SECT`, `tools/coco/lwasm-sect`). An apostrophe in an inline-asm comment upsets the preprocessor, and a blank line (an `#ifdef` leaves one) ends lwasm's `@` labels.
+- **The CoCo 1/2: PMODE 4's artifact colours are the four values.** A colour pixel is two dots, black, blue, orange or white, so the field is the screen at 128x168, four pixels a byte as the Atari's mode E. Which of blue and orange a machine shows depends on its phase: it asks at power-on, CLEAR swaps the screen through a table. Its text is 32 columns of a 3x7 font, each row's ink and ground among the same four colours (`src/layout.h`: the HUD's and the screens' 32-column layouts).
+- **The CoCo 3: the GIME's 320x200x16,** 256 bytes a line (HVEN), the field 320x176 in screen blocks mapped into one 8K slot as drawing needs them; the Disk ROM's block is mapped back before any DriveWire call. A value is a colour pattern a line: sky a dither between two colours down to the horizon (or black with stars), dirt in strata, fire one colour the field IRQ cycles, tanks black and the ten seats' colours. Flash and shake are the palette and the GIME's offsets, once a frame.
+- **No raster tricks:** the FujiNet's DriveWire masks interrupts for a jiffy whenever it has data, so a split timed off the field's IRQ would flicker on a real machine.
+- **Memory:** each program is a low core LOADM'd by BASIC and the files `bank.c` loads after it into all-RAM: the high core at $8000, and the art ($E000 on the CoCo 1/2, a block of its own on the CoCo 3), with the field and the player there. The CoCo 3's $1000-$1EFF (BASIC's, once it is gone) holds the sound engine and the settle's column writer. `tools/coco/lwlink-co.py` fails a link that overruns a region; the CoCo 1/2's game has about 50 bytes to spare in its low core.
+- **CPU:** a CoCo 1/2 is 0.89 MHz, a CoCo 3 1.79 MHz with four times the bytes. Settles write a byte's columns at once (four on the CoCo 1/2; two, or four as a word, on the CoCo 3), explosions and craters span whole bytes (the CoCo 3 a word), the ellipse's "sky becomes" modes test a byte's pixels at once, and the HUD draws only the cells that change (`OP_DAMAGE` redraws it). A MEGA MIRV on a flat field ends about 0.8 s behind its script on the CoCo 1/2 and 2.2 s on the CoCo 3.
+- **The clock:** the field sync's IRQ; jiffies lost while DriveWire masks it come back from the server's round timer (`clock_check`). The field rate is measured at boot (50 on a PAL machine).
+- **Sound:** the 6-bit DAC, three voices from the Apple's Mockingboard driver (`src/coco/sound.c`: the Intellivision's effects, the tunes as the Apple's). The CoCo 3's are square waves and noise whose edges the GIME timer's IRQ makes; noise changes level only at its edges, a random run of half waves each, so it costs a third fewer IRQs than a random level every half wave. The CoCo 1/2 has no timer: the CPU mixes the voices while it would only wait, so a busy shot is partly silent. Every DAC write keeps bit 1 (the bit-banger's serial line: a real FujiNet's DriveWire) at mark.
+- **Tests:** `tools/cocosim/` (MAME 0.289: `cocosim.py`, `refcheck.py`, `terrcheck.py`, `rig.sh`, `mixed.sh`). MAME's Becker port can't move from 65504, so a mixed room puts the CoCo 3 in a network namespace inside the CoCo 1/2's.
+
 ## Testing a port
 
-- **Exact pictures:** `refview -fixture FILE` writes a field and one shot as a C header (`src/test/fixture.h`). A test build plays it offline: the `src/test.c` scenes are the field, a shot, the rooms, the results and the tunes. Compare your field after the shot with refview's `shot1.px`, pixel for pixel, for every weapon. `tools/atarisim/refcheck.py` does this for the Atari: 0 pixels must differ. `tools/a2sim/refcheck.py` does it for the Apple II (`src/apple2/test/fixture.h`, `make fixture-apple2`), with each shot's lag.
+- **Exact pictures:** `refview -fixture FILE` writes a field and one shot as a C header (`src/test/fixture.h`). A test build plays it offline: the `src/test.c` scenes are the field, a shot, the rooms, the results and the tunes. Compare your field after the shot with refview's `shot1.px`, pixel for pixel, for every weapon. `tools/atarisim/refcheck.py` does this for the Atari: 0 pixels must differ. `tools/a2sim/refcheck.py` does it for the Apple II (`src/apple2/test/fixture.h`, `make fixture-apple2`), with each shot's lag, and `tools/cocosim/refcheck.py` for both Color Computers (`-fixture-all`: every segment, 16-bit x).
   - `-shield I_*` puts shields on every other tank.
   - `-flat` puts all ten tanks on the same lines.
   - `-angle` and `-power` aim the shot.

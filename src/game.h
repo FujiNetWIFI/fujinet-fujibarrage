@@ -21,9 +21,38 @@
 extern uint8_t st[STATE_SIZE];
 /* (by table, not s * SEAT_SIZE: cc65 multiplies in 16 bits, slowly) */
 extern const uint8_t seat_off[SEATS];
+#ifdef __CC65__
 #define PL(s, f)   st[OFF_SEATS + seat_off[s] + (f)]
+#else
+/* (CMOC: OFF_SEATS + seat_off[s] would be a byte: seats 7-9 wrapped) */
+#define SEAT_AT(s) (OFF_SEATS + (uint16_t)seat_off[s])
+#define PL(s, f)   st[SEAT_AT(s) + (f)]
+#endif
+/* little-endian fields: cc65 reads them in place; CMOC (the CoCo: big-endian,
+ * and byte op byte is a byte there) builds them a byte at a time */
+#ifdef __CC65__
 #define PL16(s, f) (*(uint16_t *)&st[OFF_SEATS + seat_off[s] + (f)])
+#define PL16_SET(s, f, v) (PL16(s, f) = (v))
+#define LE16(p)    ((p)[0] | (p)[1] << 8)
+#define LE16A(a, i) ((a)[i] | (a)[(i) + 1] << 8)    /* (array a at index i) */
+#define LE32(p)    (*(uint32_t *)(p))
+#define SEATKIND(s, k) ((s) | (k) << 8)
+#define I16(x)     (x)          /* (cc65 promotes; CMOC needs it said) */
+#else
+#define LE16(p)    ((uint16_t)(p)[0] | (uint16_t)(p)[1] << 8)
+#define LE16A(a, i) ((uint16_t)(a)[i] | (uint16_t)(a)[(i) + 1] << 8)
+#define LE32(p)    ((uint32_t)LE16(p) | (uint32_t)LE16((p) + 2) << 16)
+#define PL16(s, f) LE16(&st[SEAT_AT(s) + (f)])
+#define PL16_SET(s, f, v) (st[SEAT_AT(s) + (f)] = (uint8_t)(v), \
+                           st[SEAT_AT(s) + (f) + 1] = (uint8_t)((uint16_t)(v) >> 8))
+#define SEATKIND(s, k) ((uint16_t)(s) | (uint16_t)(k) << 8)
+#define I16(x)     ((int16_t)(x))  /* a byte in signed 16-bit arithmetic (CMOC keeps byte op byte a byte) */
+#endif
+#ifdef __CC65__
 #define NAME(s)    ((const char *)st + OFF_SEATS + seat_off[s] + P_NAME)
+#else
+#define NAME(s)    ((const char *)st + SEAT_AT(s) + P_NAME)
+#endif
 #define KIND(s)    PL(s, P_KIND)
 #define ALIVE(s)   (PL(s, P_FLAGS) & PF_ALIVE)
 #define INV(i)     st[OFF_INV + (i)]

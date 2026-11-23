@@ -19,6 +19,8 @@
 #define PLAT_INTV          2
 #define PLAT_ASTROCADE     3
 #define PLAT_APPLE2        4
+#define PLAT_COCO          5
+#define PLAT_COCO3         6
 #define SC_HELLO           72
 #define SC_ROOMS           84
 #define SC_ACT             65

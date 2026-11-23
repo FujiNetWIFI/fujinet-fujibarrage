@@ -18,6 +18,8 @@
 #   make astrocade                 r2r/astrocade/barrage.bin (Bally Astrocade, FujiNet cartridge;
 #                                  src/astrocade/build.sh: zmac, the APPBANK image)
 #   make astrocade-rig             build/astrocade-rig/barrage.bin: default server 127.0.0.1:9913
+#   make coco                      r2r/coco/barrage.dsk (CoCo 1/2 64K and CoCo 3, one disk;
+#                                  tools/coco/build.mk: CMOC, TEST=1 and VIDEO_CARD=1 as above)
 #   make fixture-astrocade         src/astrocade/test/fixture.inc: its test scenes' field and shot
 #
 # src/ is platform neutral; src/platform-specific/*.h is what each platform
@@ -116,6 +118,21 @@ server:
 proto:
 	cd server && go run ./cmd/barraged -cheader > ../src/proto.h
 	sed -n 's/^#define \([A-Z_0-9]*\) *\([0-9][0-9]*\)$$/\1 = \2/p' src/proto.h > src/6502/proto.inc
+	sed -n 's/^#define \([A-Z_0-9]*\) *\([0-9][0-9]*\)$$/\1 EQU \2/p' src/proto.h > src/6809/proto.inc
+
+# ---- TRS-80 Color Computer: CoCo 1/2 (PMODE 4) and CoCo 3 (GIME), one disk ----
+# CMOC + lwtools + toolshed's decb, outside defoogi: tools/coco/build.mk
+coco: gen/config.h
+	$(MAKE) -f tools/coco/build.mk $(if $(TEST),TEST=$(TEST)) $(if $(VIDEO_CARD),VIDEO_CARD=$(VIDEO_CARD))
+
+# the test scenes' field and shot at each CoCo's shape (every segment)
+fixture-coco:
+	cd server && go run ./cmd/refview -shots 1 -seed 5 -weapon 3 -buf 1536 -w 128 -h 168 -par 109 \
+	    -tankw 5 -tankh 5 -fixture-all ../src/coco2/test/fixture.h -out ../build/refview-coco2
+	cd server && go run ./cmd/refview -shots 1 -seed 5 -weapon 3 -buf 1536 -w 320 -h 176 -par 55 \
+	    -tankw 12 -tankh 6 -fixture-all ../src/coco3/test/fixture.h -out ../build/refview-coco3
+
+.PHONY: coco fixture-coco
 
 fixture:
 	cd server && go run ./cmd/refview -flat -shots 1 -seed 5 -weapon 3 -buf 1536 -fixture ../src/test/fixture.h -out ../build/refview

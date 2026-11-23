@@ -7,9 +7,13 @@
 #include "game.h"
 
 uint8_t cat_ok;
+#ifdef __CC65__
 #pragma bss-name (push, "HIGH")
+#endif
 static uint16_t item_at[N_ITEMS], set_at[N_SETTINGS], page_at[4], tier_at[N_TIERS];
+#ifdef __CC65__
 #pragma bss-name (pop)
+#endif
 
 /* past a length-prefixed string */
 static uint16_t skip(uint16_t at)
@@ -20,7 +24,7 @@ static uint16_t skip(uint16_t at)
 uint8_t cat_check(void)
 {
     uint8_t i, k, n;
-    uint16_t at, len = st[OFF_CAT_LEN] | st[OFF_CAT_LEN + 1] << 8;
+    uint16_t at, len = LE16(st + OFF_CAT_LEN);
     if (cat_ok)
         return 1;
     if (!len || cat_len != len)
@@ -157,8 +161,8 @@ void cat_value(uint8_t k, uint8_t v, char *out)
         cat_name(p, out, 16);
         return;
     }
-    n = p[0] | p[1] << 8;                   /* min + v steps (cash: past 16 bits) */
-    step = p[2] | p[3] << 8;
+    n = LE16(p);                   /* min + v steps (cash: past 16 bits) */
+    step = LE16(p + 2);
     dec = p[5];
     for (i = 0; i < v; ++i)
         n += step;
