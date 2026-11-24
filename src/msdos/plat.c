@@ -7,9 +7,11 @@
  * script's clock), steps the speaker (sound.c), and passes every 3.3rd
  * tick on to the BIOS, so the time of day and the floppy motor still work.
  * A VGA's screen refreshes at 70 Hz, a CGA's at 60: the game's frames are
- * the PIT's either way (plat_hz). FUJINET.SYS's calls may keep interrupts
- * off long enough to lose a tick: the server's round timer says what real
- * time did (clock_check, as on the CoCo).
+ * the PIT's either way (plat_hz). The PIT keeps time: nothing here keeps
+ * interrupts off for a tick (no clock_check, the CoCo's correction from
+ * the server's round timer: a shot's deadline isn't whole seconds, so it
+ * put up to a second of jiffies on at once, and the sound, which counts
+ * frame_count, ran double speed while they drained).
  *
  * The screen is the field (src/msdos/cga, src/msdos/vga): what is drawn
  * is drawn at once. The game's loop is one pass a jiffy (src/main.c); when
@@ -298,36 +300,6 @@ void plat_reboot(void)
     plat_chain(GAME_PROG);
 }
 
-#ifndef MENU
-/* The server's round timer says what real time did: each second it ticks,
- * the jiffies counted since are set against 60, and what is missing goes
- * back on the clock, one a pass (a count that came late is made up by the
- * next one coming early). */
-static uint8_t tm_last = 0xFF;
-static uint16_t tm_at;
-static int8_t drift;
-
-static void clock_check(void)
-{
-    uint8_t t = st[OFF_TIMER];
-    int16_t d;
-    if (t != tm_last) {
-        if ((uint8_t)(tm_last - t) == 1) {
-            d = drift + 60 - (int16_t)(frame_count - tm_at);
-            drift = d > 90 ? 90 : d < -90 ? -90 : (int8_t)d;
-        }
-        tm_last = t;
-        tm_at = frame_count;
-    }
-    if (drift > 0) {
-        _disable();             /* (the interrupt changes it too) */
-        ++frame_count;
-        _enable();
-        --drift;
-    }
-}
-#endif
-
 #if defined(STATS) && defined(TEST_SCENES)
 /* STATS=1 TEST=1 TEST_SCENE=1 TEST_ARG=2 (tools/dosrig/86box.sh): once the
  * fixture's shot is played (test_hook[0] DDh), A:\LAG.TXT says how many
@@ -338,9 +310,9 @@ static void clock_check(void)
 static void lag_out(void)
 {
     extern uint8_t test_hook[];
-    extern uint16_t test_t1;
+    extern uint16_t test_t0, test_t1;
     static uint8_t done;
-    static char line[] = "PLAYED 00000\r\n";
+    static char line[] = "PLAYED 00000 T0 00000\r\n";   /* (scene 10: T0 the cursor's steps, PLAYED the scrolls') */
     uint16_t n = test_t1;
     unsigned w;
     int fd;
@@ -349,6 +321,8 @@ static void lag_out(void)
         return;
     done = prof_off = 1;
     for (k = 11; k >= 7; --k, n /= 10)
+        line[k] = (char)('0' + n % 10);
+    for (n = test_t0, k = 20; k >= 16; --k, n /= 10)
         line[k] = (char)('0' + n % 10);
     if (!_dos_creat("A:\\LAG.TXT", _A_NORMAL, &fd)) {
         _dos_write(fd, line, sizeof(line) - 1, &w);
@@ -427,9 +401,6 @@ void frame_wait(void)
     uint32_t in = prof_ticks();
     if (out)
         t_logic += in - out;
-#endif
-#ifndef MENU
-    clock_check();
 #endif
 #if defined(STATS) && defined(TEST_SCENES)
     lag_out();

@@ -46,13 +46,12 @@ void vid_field_open(uint8_t sky, uint8_t pal);  /* the round's look */
 void vid_flash(uint8_t frames);
 void vid_fire(uint8_t on);
 
-/* the speaker: the timer ticks SND_SUB times a jiffy (plat.c), and the top
- * two voices take turns on it, a tick each (sound.c; SND_SUB=1: one voice) */
+/* the speaker: the timer ticks SND_SUB times a jiffy (plat.c), each tick
+ * the top voice (sound.c; a noise a new divisor each: the 240 Hz is its
+ * grit). SND_MIX: the top two take turns, a tick each (the user's ear,
+ * 2026-11-23: one voice sounds better). */
 #ifndef SND_SUB
 #define SND_SUB 4
-#endif
-#if SND_SUB > 1 && !defined(SND_MIX)
-#define SND_MIX
 #endif
 
 /* sound.c */

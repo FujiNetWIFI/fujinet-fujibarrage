@@ -16,10 +16,9 @@
  * its second. The timer's interrupt (timer.asm) puts the one on the
  * speaker, a noise a random divisor about its middle each tick, and does
  * no more (src/msdos/timer.asm): it must stay short, or the UART loses
- * bytes. The top two take
- * turns, a tick each (SND_MIX: SND_SUB ticks a jiffy, msdos.h), so a
- * tune's two channels and an effect over the whistle are both heard
- * (SND_SUB=1: the top one alone).
+ * bytes. SND_MIX (msdos.h): the top two take turns, a tick each, so a
+ * tune's two channels and an effect over the whistle are both heard (the
+ * trill didn't sound good: one voice is the default).
  * A voice is heard from volume SND_ON up (the speaker has no volume): an
  * envelope's boom is as long as it stays loud.
  */

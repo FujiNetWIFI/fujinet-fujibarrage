@@ -137,8 +137,11 @@ void plat_reboot(void)
  * 65536 cycles in one stretch (a slow SmartPort call). The server's round
  * timer says what real time did: each second it ticks, the jiffies counted
  * since are set against 60, and what is missing goes back on the clock,
- * one a pass. (A clock that loses none is left alone: it balances out.) */
-static uint8_t tm_last = 0xFF;
+ * one a pass. (A clock that loses none is left alone: it balances out.)
+ * Only inside a phase, and not a shot's: a shot's deadline isn't whole
+ * seconds, so its first second is short, and the jiffies that put on (up
+ * to a second's, at once) played the sound at double speed. */
+static uint8_t tm_last = 0xFF, tm_ph = 0xFF;
 static uint16_t tm_at;
 static int8_t drift;
 
@@ -146,7 +149,10 @@ static void clock_check(void)
 {
     uint8_t t = st[OFF_TIMER];
     int16_t d;
-    if (t != tm_last) {
+    if (st[OFF_PHASE] != tm_ph || tm_ph == PH_SHOT) {
+        tm_ph = st[OFF_PHASE];
+        tm_last = 0xFF;
+    } else if (t != tm_last) {
         if ((uint8_t)(tm_last - t) == 1) {
             d = drift + 60 - (int16_t)(frame_count - tm_at);
             drift = d > 90 ? 90 : d < -90 ? -90 : (int8_t)d;
