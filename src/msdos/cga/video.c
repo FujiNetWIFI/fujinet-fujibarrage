@@ -133,18 +133,22 @@ static void start_at(uint16_t w)
     outp(0x3D5, w & 0xFF);
 }
 
-/* each jiffy (frame_wait, vbi_now): the flash's and the shake's frames */
+/* each pass (frame_wait, vbi_now): the flash's and the shake's frames, by
+ * the jiffies gone since (a slow pass doesn't stretch them) */
 void video_frame(void)
 {
     static uint16_t seen;
-    uint16_t now = *(volatile uint16_t *)&frame_count;
-    if (now == seen)
+    uint16_t now = *(volatile uint16_t *)&frame_count, d = now - seen;
+    if (!d)
         return;
     seen = now;
-    if (flash_n && !--flash_n)
-        cga_palette(f_bg, f_set, f_bright);
+    if (flash_n) {
+        flash_n = d < flash_n ? (uint8_t)(flash_n - d) : 0;
+        if (!flash_n)
+            cga_palette(f_bg, f_set, f_bright);
+    }
     if (shake_n) {
-        --shake_n;
+        shake_n = d < shake_n ? (uint8_t)(shake_n - d) : 0;
         shaking = 1;
         start_at(shake_n & 2 ? 1 : 0);
     } else if (shaking) {

@@ -23,11 +23,26 @@
 uint8_t shake_n;
 static uint8_t vga_only;               /* a VGA (not an MCGA): its CRTC shakes */
 
+/* The vertical retrace's start (3DAh bit 3, a VGA's and an MCGA's): the
+ * IBM VGA BIOS blacks out lines while it loads the DAC (86Box shows it,
+ * FujiNet Go's too, with a frame 80 pixels wide now and then), so each
+ * BIOS load starts here, off the screen as far as it can. (Bounded: a
+ * card that never says.) */
+static void retrace(void)
+{
+    uint16_t n = 0;
+    while ((inp(0x3DA) & 8) && --n)
+        ;
+    while (!(inp(0x3DA) & 8) && --n)
+        ;
+}
+
 /* DAC entries first.. from 6-bit RGB in DGROUP */
 void vga_dac(uint16_t first, uint16_t n, const uint8_t *tab)
 {
     union REGS r;
     struct SREGS s;
+    retrace();
     segread(&s);
     s.es = s.ds;
     r.w.ax = 0x1012;
@@ -224,32 +239,55 @@ static void start_at(uint16_t w)
     outp(0x3D5, w & 0xFF);
 }
 
-/* each jiffy (frame_wait, vbi_now): the flash's and the shake's frames, the
- * fire's colours a step every 4 */
+/* The fire's 16 colours a step on: straight into the DAC (3C8h, 3C9h: a
+ * VGA's and an MCGA's alike), not through the BIOS. The user's exception
+ * to "palettes through the BIOS" (2026-11-23): the IBM VGA BIOS blacks out
+ * lines while it loads, and 15 loads a second on a 4.77 MHz PC flickered
+ * the whole screen (FujiNet Go's 86Box, a frame 80 pixels wide now and
+ * then). */
+static void fire_step(void)
+{
+    const uint8_t *c;
+    uint8_t i, k;
+    fire_ph = (uint8_t)((fire_ph + 1) & 15);
+    outp(0x3C8, V_FIRE);                /* (interrupts on: none touches the DAC) */
+    for (i = 0; i < 16; ++i) {
+        c = fires[(i + fire_ph) & 15];
+        for (k = 0; k < 3; ++k)
+            outp(0x3C9, c[k]);
+    }
+}
+
+/* each pass (frame_wait, vbi_now): the flash's and the shake's frames, by
+ * the jiffies gone since (a slow pass doesn't stretch them); the fire's
+ * colours a step every 4 */
 void video_frame(void)
 {
     static uint16_t seen;
-    uint16_t now = *(volatile uint16_t *)&frame_count;
-    static uint8_t cyc[16 * 3];
-    uint8_t i;
-    if (now == seen)
+    static uint8_t fire_t;
+    uint16_t now = *(volatile uint16_t *)&frame_count, d = now - seen;
+    if (!d)
         return;
     seen = now;
-    if (flash_n && !--flash_n)
-        field_dac();
+    if (flash_n) {
+        flash_n = d < flash_n ? (uint8_t)(flash_n - d) : 0;
+        if (!flash_n)
+            field_dac();
+    }
     if (shake_n) {
-        --shake_n;
+        shake_n = d < shake_n ? (uint8_t)(shake_n - d) : 0;
         shaking = 1;
         start_at(shake_n & 2 ? 1 : 0);
     } else if (shaking) {
         shaking = 0;
         start_at(0);
     }
-    if (fire_on && !flash_n && !(now & 3)) {
-        fire_ph = (uint8_t)((fire_ph + 1) & 15);
-        for (i = 0; i < 16; ++i)
-            memcpy(cyc + i * 3, fires[(i + fire_ph) & 15], 3);
-        vga_dac(V_FIRE, 16, cyc);
+    if (fire_on && !flash_n) {
+        fire_t = (uint8_t)(fire_t + (d > 4 ? 4 : d));
+        if (fire_t >= 4) {
+            fire_t -= 4;
+            fire_step();
+        }
     }
 }
 #else
