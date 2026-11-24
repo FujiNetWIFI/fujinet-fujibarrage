@@ -7,6 +7,7 @@
  */
 #include <string.h>
 #include <i86.h>
+#include <dos.h>
 #include "scr.h"
 #include "plat.h"
 #include "text.h"
@@ -63,18 +64,129 @@ static void colours(uint8_t row, const uint8_t **ink, const uint8_t **ground)
     }
 }
 
-void txt_cell(uint8_t row, uint8_t col, uint8_t c, uint8_t inv)
+/* A row's ink for a kind of cell (text.h): a label's yellow (on the text,
+ * title, heading and HUD looks; the others' labels plain), a name's its
+ * seat's body colour. (Labels yellow, values white, names in their seat's
+ * colour: the user, 2026-11-23.) */
+static uint8_t seat_i[8];
+
+static uint8_t lab_ink(uint8_t p)
 {
-    const uint8_t *ink, *ground;
+    return p == PAL_TEXT || p == PAL_TITLE || p == PAL_HEAD || p == TP_HUD;
+}
+
+static void colours_k(uint8_t row, uint8_t kind, const uint8_t **ink, const uint8_t **ground)
+{
+    colours(row, ink, ground);
+    if (kind == INK_LABEL && lab_ink(txt_pal[row]))
+        *ink = ramp[4];
+    else if (kind >= INK_SEAT) {
+        memset(seat_i, V_SEAT + (kind - INK_SEAT) * 3, 8);
+        *ink = seat_i;
+    }
+}
+
+/* vga_cell's tables: for an ink and a ground (8 lines each), each line's
+ * 16 nibbles as 4 pixels; the last few kept (a row's look, its inverse,
+ * the next row's), the one used last tried first */
+#define SLOTS 4
+static uint8_t vt[SLOTS][512], vt_key[SLOTS][16], vt_ok[SLOTS], vt_last, vt_next;
+
+static const uint8_t *table(const uint8_t *ink, const uint8_t *ground)
+{
+    uint8_t s, l, n, x, i, g, *t;
+    for (n = 0, s = vt_last; n < SLOTS; ++n, s = (uint8_t)((s + 1) & (SLOTS - 1)))
+        if (vt_ok[s] && !memcmp(vt_key[s], ink, 8) && !memcmp(vt_key[s] + 8, ground, 8)) {
+            vt_last = s;
+            return vt[s];
+        }
+    s = vt_next;
+    vt_next = (uint8_t)((s + 1) & (SLOTS - 1));
+    vt_ok[s] = 1;
+    memcpy(vt_key[s], ink, 8);
+    memcpy(vt_key[s] + 8, ground, 8);
+    for (t = vt[s], l = 0; l < 8; ++l) {
+        i = ink[l];
+        g = ground[l];
+        for (n = 0; n < 16; ++n)
+            for (x = 8; x; x >>= 1)
+                *t++ = n & x ? i : g;
+    }
+    vt_last = s;
+    return vt[s];
+}
+
+static void nib_cells(uint8_t row, uint8_t col, uint8_t n, uint8_t inv, uint8_t ink);
+static uint8_t last_pal = 0xFE, last_inv, last_ink; /* (nib_cells: a row like the last, its table) */
+static const uint8_t *last_tab;
+
+/* The text's own looks (TEXT, TITLE, HEAD, HILITE, DIM and the HUD's),
+ * and their labels', with all 96 glyphs drawn, 6K each (far, each got at
+ * first use): a cell is then 32 word moves (vga_grun), a third of the
+ * nibbles' time. Seat rows, names and inverse cells keep the nibbles.
+ * (TODO 2026-11-23.) */
+#define LOOKS (PAL_SEAT + 1)            /* (the last: the HUD's) */
+static uint16_t gseg[LOOKS * 2];
+static uint8_t gfail;
+
+static uint16_t glyphs(uint8_t k, uint8_t row, uint8_t kind)
+{
+    const uint8_t *ink, *ground, *t, *g;
+    uint8_t __far *d;
+    uint8_t b, l;
+    uint16_t c;
+    unsigned seg;
+    if (gseg[k] || gfail)
+        return gseg[k];
+    if (_dos_allocmem(384, &seg)) {
+        gfail = 1;
+        return 0;
+    }
+    colours_k(row, kind, &ink, &ground);
+    t = table(ink, ground);
+    last_pal = 0xFE;                    /* (nib_cells's table may be this one's slot now) */
+    d = MK_FP(seg, 0);
+    for (g = font8, c = 0; c < 96 * 8; ++c) {
+        b = *g++;
+        l = (uint8_t)(c & 7);
+        _fmemcpy(d, t + l * 64 + (b >> 4) * 4, 4);
+        _fmemcpy(d + 4, t + l * 64 + (b & 15) * 4, 4);
+        d += 8;
+    }
+    return gseg[k] = seg;
+}
+
+void txt_cells(uint8_t row, uint8_t col, uint8_t n, uint8_t inv, uint8_t ink)
+{
+    uint8_t p = txt_pal[row], k;
+    uint16_t seg;
     if (!made)
         make();
-    colours(row, &ink, &ground);
-    if (c < 32 || c > 127)
-        c = ' ';
-    if (inv)
-        vga_cell((uint16_t)row * 2560 + col * 8, font8 + (c - 32) * 8, ground, ink);
-    else
-        vga_cell((uint16_t)row * 2560 + col * 8, font8 + (c - 32) * 8, ink, ground);
+    if (ink == INK_LABEL && !lab_ink(p))
+        ink = INK_PLAIN;
+    if (!inv && ink <= INK_LABEL && (p < PAL_SEAT || p == TP_HUD)) {
+        k = (uint8_t)((p == TP_HUD ? PAL_SEAT : p) + (ink == INK_LABEL ? LOOKS : 0));
+        seg = glyphs(k, row, ink);
+        if (seg) {
+            vga_grun((uint16_t)row * 2560 + col * 8, scr_ch[row] + col, n, seg);
+            return;
+        }
+    }
+    nib_cells(row, col, n, inv, ink);
+}
+
+static void nib_cells(uint8_t row, uint8_t col, uint8_t n, uint8_t inv, uint8_t ink)
+{
+    const uint8_t *in, *ground;
+    uint8_t p = txt_pal[row];
+    if (p != last_pal || inv != last_inv || ink != last_ink || p >= PAL_SEAT || ink >= INK_SEAT) {
+        colours_k(row, ink, &in, &ground);
+        last_tab = inv ? table(ground, in) : table(in, ground);
+        last_pal = p;
+        last_inv = inv;
+        last_ink = ink;
+    }
+    vga_run((uint16_t)row * 2560 + col * 8, scr_ch[row] + col, n, last_tab);
 }
 
 void txt_blank(uint8_t row)
@@ -116,5 +228,6 @@ void scr_picture(void)
     vga_dac(0, 192, title_vga_dac);
     for (r = 0; r < TXT_ROWS; ++r)
         txt_pal[r] = 0xFF;              /* (the rows aren't text now) */
+    memset(scr_ch, 0, sizeof(scr_ch));  /* (nor their cells: scr_text draws what it's given) */
 }
 #endif

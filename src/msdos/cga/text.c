@@ -8,6 +8,7 @@
  */
 #include <string.h>
 #include <i86.h>
+#include <dos.h>
 #include "scr.h"
 #include "plat.h"
 #include "text.h"
@@ -51,17 +52,95 @@ static void colours(uint8_t row, uint8_t *ink, uint8_t *ground)
     }
 }
 
-void txt_cell(uint8_t row, uint8_t col, uint8_t c, uint8_t inv)
+static void nib_cells(uint8_t row, uint8_t col, uint8_t n, uint8_t inv, uint8_t ink);
+
+/* A label's ink (text.h; labels in another colour than values: the user,
+ * 2026-11-23): cyan on the text's and the title's rows, the fire's (index
+ * 2) on a heading's and the HUD's; the other looks' labels plain. No names
+ * in colour: the tanks are all one colour. */
+static uint8_t lab_ink(uint8_t p)
 {
-    uint8_t ink, ground;
-    colours(row, &ink, &ground);
+    return p == PAL_TEXT || p == PAL_TITLE ? 1 : p == PAL_HEAD || p == TP_HUD ? 2 : 0xFF;
+}
+
+static void colours_k(uint8_t row, uint8_t kind, uint8_t *ink, uint8_t *ground)
+{
+    uint8_t l;
+    colours(row, ink, ground);
+    if (kind == INK_LABEL && (l = lab_ink(txt_pal[row])) != 0xFF)
+        *ink = l;
+}
+
+/* The text's own looks (TEXT, TITLE, HEAD, HILITE, DIM and the HUD's),
+ * and their labels', with all 96 glyphs drawn, 1.5K each (far, each got
+ * at first use): a cell is then 8 word loads and stores (cga_grun). Seat
+ * rows and inverse cells keep the nibble tables. (TODO 2026-11-23.) */
+#define LOOKS (PAL_SEAT + 1)            /* (the last: the HUD's) */
+static uint16_t gseg[LOOKS * 2];
+static uint8_t gfail;
+
+static uint16_t glyphs(uint8_t k, uint8_t row, uint8_t kind)
+{
+    uint8_t __far *d;
+    const uint8_t *g;
+    uint8_t ink, ground, b;
+    uint16_t c;
+    unsigned seg;
+    if (gseg[k] || gfail)
+        return gseg[k];
+    if (_dos_allocmem(96, &seg)) {
+        gfail = 1;
+        return 0;
+    }
+    colours_k(row, kind, &ink, &ground);
+    make(ink, ground);
+    d = MK_FP(seg, 0);
+    for (g = font8, c = 0; c < 96 * 8; ++c) {
+        b = *g++;
+        *d++ = tab[b >> 4];
+        *d++ = tab[b & 15];
+    }
+    return gseg[k] = seg;
+}
+
+void txt_cells(uint8_t row, uint8_t col, uint8_t n, uint8_t inv, uint8_t ink)
+{
+    uint8_t p = txt_pal[row];
+    uint16_t seg;
+    if (ink != INK_LABEL || lab_ink(p) == 0xFF)
+        ink = INK_PLAIN;                /* (no names in colour here) */
+    if (!inv && (p < PAL_SEAT || p == TP_HUD)) {
+        seg = glyphs((uint8_t)((p == TP_HUD ? PAL_SEAT : p) + (ink ? LOOKS : 0)), row, ink);
+        if (seg) {
+            cga_grun((uint16_t)row * 320 + col * 2, scr_ch[row] + col, n, seg);
+            return;
+        }
+    }
+    nib_cells(row, col, n, inv, ink);
+}
+
+static void nib_cells(uint8_t row, uint8_t col, uint8_t n, uint8_t inv, uint8_t ink)
+{
+    uint8_t in, ground;
+    colours_k(row, ink, &in, &ground);
     if (inv)
-        make(ground, ink);
+        make(ground, in);
     else
-        make(ink, ground);
-    if (c < 32 || c > 127)
-        c = ' ';
-    cga_cell((uint16_t)row * 320 + col * 2, font8 + (c - 32) * 8, tab);
+        make(in, ground);
+    cga_run((uint16_t)row * 320 + col * 2, scr_ch[row] + col, n, tab);
+}
+
+/* rows from.. (n of them) moved to to.. on the screen (scr_scroll): a
+ * row is 320 bytes in each bank, one after another. (On a CGA moving them
+ * is quicker than redrawing the cells that differ: its memory is slow to
+ * write, an 8088's C slower to compare.) */
+void txt_move(uint8_t to, uint8_t from, uint8_t n)
+{
+    if (to < from)
+        cga_move((uint16_t)to * 320, (uint16_t)from * 320, (uint16_t)n * 320);
+    else
+        while (n--)                     /* (down: a row at a time, from the bottom) */
+            cga_move((uint16_t)(to + n) * 320, (uint16_t)(from + n) * 320, 320);
 }
 
 void txt_blank(uint8_t row)
@@ -95,5 +174,6 @@ void scr_picture(void)
     lz_unpack(0xB800, title_cga);
     for (r = 0; r < TXT_ROWS; ++r)
         txt_pal[r] = 0xFF;              /* (the rows aren't text now) */
+    memset(scr_ch, 0, sizeof(scr_ch));  /* (nor their cells: scr_text draws what it's given) */
 }
 #endif

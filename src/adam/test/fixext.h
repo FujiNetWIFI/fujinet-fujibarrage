@@ -5,7 +5,11 @@
  * is asked for (test_hook[0] = 80h + its number) and the rig puts it in
  * script[] and seg_len, then test_hook[0] back to 0. */
 #define FIX_EXTERN 1
+#ifdef TEST_CATALOG
+#define FIX_RAM 256                 /* (scene 10's build: no shot, room for the catalog) */
+#else
 #define FIX_RAM 2048
+#endif
 extern uint8_t fix_ram[FIX_RAM];
 #define FIX_SKY     fix_ram[0]
 #define FIX_PAL     fix_ram[1]

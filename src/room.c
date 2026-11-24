@@ -33,6 +33,26 @@ static void at(uint8_t col, const char *t)
         ln[col++] = *t++;
 }
 
+#ifdef SCR_INK
+/* a label at col (its characters' bit 7: the label ink, scr.h); n cells
+ * of the line as a label */
+static void at_l(uint8_t col, const char *t)
+{
+    while (*t && col < SCR_COLS)
+        ln[col++] = *t++ | 0x80;
+}
+static void lab_span(uint8_t col, uint8_t n)
+{
+    while (n-- && col < SCR_COLS)
+        ln[col++] |= 0x80;
+}
+#define AT_L at_l
+#define LAB_SPAN(c, n) lab_span(c, n)
+#else
+#define AT_L at
+#define LAB_SPAN(c, n)
+#endif
+
 static void seat_line(uint8_t row, uint8_t s)
 {
     uint8_t k = KIND(s);
@@ -78,6 +98,7 @@ static void set_line(uint8_t i)
     memset(ln, ' ', SCR_COLS);
     cat_name(cat_setting(k) + 2, b, SET_NAME_N);
     at(SET_NAME_C, b);
+    LAB_SPAN(SET_NAME_C, SET_NAME_N);
     cat_value(k, SET(k), b);
     at(SET_VAL_C, b);
     scr_row(3 + i, hosting() && i == set_sel ? PAL_HILITE : PAL_TEXT);
@@ -87,7 +108,7 @@ static void set_line(uint8_t i)
 static void wait_hint(void)
 {
     scr_clear_row(23);
-    scr_text(23, 1, set_on ? (hosting() ? TXT_W_HOSTSET : TXT_W_SET)
+    scr_label(23, 1, set_on ? (hosting() ? TXT_W_HOSTSET : TXT_W_SET)
                            : !hosting() ? TXT_W_WAIT
                            : st[OFF_ROOM_FLAGS] & ROOM_PEOPLE ? TXT_W_PEOPLE
                            : TXT_W_BOTS);
@@ -109,7 +130,7 @@ static void wait_draw(void)
         if (set_sel >= set_n)
             set_sel = 0;
         scr_row(1, PAL_HEAD);
-        scr_text(1, 1, "SETTINGS:");
+        scr_label(1, 1, "SETTINGS:");
         cat_name(cat_page(set_page), b, 16);
         scr_text(1, 11, b);
     }
@@ -121,7 +142,7 @@ void wait_enter(void)
 {
     scr_begin();
     scr_row(0, PAL_HEAD);
-    scr_text(0, 1, "WAITING ROOM:");
+    scr_label(0, 1, "WAITING ROOM:");
     scr_text(0, 15, srv_table);
     set_on = 0;
     wait_draw();
@@ -240,10 +261,10 @@ void shop_state(void)
 {
     uint8_t i;
     memset(ln, ' ', SCR_COLS);
-    at(1, SHOP_ROUND_L);
+    AT_L(1, SHOP_ROUND_L);
     numstr(b, st[OFF_ROUND] + 1);
     at(SHOP_ROUND_C, b);
-    at(SHOP_CASH_L, "CASH");
+    AT_L(SHOP_CASH_L, "CASH");
     num32(b, cash());
     at(SHOP_CASH_C, b);
     scr_text(0, 0, ln);
@@ -270,8 +291,8 @@ void shop_enter(void)
     uint8_t i;
     scr_begin();
     scr_row(0, PAL_HEAD);
-    scr_text(1, 1, TXT_SHOP_HEAD);
-    scr_text(22, 1, TXT_SHOP_HINT);
+    scr_label(1, 1, TXT_SHOP_HEAD);
+    scr_label(22, 1, TXT_SHOP_HINT);
     shop_n = shop_sel = shop_top = 0;
     if (cat_ok)
         for (i = 0; i < N_ITEMS; ++i)

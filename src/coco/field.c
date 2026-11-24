@@ -354,6 +354,13 @@ void field_status(uint8_t row, uint8_t col, const char *s)
 #endif
 }
 
+#ifdef SCR_NAMES
+void field_name(uint8_t row, uint8_t col, uint8_t n, uint8_t seat)
+{
+    scr3_hud_name(row, col, n, seat);
+}
+#endif
+
 void field_status_hi(uint8_t row, uint8_t col, const char *s)
 {
 #ifdef COCO3

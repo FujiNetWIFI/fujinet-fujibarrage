@@ -49,7 +49,7 @@ implements `src/platform-specific/*.h` in `src/<platform>/`:
 | `plat.h` | Start-up, the frame clock (`frame_count` in 60ths, `vbi_count` in display frames), random numbers, rebooting |
 | `input.h` | The stick, the button and keys, latched as events; `inp_hook*` lets the rigs drive it |
 | `nstrans.h` | The link: open, frames in (COBS + Fletcher-16), bytes out, and hold/wake for a script |
-| `scr.h` | A text screen of 24x40 with a palette per row (the menus, the rooms, the shop, the results); `SCR_COLS` 32 for a narrower one, whose columns and words are `src/layout.h`'s |
+| `scr.h` | A text screen of 24x40 with a palette per row (the menus, the rooms, the shop, the results); `SCR_COLS` 32 for a narrower one, whose columns and words are `src/layout.h`'s. `scr_label` writes a label: a platform that can colour single cells defines `SCR_INK` and draws characters with bit 7 set in its label ink (labels yellow or the nearest, values white); with `SCR_NAMES` too, `field_name` (field.h) puts a HUD row's name in its seat's colour. Elsewhere `scr_label` is `scr_text`. `scr_scroll` is the shop's: a bitmap port should move what it can and draw only the cells that change (the shop's scroll was up to 1.7 s on a 4.77 MHz PC) |
 | `field.h` | The playfield: a bitmap of four pixel values (`PX_SKY`, `PX_DIRT`, `PX_FX`, `PX_TANK`), the tanks, the status rows, the balloon, the sparks, the tracks (`trk_*`). Its sizes (`FIELD_W` and so on) are per platform, under `#ifdef`. |
 | `sound.h` | Cues by meaning (`SND_*`, `UI_*`), the falling shell's whistle, the talk blip, two-voice tunes |
 

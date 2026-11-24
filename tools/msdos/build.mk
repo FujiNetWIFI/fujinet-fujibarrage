@@ -48,7 +48,7 @@ HDRS := $(wildcard src/*.h src/platform-specific/*.h src/msdos/*.h src/msdos/cga
 
 LINK_C := src/msdos/plat.c src/msdos/input.c src/msdos/nstrans.c src/msdos/fbnet.c \
 	src/msdos/fbport.c src/msdos/lobby.c src/msdos/sound.c src/msdos/scr.c gen/msdos/font.c
-LINK_ASM := src/msdos/uartisr.asm src/msdos/fbasm.asm src/msdos/timer.asm
+LINK_ASM := src/msdos/uartisr.asm src/msdos/fbasm.asm src/msdos/timer.asm src/msdos/same.asm
 MENU_SRC := src/main.c src/menus.c src/appkey.c src/net.c src/cat.c src/test.c $(LINK_C) \
 	gen/msdos/title.c src/msdos/lzd.asm gen/msdos/sfx.asm gen/msdos/menutune.asm $(LINK_ASM)
 GAME_SRC := src/main.c src/menus.c src/appkey.c src/net.c src/cat.c src/room.c \

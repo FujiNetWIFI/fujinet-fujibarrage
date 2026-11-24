@@ -69,6 +69,11 @@ B_SEATS: DB     0,76H,07H,0D5H,0
         DB      0,76H,07H,0D5H,0
         DB      TVBLLN
 
+; the settings (the waiting room's other view): a setting's label yellow
+; (3), its value white (2), the cursor cyan (1) (labels yellow, values
+; white: the user, 2026-11-23)
+B_SETS: DB      0,76H,07H,0D5H,0,TVBLLN
+
 ; the shop: the heading (rows 0-1: the cash) yellow and white; the list
 ; white, owned counts cyan; the item's line (row 11) and the hints yellow
 B_SHOP: DB      0,76H,07H,0D5H,0

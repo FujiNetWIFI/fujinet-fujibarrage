@@ -1309,7 +1309,8 @@ ht_ch:  ld      hl,(ht_s)
         ld      a,(ht_col)
         cp      32
         ret     nc
-        ; its attribute: 1 inverse, 2 + seat the name, 0 plain
+        ; its attribute: 1 inverse, 2 + seat the name, 12 a label (bit 7,
+        ; scr.h: light yellow), 0 plain
         ld      a,(ht_hi)
         or      a
         jr      nz,ht_at
@@ -1318,9 +1319,14 @@ ht_ch:  ld      hl,(ht_s)
         ld      a,(ht_col)
         cp      b
         ld      a,0
-        jr      nc,ht_at
+        jr      nc,ht_lb
         ld      a,(ht_seat)
         add     a,2
+        jr      ht_at
+ht_lb:  ld      hl,(ht_s)
+        bit     7,(hl)
+        jr      z,ht_at
+        ld      a,12
 ht_at:  ld      b,a
         ld      hl,(ht_p)
         ld      a,(ht_col)
@@ -1349,6 +1355,9 @@ ht_put: ld      de,(ht_s)
         ld      c,C_WHITE * 16 + C_BLACK
         inc     a
         jr      z,ht_c
+        cp      12
+        ld      c,11 * 16 + C_BLACK     ; (a label: light yellow)
+        jr      z,ht_c
         sub     2
         ld      hl,_seat_col
         call    add_hl_a
@@ -1372,6 +1381,7 @@ ht_c:   ld      a,(ht_row)      ; the cell: (21 + row) * 32 + col
         call    add_hl_a
         ld      de,(ht_s)
         ld      a,(de)
+        and     $7F
         call    text_cell
 ht_next:
         ld      hl,(ht_s)

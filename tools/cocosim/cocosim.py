@@ -20,6 +20,8 @@ the scenario, one command a line; times are in jiffies of the game's clock
                             would: input.c's own mapping), MAME's {CODES} too
     peek SYMBOL [N]         print N bytes at a symbol (from the map) or $ADDR
     poke SYMBOL VALUE
+    load SYMBOL FILE [LEN]  FILE's bytes at SYMBOL (and their count, 16 bits, at
+                            LEN): scene 10's catalog (barraged -catalog)
     dump FROM TO FILE       save memory (hex addresses) to OUTDIR/FILE
     dumpblk BLOCK FILE      (CoCo 3) save an 8K block of RAM (hex: 30 the screen's
                             first), seen through slot 6 for a moment
@@ -114,6 +116,13 @@ def main():
             steps.append(("peek", w[1], sym(w[1]), int(w[2]) if len(w) > 2 else 1))
         elif c == "poke":
             steps.append(("poke", sym(w[1]), int(w[2], 0)))
+        elif c == "load":
+            data, at = open(w[2], "rb").read(), sym(w[1])
+            for k, b in enumerate(data):
+                steps.append(("poke", at + k, b))
+            if len(w) > 3:                  # (the 6809's: high byte first)
+                steps.append(("poke", sym(w[3]), len(data) >> 8))
+                steps.append(("poke", sym(w[3]) + 1, len(data) & 0xFF))
         elif c == "dump":
             steps.append(("dump", int(w[1], 16), int(w[2], 16), w[3]))
         elif c == "dumpblk":

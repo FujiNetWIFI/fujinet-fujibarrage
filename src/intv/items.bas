@@ -47,6 +47,31 @@ next_target: PROCEDURE
     target = NO_SEAT
 END
 
+' shop_up, shop_dn: the list's rows a row up (rows 2-9 to 1-8) or down
+' (1-8 to 2-9) on the screen, before the row that came in is drawn: a
+' scroll was all 9 rows drawn again (TODO 2026-11-23). (Here: room.bas's
+' segment is full.)
+shop_up: PROCEDURE
+    FOR #p = 20 TO 179
+        #BACKTAB(#p) = #BACKTAB(#p + 20)
+    NEXT #p
+END
+
+shop_dn: PROCEDURE
+    FOR #p = 179 TO 20 STEP -1
+        #BACKTAB(#p + 20) = #BACKTAB(#p)
+    NEXT #p
+END
+
+' seat_cw: #cw = seat s's colour as letters on black where it can be one
+' (foreground/background mode: colours 0-7) and reads (not dark green),
+' else white (a seat's block is its colour there). Names in their seat's
+' colour: TODO 2026-11-23.
+seat_cw: PROCEDURE
+    #cw = CW_WHITE
+    IF seat_col(s) < 8 AND seat_col(s) <> C_DKGREEN THEN #cw = seat_col(s)
+END
+
 ' items_line: row 1 as the line has it
 items_line: PROCEDURE
     r = 1 : GOSUB gfx_clear_row
@@ -61,7 +86,7 @@ items_line: PROCEDURE
         END IF
     ELSEIF menu = M_TARGET THEN
         PRINT AT 20 COLOR CW_YELLOW, "TARGET"
-        IF target < SEATS THEN s = target : #p = 27 : n = NAME_LEN : #cw = CW_WHITE : GOSUB gfx_name
+        IF target < SEATS THEN s = target : #p = 27 : n = NAME_LEN : GOSUB seat_cw : GOSUB gfx_name
     ELSE
         PRINT AT 20 COLOR CW_YELLOW, "DRIVE <>  FUEL"
         #nv = inv(I_FUEL) : #p = 35 : #cw = CW_WHITE : GOSUB gfx_num

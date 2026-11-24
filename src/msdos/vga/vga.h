@@ -32,7 +32,12 @@
 void vga_dac(uint16_t first, uint16_t n, const uint8_t *tab);
 
 /* scra.asm: a text cell (text.c): ink and ground a glyph line each */
-void vga_cell(uint16_t off, const uint8_t *glyph, const uint8_t *ink8, const uint8_t *ground8);
-#pragma aux vga_cell "*_" parm [ax] [dx] [bx] [cx] modify [ax bx cx dx si di es]
+/* n cells of characters from off, through a table of the row's colours
+ * (text.c): line k's 4-pixel nibbles at tab[k * 64 + nibble * 4] */
+void vga_run(uint16_t off, const uint8_t *chars, uint16_t n, const uint8_t *tab);
+#pragma aux vga_run "*_" parm [ax] [dx] [cx] [bx] modify [ax bx cx dx si di es]
+/* n cells, a look's glyphs drawn at seg (text.c): 32 word moves a cell */
+void vga_grun(uint16_t off, const uint8_t *chars, uint16_t n, uint16_t seg);
+#pragma aux vga_grun "*_" parm [ax] [dx] [cx] [bx] modify [ax bx cx dx si di es]
 
 #endif

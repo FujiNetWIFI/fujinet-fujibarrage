@@ -12,7 +12,10 @@
 # TEST=1 TEST_SCENE=1 TEST_ARG=2` build: it plays the fixture's shot once
 # (FIX.BIN, SEGnn.BIN from FIXDIR, put on the floppy) and writes A:\LAG.TXT
 # (PLAYED: the jiffies the shot took; less the script's frames, it is the
-# lag) and A:\PROF.BIN (tools/dosrig/prof86.py with MAP). VM is the 86Box
+# lag) and A:\PROF.BIN (tools/dosrig/prof86.py with MAP). Scene 10 (the
+# shop's text, TEST_SCENE=10 XFLAGS=-DTEST_CATALOG, FIXDIR/CAT.BIN from
+# barraged -catalog): T0 the jiffies 18 cursor steps took, PLAYED the
+# scroll steps' (the items past the window's 19: one each). VM is the 86Box
 # machine copied (default ~/Vintage/IBM 5150 PC); VMSET, settings over the
 # VM's in the rig's copy only: "Section|key = value" lines separated by ';'
 # (an empty value drops the key). The VGA build on an 8 MHz 8086 with VGA
@@ -87,6 +90,7 @@ PY
 else
     mdel -i "$RIG/boot.img" ::CONFIG.SYS 2>/dev/null || true
     for f in "$FIX"/FIX.BIN "$FIX"/SEG*.BIN; do mcopy -o -i "$RIG/boot.img" "$f" ::; done
+    [ -f "$FIX/CAT.BIN" ] && mcopy -o -i "$RIG/boot.img" "$FIX/CAT.BIN" ::  # (scene 10's catalog)
 fi
 
 # the machine: the VM's settings, headless, our floppy

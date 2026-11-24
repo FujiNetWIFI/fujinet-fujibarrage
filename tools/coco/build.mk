@@ -47,7 +47,7 @@ COMMON := src/coco/bank.c src/coco/plat.c src/coco/input.c src/coco/nstrans.c sr
 PROGS := game2 game3 menu2 menu3
 COCO2 := src/coco2/video.c src/coco/sound.c src/coco2/snd2a.asm src/coco2/scr2.c src/coco2/scr2a.asm \
 	gen/coco2/font2.asm gen/coco2/flip2.asm gen/coco2/sfx.asm
-COCO3 := src/coco3/video.c src/coco/sound.c src/coco3/snd3a.asm src/coco3/scr3.c src/coco3/scr3a.asm \
+COCO3 := src/coco3/video.c src/coco/sound.c src/coco3/snd3a.asm src/coco3/scr3.c src/coco3/scr3k.c src/coco3/scr3a.asm \
 	gen/coco3/font3.asm gen/coco3/pal3.asm gen/coco3/sfx.asm
 FIELD2 := src/coco/field.c src/coco2/fld2.asm gen/coco2/tank2.asm
 FIELD3 := src/coco/field.c src/coco3/fld3.asm gen/coco3/fld3d.asm
@@ -89,15 +89,18 @@ endef
 $(foreach p,$(PROGS),$(eval $(call PROG_template,$(p))))
 
 # where the modules go: the low core holds what bank_init needs (it loads
-# the rest) and all the C's variables
+# the rest) and all the C's variables (and the CoCo 3 game's menus.o: its
+# high core is full)
 $(B)/game2/src/play.o $(B)/game3/src/play.o: export FB_SECT = hi
 $(B)/game2/src/room.o: export FB_SECT = hi
 $(B)/game2/src/coco/field.o: export FB_SECT = art
 $(B)/game3/src/coco/field.o: export FB_SECT = art
 $(B)/game3/src/coco/sound.o $(B)/menu3/src/coco/sound.o: export FB_SECT = mid
-$(foreach p,$(PROGS),$(B)/$(p)/src/menus.o): export FB_SECT = hi
+$(foreach p,game2 menu2 menu3,$(B)/$(p)/src/menus.o): export FB_SECT = hi
 $(foreach p,game2 menu2,$(B)/$(p)/src/coco2/scr2.o $(B)/$(p)/src/coco2/video.o): export FB_SECT = hi
 $(foreach p,game3 menu3,$(B)/$(p)/src/coco3/scr3.o $(B)/$(p)/src/coco3/video.o): export FB_SECT = hi
+$(B)/game3/src/coco3/scr3k.o: export FB_SECT = art
+$(B)/menu3/src/coco3/scr3k.o: export FB_SECT = hi
 
 # the art (tools/mkgfx_coco.py)
 gen/coco2/font2.asm: tools/mkgfx_coco.py gfx/coco/font3x7.png

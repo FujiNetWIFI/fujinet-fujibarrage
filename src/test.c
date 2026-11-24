@@ -18,6 +18,8 @@
  *      colours cycling)
  *   9  (the CoCo, the Adam, the PC) the whistle held at 442.9, 885.8 and
  *      1771.7 Hz, 1.5 s each with 0.5 s between (the engines' tuning)
+ *  10  (a TEST_CATALOG build: the CoCo, the Adam, the PC) the shop's text
+ *      timed (shop_timed)
  */
 #ifndef TEST_SCENES
 #include "game.h"
@@ -202,6 +204,50 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
     }
 }
 
+#if defined(TEST_CATALOG) && (defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__))
+/* scene 10 (a TEST_CATALOG build): the shop on the server's catalog (the
+ * PC's from CAT.BIN on its disk; elsewhere the rig puts it in catalog[]
+ * and sets cat_len), every item shown, the cursor stepped down the list a
+ * press at a time: test_t0 the jiffies the first SHOP_STEPS took (the
+ * cursor alone), test_t1 the rest's (a scroll each), then test_hook[0]
+ * DDh. (The text's speed: TODO 2026-11-23.) */
+#define SHOP_STEPS 18
+static void shop_timed(void)
+{
+    uint8_t n;
+    uint16_t t, cur = 0, scr = 0;
+#ifdef FIX_FILES
+    cat_load();
+#endif
+    while (!cat_len)
+        frame_wait();
+    st[OFF_CAT_LEN] = (uint8_t)cat_len;
+    st[OFF_CAT_LEN + 1] = (uint8_t)(cat_len >> 8);
+    cat_check();
+    st[OFF_PHASE] = PH_SHOP;
+    SET(SET_ARMS) = 0xFF;
+    st[OFF_CASH + 2] = 1;               /* (65536 and up: everything affordable) */
+    shop_enter();
+    for (n = 0; n < 40; ++n) {
+        inp_hook_dir = IN_DOWN;
+        tick();
+        t = TEST_NOW();
+        shop_frame();
+        t = (uint16_t)(TEST_NOW() - t);
+        if (n < SHOP_STEPS)
+            cur += t;
+        else
+            scr += t;
+        inp_hook_dir = 0;
+        tick();
+        shop_frame();
+    }
+    test_t0 = cur;
+    test_t1 = scr;
+    test_hook[0] = 0xDD;
+}
+#endif
+
 void test_check(void)
 {
     uint8_t n;
@@ -271,6 +317,11 @@ void test_check(void)
         }
         for (;;)
             tick();
+#if defined(TEST_CATALOG) && (defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__))
+    case 10:
+        shop_timed();
+        break;
+#endif
     case 2:
         st[OFF_PHASE] = PH_WAIT;
         wait_enter();

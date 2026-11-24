@@ -25,6 +25,13 @@ void fix_load(void)
     load("FIX.BIN", fix_ram, FIX_RAM);
 }
 
+#ifdef TEST_CATALOG
+void cat_load(void)                     /* (scene 10's: barraged -catalog) */
+{
+    cat_len = load("CAT.BIN", catalog, CAT_MAX);
+}
+#endif
+
 void fix_seg(uint8_t n)
 {
     static char name[] = "SEG00.BIN";

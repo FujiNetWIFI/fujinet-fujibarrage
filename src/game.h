@@ -11,9 +11,9 @@
 #include "field.h"
 
 #define NONE 0xFF
-#ifdef TEST_SCENES
+#if defined(TEST_SCENES) && !defined(TEST_CATALOG)
 #define CAT_MAX 64              /* the scenes have no catalog: room for the fixture */
-#else
+#else                           /* (TEST_CATALOG: scene 10's, from the rig) */
 #define CAT_MAX 1664
 #endif
 

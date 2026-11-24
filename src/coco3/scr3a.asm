@@ -11,16 +11,22 @@
         section hicode
 
         import  _font3
-        export  _scr3_cell,_scr_same
+        export  _scr3_run,_scr_same
 
 SCRBLK  equ     $30
 ROMBLK  equ     $3E
 
-* void scr3_cell(uint8_t row, uint8_t col, uint8_t c, const uint16_t *tab)
-*   row 0-24, col 0-39; c: ASCII 32-127 (else a space); tab: nibble -> word.
-* (After pshs u,y: 7,s row, 9,s col, 11,s c, 12,s tab.)
-_scr3_cell
+* void scr3_run(uint8_t row, uint8_t col, const uint8_t *chars, uint8_t n,
+*               const uint16_t *tab, const uint16_t *ltab)
+*   n cells of row from col, their characters at chars (ASCII 32-127, else a
+*   space; bit 7 a label's, through ltab); tab: nibble -> word. A run a
+*   call: a cell a call from C cost more than its drawing (TODO 2026-11-23).
+*   (After pshs u,y: 7,s row, 9,s col, 10,s chars, 13,s n, 14,s tab,
+*   16,s ltab.)
+_scr3_run
         pshs    u,y
+        tst     13,s
+        beq     @x
         lda     7,s
         ldb     #8
         mul                     ; B = y = row * 8
@@ -39,9 +45,16 @@ _scr3_cell
         ldb     9,s
         lslb
         lslb                    ; B: col * 4
-        tfr     d,u             ; U: the cell's top line
-        ldb     11,s
-        subb    #32
+        tfr     d,u             ; U: the first cell's top line
+@cell   ldx     10,s
+        ldb     ,x+
+        stx     10,s
+        ldy     14,s
+        tstb
+        bpl     @pl
+        ldy     16,s            ; (a label)
+        andb    #$7F
+@pl     subb    #32
         bhs     @in
         clrb
 @in     cmpb    #96
@@ -56,7 +69,6 @@ _scr3_cell
         rola                    ; D = glyph * 8
         addd    #_font3
         tfr     d,x
-        ldy     12,s
         lda     #8
         pshs    a
 @line   ldb     ,x
@@ -76,7 +88,10 @@ _scr3_cell
         dec     ,s
         bne     @line
         leas    1,s
-        lda     #ROMBLK
+        leau    -2044,u         ; 8 lines up, a cell on
+        dec     13,s
+        bne     @cell
+@x      lda     #ROMBLK
         sta     $FFA6
         puls    y,u,pc
 
@@ -123,8 +138,9 @@ _scr3_fill
         sta     $FFA6
         puls    y,u,pc
 
-* uint8_t scr_same(const uint8_t *cp, const char *s, uint8_t n): how many of
-* s's first n characters the cells at cp have already (s's 0 ends it)
+* uint8_t scr_same(const uint8_t *cp, const char *s, uint8_t n, uint8_t m):
+* how many of s's first n characters (each OR m: 80h a label's) the cells
+* at cp have already (s's 0 ends it)
 _scr_same
         pshs    u
         ldx     4,s             ; the cells
@@ -134,6 +150,7 @@ _scr_same
         beq     @x
 @l      lda     ,u+
         beq     @x
+        ora     12,s
         cmpa    ,x+
         bne     @x
         decb

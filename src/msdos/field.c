@@ -210,6 +210,13 @@ void field_status_hi(uint8_t row, uint8_t col, const char *s)
     scr_hud(row, col, s, 1);
 }
 
+#ifdef SCR_NAMES
+void field_name(uint8_t row, uint8_t col, uint8_t n, uint8_t seat)
+{
+    scr_hud_name(row, col, n, seat);
+}
+#endif
+
 void field_status_clear(void)
 {
     uint8_t r;

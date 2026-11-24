@@ -123,10 +123,11 @@ END
 ' talk_draw: row 1 from character TALK_K of "NAME: phrase"
 talk_draw: PROCEDURE
     n = PEEK(TALK_L)
+    t = s : s = PEEK(TALK_S) : GOSUB seat_cw : #v = #cw : s = t    ' (the name: its seat's colour)
     #a = ST + OFF_SEATS + PEEK(TALK_S) * SEAT_SIZE + P_NAME
     FOR k = 0 TO 19
         c = PEEK(TALK_K) + k
-        #cw = CW_YELLOW
+        #cw = #v
         IF c < n THEN
             t = rb(#a + c)
         ELSEIF c = n THEN

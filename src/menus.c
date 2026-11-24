@@ -158,7 +158,7 @@ uint8_t room_list(void)
     scr_begin();
     scr_row(1, PAL_HEAD);
     centre(1, "PICK A ROOM");
-    scr_text(3, 2, "ROOM          PEOPLE  PLAYING");
+    scr_label(3, 2, "ROOM          PEOPLE  PLAYING");
     for (i = 0; i < n; ++i) {
         scr_text(5 + i * 2, 2, (char *)rooms[i] + 8);
         numstr(b, rooms[i][20]);

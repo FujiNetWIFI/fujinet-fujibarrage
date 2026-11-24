@@ -59,7 +59,7 @@ seat_row: PROCEDURE
         PRINT AT r * 20 + 2 COLOR CW_TAN, "- OPEN -          "
         RETURN
     END IF
-    #p = r * 20 + 2 : n = NAME_LEN : #cw = CW_WHITE : GOSUB gfx_name
+    #p = r * 20 + 2 : n = NAME_LEN : GOSUB seat_cw : GOSUB gfx_name
     #p = r * 20 + 10 : #BACKTAB(#p) = 0
     IF rb(ST + OFF_PHASE) <> PH_WAIT THEN
         #nv = pl16(s, P_SCORE) : #p = r * 20 + 16 : #cw = CW_TAN : GOSUB gfx_numr
@@ -302,14 +302,13 @@ shop_frame: PROCEDURE
     IF sh_sel <> sh_i THEN
         sid = UI_TICK : GOSUB snd_cue
         IF sh_sel < sh_top THEN
-            sh_top = sh_sel : GOSUB shop_all
+            sh_top = sh_sel : GOSUB shop_dn
         ELSEIF sh_sel >= sh_top + SHOP_ROWS THEN
-            sh_top = sh_sel - SHOP_ROWS + 1 : GOSUB shop_all
-        ELSE
-            GOSUB shop_line
-            sh_i = sh_sel : GOSUB shop_line
-            GOSUB shop_info
+            sh_top = sh_sel - SHOP_ROWS + 1 : GOSUB shop_up
         END IF
+        GOSUB shop_line                 ' (the one left: plain now)
+        sh_i = sh_sel : GOSUB shop_line
+        GOSUB shop_info
     END IF
     i = PEEK(SHOP_IDS + sh_sel)
     POKE RAWB + 3, i : POKE RAWB + 4, 1

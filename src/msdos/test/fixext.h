@@ -17,3 +17,4 @@ extern uint8_t fix_ram[FIX_RAM];
 #define fix_terrain (fix_ram + 43)
 void fix_load(void);
 void fix_seg(uint8_t n);
+void cat_load(void);                /* (TEST_CATALOG: CAT.BIN into catalog[]) */

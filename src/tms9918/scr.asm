@@ -23,12 +23,14 @@
         SECTION code_user
 
         PUBLIC  _tms_init, _tms_blank, _tms_cell, _tms_cell_fill, _tms_blanked
-        PUBLIC  _scr_init, _scr_begin, _scr_row, _scr_text, _scr_inverse
+        PUBLIC  _scr_init, _scr_begin, _scr_row, _scr_text, _scr_label, _scr_inverse
         PUBLIC  _scr_clear_row, _scr_scroll, _scr_show, _seat_col
         PUBLIC  scr_rpal
         EXTERN  _va_addr, _va_src, _va_len, _va_val, _va_write, _va_writef, _va_fill, _va_read
         EXTERN  _vdp_busy, _vdp_pend, _vdp_catch_up, _vdp_r1, _vdp_r2, _vdp_r7
         EXTERN  _frame_wait, _field_off
+        EXTERN  _script         ; (a row's 256 bytes on their way: the shot's
+                                ; script is idle while a text screen is up)
         PUBLIC  glyph8, vram8
 
         defc    VDP_DATA = $BE
@@ -380,7 +382,7 @@ row_colours:
         call    add_hl_a
         ld      a,(hl)
         call    pal_of
-        ld      de,buf
+        ld      de,_script
         ld      b,32
 rc_l:   push    bc
         push    hl
@@ -394,7 +396,7 @@ rc_l:   push    bc
         ld      h,a
         ld      l,0
         ld      de,256
-        ld      bc,buf
+        ld      bc,_script
 ; vput: DE bytes from BC to VRAM HL: flat out while blanked
 vput:   ld      (_va_addr),hl
         ld      (_va_len),de
@@ -472,7 +474,14 @@ _scr_row:
         ret
 
 ; void scr_text(uint8_t row, uint8_t col, const char *s)
+; void scr_label(uint8_t row, uint8_t col, const char *s): the same, a
+; label's (bit 7, scr.h): light yellow where the row's ink is white
+_scr_label:
+        ld      a,$80
+        jr      st_e
 _scr_text:
+        xor     a
+st_e:   ld      (t_lab),a
         ld      hl,2
         add     hl,sp
         ld      a,(hl)
@@ -491,6 +500,20 @@ _scr_text:
         ld      a,(hl)
         call    pal_of
         ld      (t_pal),hl
+        ld      de,lpal         ; a label's: the white ink light yellow
+        ld      b,8
+st_lp:  ld      a,(hl)
+        ld      c,a
+        and     $F0
+        cp      $F0
+        ld      a,c
+        jr      nz,st_ls
+        and     $0F
+        or      $B0
+st_ls:  ld      (de),a
+        inc     hl
+        inc     de
+        djnz    st_lp
 st_ch:  ld      a,(t_col)
         cp      32
         ret     nc
@@ -500,6 +523,15 @@ st_ch:  ld      a,(t_col)
         ret     z
         inc     hl
         ld      (t_s),hl
+        ld      c,a
+        ld      a,(t_lab)
+        or      c
+        ld      hl,(t_pal)
+        bit     7,a
+        jr      z,st_pp
+        ld      hl,lpal
+        and     $7F
+st_pp:  ld      (t_cp),hl
         cp      'a'             ; upper case; past '_': '?'
         jr      c,st_u
         cp      'z'+1
@@ -522,7 +554,7 @@ st_g:   sub     32
         add     hl,hl
         ld      a,(t_col)
         call    add_hl_a
-        ld      bc,(t_pal)
+        ld      bc,(t_cp)
         call    cell
         ld      a,(t_row)       ; written; not inverse
         ld      de,wrote
@@ -546,7 +578,7 @@ st_m:   and     (hl)
         ld      (hl),a
         ld      hl,t_col
         inc     (hl)
-        jr      st_ch
+        jp      st_ch
 
 ; void scr_inverse(uint8_t row, uint8_t col, uint8_t n): n cells highlighted
 _scr_inverse:
@@ -588,10 +620,10 @@ si_n:   ld      a,b
         ld      e,a
         ld      d,0
         ld      (_va_len),de
-        ld      hl,buf
+        ld      hl,_script
         ld      (_va_src),hl
         call    _va_read
-        ld      hl,buf          ; ink and ground swapped
+        ld      hl,_script      ; ink and ground swapped
         ld      a,(_va_len)
         ld      b,a
 si_s:   ld      a,(hl)
@@ -604,7 +636,7 @@ si_s:   ld      a,(hl)
         djnz    si_s
         pop     hl
         ld      de,(_va_len)
-        ld      bc,buf
+        ld      bc,_script
         call    vput
 si_b:   ld      a,(t_row)       ; their bits
         ld      de,inv
@@ -752,7 +784,19 @@ ss_go:  ld      a,e             ; rpal[to] = rpal[from]
         ld      hl,scr_rpal
         call    add_hl_a
         pop     af
+        cp      (hl)
         ld      (hl),a
+        ld      a,0
+        jr      nz,ss_pal
+        ld      a,e             ; the same look: the colours too, if
+        call    invz            ; neither row has inverse cells
+        jr      nz,ss_pal0
+        ld      a,d
+        call    invz
+ss_pal0: ld     a,0
+        jr      nz,ss_pal
+        inc     a
+ss_pal: ld      (t_same),a      ; (1: no colours to copy)
         push    de              ; the masks
         ld      a,e
         ld      de,wrote
@@ -787,6 +831,9 @@ ss_go:  ld      a,e             ; rpal[to] = rpal[from]
         push    de
         call    copy_row
         pop     de
+        ld      a,(t_same)
+        or      a
+        jr      nz,ss_nx        ; (half the copying: the shop's rows all look alike)
         ld      a,e
         add     a,$20
         ld      h,a
@@ -795,28 +842,49 @@ ss_go:  ld      a,e             ; rpal[to] = rpal[from]
         add     a,$20
         ld      b,a
         call    copy_row
-        ld      hl,t_col
+ss_nx:  ld      hl,t_col
         inc     (hl)
         ld      a,(t_n)
         cp      (hl)
-        jr      nz,ss_l
+        jp      nz,ss_l
         ret
 
-; copy_row: VRAM HL's 256 bytes to VRAM B * 256
+; invz: Z if row A has no inverse cells (DE kept)
+invz:   push    de
+        ld      de,inv
+        call    rowbits
+        ld      a,(hl)
+        inc     hl
+        or      (hl)
+        inc     hl
+        or      (hl)
+        inc     hl
+        or      (hl)
+        pop     de
+        ret
+
+; copy_row: VRAM HL's 256 bytes to VRAM B * 256, 37 T-states a byte each
+; way (safe while the VDP draws; the VRAM routines' 50 took 300 ms a shop
+; scroll: TODO 2026-11-23)
 copy_row:
         push    bc
-        ld      (_va_addr),hl
-        ld      hl,256
-        ld      (_va_len),hl
-        ld      hl,buf
-        ld      (_va_src),hl
-        call    _va_read
+        call    raddr
+        ld      hl,_script
+        ld      b,0             ; (256)
+        nop                     ; (the VDP's read ahead: 8 us from the address)
+        nop
+cr_rd:  in      a,(VDP_DATA)
+        ld      (hl),a
+        inc     hl
+        djnz    cr_rd
         pop     bc
         ld      h,b
         ld      l,0
-        ld      de,256
-        ld      bc,buf
-        jp      vput
+        call    waddr
+        ld      de,_script
+        ld      b,0
+        call    out8
+        jp      unlock
 
 ; void scr_show(void): on, from the next frame
 _scr_show:
@@ -831,7 +899,6 @@ wrote:          defs    ROWS*4
 inv:            defs    ROWS*4
 col8:           defs    8
 gbuf:           defs    8
-buf:            defs    256
 t_row:          defs    1
 t_col:          defs    1
 t_s:            defs    2
@@ -839,3 +906,7 @@ t_pal:          defs    2
 t_n:            defs    1
 t_w:            defs    1
 t_v:            defs    1
+t_same:         defs    1
+t_lab:          defs    1
+t_cp:           defs    2
+lpal:           defs    8

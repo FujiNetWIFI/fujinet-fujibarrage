@@ -6,6 +6,7 @@
 #define FIELD_H_
 
 #include <stdint.h>
+#include "scr.h"                    /* (SCR_NAMES) */
 
 #ifndef __CC65__
 #define __fastcall__
@@ -160,6 +161,10 @@ void __fastcall__ field_sparks(uint16_t seat_kind);
 void field_status(uint8_t row, uint8_t col, const char *s);
 void field_status_hi(uint8_t row, uint8_t col, const char *s);  /* the same, to stand out (inverse) */
 void field_status_clear(void);
+#ifdef SCR_NAMES
+/* row's name: n cells from col in seat's colour (n 0: none) */
+void field_name(uint8_t row, uint8_t col, uint8_t n, uint8_t seat);
+#endif
 void field_flash(uint8_t frames);
 void field_fire(uint8_t on);                    /* the fire colours cycle */
 /* an ellipse: mode 0 all of it v, 1 its sky v, 2 its colour 3 sky */

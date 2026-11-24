@@ -698,8 +698,8 @@ fld_keep
         bne     @l
         rts
 
-* ---- (in the high core: the art region is full) ---------------------------
-        section hicode
+* ---- (in the low core: the art region is full, the high core too) ---------
+        section code
 
 * espan: line fy, x from fx to fx1 (clipped): its pixels that are fold (sky
 * or fire) become fv, a byte at a time (fld_swap's, pixel for pixel)

@@ -24,7 +24,11 @@ WDRAW:  XOR     A
         LD      (WSEL),A
         LD      (WTOP),A
         LD      HL,B_SEATS
-        CALL    TEXTSCR
+        LD      A,(WSET)
+        OR      A
+        JR      Z,WD0
+        LD      HL,B_SETS       ; (the settings: labels yellow, values white)
+WD0:    CALL    TEXTSCR
         LD      A,(WSET)
         OR      A
         JR      NZ,WD2
@@ -152,13 +156,18 @@ WS1:    LD      A,(T1)          ; the strip: colour 1, the seat's
         LD      BC,1*256+TXH
         LD      A,55H
         CALL    FILLB
-        LD      A,(T0)          ; its name
-        CALL    SNAME
+        LD      A,(T0)          ; its name: in its seat's colour (1), white
+        CALL    SNAME           ; where that is too dark to read (the strip
+        LD      HL,SNINK        ; beside it is the colour there; TODO
+        LD      A,(T0)          ; 2026-11-23)
+        LD      C,A
+        LD      B,0
+        ADD     HL,BC
+        LD      C,(HL)
         LD      HL,WORK
         LD      A,(T1)
         LD      D,A
         LD      E,1
-        LD      C,3*4
         LD      B,10
         CALL    TXTN
         LD      A,(T0)
@@ -416,6 +425,9 @@ WF9:    LD      A,(EVBTN)       ; FIRE: the host starts
 
 SWROOM: DB      "WAITING ROOM:",0
 SSETS:  DB      "SETTINGS:",0
+; a seat's name's ink: 1 (its colour: B_SEATS's R1) but where that is dark
+; (luminance 2-3: seats 0, 4, 8), 3 (white)
+SNINK:  DB      3*4,1*4,1*4,1*4,3*4,1*4,1*4,1*4,3*4,1*4
 SWOPEN: DB      " - OPEN -",0
 SWBLANK: DB     0
 SBOT:   DB      "BOT",0

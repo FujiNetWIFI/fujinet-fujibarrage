@@ -20,7 +20,8 @@
 #define SCREEN ((uint8_t *)0x1000)
 #define ROWAD(r) (SCREEN + ((uint16_t)(r) << 8))    /* 32 bytes x 8 lines a row */
 
-void scr2_cell(uint8_t *dst, uint8_t c, const uint8_t *tab);
+void scr2_run(uint8_t *dst, const uint8_t *chars, uint8_t n, const uint8_t *tab, const uint8_t *ltab);
+void scr2_move(uint8_t *dst, const uint8_t *src, uint16_t n);
 
 extern uint8_t scr_ch[SCR_ROWS][SCR_COLS];         /* (src/coco/hibss.asm) */
 #define ch scr_ch
@@ -36,6 +37,7 @@ static const uint8_t pal_ground[] = { 1, 2, 0, 3, 1 };
 static const uint8_t seat_ground[3] = { 2, 3, 1 };
 
 static uint8_t tab[16], itab[16], tab_ink = 0xFF, tab_ground = 0xFF;
+static uint8_t ltab[16], l_ground = 0xFF;          /* a label's (cells) */
 
 /* a value as the screen's bit pair, through the artifact phase */
 uint8_t phys(uint8_t v)
@@ -50,50 +52,79 @@ uint8_t phys4(uint8_t v)
     return four[phys(v)];
 }
 
+/* t: nibble -> a byte, each pixel ink f or ground g (screen values) */
+static void fill2(uint8_t *t, uint8_t f, uint8_t g)
+{
+    uint8_t n, x, b;
+    for (n = 0; n < 16; ++n) {
+        for (b = 0, x = 0; x < 4; ++x)
+            b = (uint8_t)(b << 2 | (n & (8 >> x) ? f : g));
+        t[n] = b;
+    }
+}
+
 /* the nibble -> byte tables for ink on ground (and the inverse) */
 static void make(uint8_t ink, uint8_t ground)
 {
-    uint8_t n, x, b, ib, f, g;
     if (ink == tab_ink && ground == tab_ground)
         return;
     tab_ink = ink;
     tab_ground = ground;
-    f = phys(ink);
-    g = phys(ground);
-    for (n = 0; n < 16; ++n) {
-        b = ib = 0;
-        for (x = 0; x < 4; ++x) {
-            b <<= 2;
-            ib <<= 2;
-            if (n & (8 >> x)) {
-                b |= f;
-                ib |= g;
-            } else {
-                b |= g;
-                ib |= f;
-            }
-        }
-        tab[n] = b;
-        itab[n] = ib;
-    }
+    fill2(tab, phys(ink), phys(ground));
+    fill2(itab, phys(ground), phys(ink));
 }
 
 /* the colours the tables were made for are stale (the phase changed) */
 void scr2_recolour(void)
 {
-    tab_ink = 0xFF;
+    tab_ink = l_ground = 0xFF;
 }
 
-uint8_t scr_same(const uint8_t *cp, const char *s, uint8_t n);   /* (scr2a.asm) */
+uint8_t scr_same(const uint8_t *cp, const char *s, uint8_t n, uint8_t m);   /* (scr2a.asm) */
 static const uint8_t bit8[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };     /* (CMOC shifts by a variable in a loop) */
 
+/* A label (bit 7, scr.h) in orange, the nearest to yellow, on a row of
+ * white ink but an orange one (labels yellow, values white: the user,
+ * 2026-11-23); no names in colour: the tanks are black. (ltab: scr2_recolour) */
+
+/* cells col.. (n) of a row drawn from what they hold: a run a call (a
+ * cell a call, the C cost more than the drawing; scr2_run takes a
+ * label's table by its bit 7); a row with inverse cells (a cursor) a cell
+ * at a time, its labels plain */
 static void cells(uint8_t row, uint8_t col, uint8_t n)
 {
-    uint8_t *d = ROWAD(row) + col;
+    uint8_t *ip = inv[row], *lt = tab;
     make(rink[row], rground[row]);
-    while (n-- && col < SCR_COLS) {
-        scr2_cell(d++, ch[row][col], inv[row][col >> 3] & bit8[col & 7] ? itab : tab);
-        ++col;
+    if (ip[0] | ip[1] | ip[2] | ip[3] | ip[4]) {
+        for (; n; --n, ++col)
+            scr2_run(ROWAD(row) + col, ch[row] + col, 1, ip[col >> 3] & bit8[col & 7] ? itab : tab, tab);
+        return;
+    }
+    if (rink[row] == 3 && rground[row] != 2) {
+        if (rground[row] != l_ground) {
+            l_ground = rground[row];
+            fill2(ltab, phys(2), phys(l_ground));
+        }
+        lt = ltab;
+    }
+    scr2_run(ROWAD(row) + col, ch[row] + col, n, tab, lt);
+}
+
+/* s at (row, col), each character OR m (80h: a label's): only the cells
+ * that change drawn, a run at a time (the unchanged passed over by
+ * scr_same) */
+static void put_s(uint8_t row, uint8_t col, const char *s, uint8_t m)
+{
+    uint8_t *cp = ch[row], k, from;
+    while (col < SCR_COLS && *s) {
+        k = scr_same(cp + col, s, (uint8_t)(SCR_COLS - col), m);
+        col += k;
+        s += k;
+        from = col;
+        while (col < SCR_COLS && *s && cp[col] != (uint8_t)(*s | m))
+            cp[col++] = (uint8_t)(*s++ | m);
+        if (col != from)
+            cells(row, from, (uint8_t)(col - from));
     }
 }
 
@@ -137,16 +168,19 @@ void scr_row(uint8_t row, uint8_t p)
     set_pal(row, p);
     if (ink == rink[row] && ground == rground[row])
         return;
-    memset(ROWAD(row), phys4(rground[row]), 256);
-    cells(row, 0, SCR_COLS);
+    cells(row, 0, SCR_COLS);            /* (the 32 cells cover the row) */
 }
 
+/* only the cells that change are drawn (a row is often written again as
+ * it was: the shop's each second, a row after scr_row redrew it) */
 void scr_text(uint8_t row, uint8_t col, const char *s)
 {
-    uint8_t c0 = col;
-    while (*s && col < SCR_COLS)
-        ch[row][col++] = (uint8_t)*s++;
-    cells(row, c0, (uint8_t)(col - c0));
+    put_s(row, col, s, 0);
+}
+
+void scr_label(uint8_t row, uint8_t col, const char *s)     /* (scr.h) */
+{
+    put_s(row, col, s, 0x80);
 }
 
 void scr_inverse(uint8_t row, uint8_t col, uint8_t n)
@@ -176,15 +210,15 @@ void scr_scroll(uint8_t row, uint8_t n, uint8_t up)
             memcpy(inv[i], inv[i + 1], sizeof(inv[i]));
             rink[i] = rink[i + 1];
             rground[i] = rground[i + 1];
-            memcpy(ROWAD(i), ROWAD(i + 1), 256);
         }
+        scr2_move(ROWAD(row), ROWAD(row + 1), (uint16_t)(n - 1) << 8);
     } else {
         for (i = last; i > row; --i) {
             memcpy(ch[i], ch[i - 1], SCR_COLS);
             memcpy(inv[i], inv[i - 1], sizeof(inv[i]));
             rink[i] = rink[i - 1];
             rground[i] = rground[i - 1];
-            memcpy(ROWAD(i), ROWAD(i - 1), 256);
+            scr2_move(ROWAD(i), ROWAD(i - 1), 256);     /* (a row at a time, from the bottom) */
         }
     }
 }
@@ -207,36 +241,24 @@ void scr_picture(void)
         video_flip();
     for (r = 0; r < SCR_ROWS; ++r)      /* (the rows' colours: as good as unknown) */
         rink[r] = rground[r] = 0xFF;
+    memset(ch, 0, sizeof(ch));          /* (and their cells: scr_text draws what it's given) */
 }
 #endif
 
 /* ---- the field's HUD: rows 21-23, white on black (hi: black on white) */
 void scr2_hud(uint8_t row, uint8_t col, const char *s, uint8_t hi)
 {
-    uint8_t r = (uint8_t)(SCR_HUD_ROW + row), c, b, *iv, *cp, *d;
+    uint8_t r = (uint8_t)(SCR_HUD_ROW + row), c, b, *iv, *cp;
     if (rink[r] != 3 || rground[r] != 0) {
         rink[r] = 3;
         rground[r] = 0;
         blank_row(r);
     }
-    make(3, 0);
     cp = ch[r] + col;
-    d = ROWAD(r) + col;
     iv = inv[r];
     if (!hi && !(iv[0] | iv[1] | iv[2] | iv[3] | iv[4])) {     /* (most: plain text over plain) */
-        for (;;) {
-            b = scr_same(cp, s, (uint8_t)(SCR_COLS - col));
-            cp += b;
-            s += b;
-            col += b;
-            d += b;
-            if (col >= SCR_COLS || !(c = (uint8_t)*s++))
-                return;
-            *cp++ = c;
-            scr2_cell(d, c, tab);
-            ++d;
-            ++col;
-        }
+        put_s(r, col, s, 0);
+        return;
     }
     while ((c = (uint8_t)*s++) != 0 && col < SCR_COLS) {
         iv = inv[r] + (col >> 3);
@@ -247,10 +269,9 @@ void scr2_hud(uint8_t row, uint8_t col, const char *s, uint8_t hi)
                 *iv |= b;
             else
                 *iv &= (uint8_t)~b;
-            scr2_cell(d, c, hi ? itab : tab);
+            cells(r, col, 1);
         }
         ++cp;
-        ++d;
         ++col;
     }
 }

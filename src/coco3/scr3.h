@@ -22,5 +22,6 @@
 void scr3_repalette(void);          /* the monitor changed: the text's palette again */
 void scr3_hud(uint8_t row, uint8_t col, const char *s, uint8_t hi);
 void scr3_hud_clear(uint8_t row);
+void scr3_hud_name(uint8_t row, uint8_t col, uint8_t n, uint8_t seat);
 
 #endif

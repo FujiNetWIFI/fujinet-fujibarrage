@@ -100,6 +100,39 @@ static void put(uint8_t col, const char *s)
         line[col++] = *s++;
 }
 
+#ifdef SCR_INK
+/* a label (its characters' bit 7: the label ink, scr.h) */
+static void put_l(uint8_t col, const char *s)
+{
+    while (*s && col < SCR_COLS)
+        line[col++] = *s++ | 0x80;
+}
+#define PUT_L put_l
+#else
+#define PUT_L put
+#endif
+#ifdef SCR_NAMES
+/* the row being built has seat s's name at col c: name_out gives it to
+ * field_name with the row, then forgets it */
+static uint8_t nm_c, nm_n, nm_s;
+static void name_here(uint8_t c, uint8_t s)
+{
+    nm_c = c;
+    nm_n = nlen(NAME(s), NAME_LEN);
+    nm_s = s;
+}
+static void name_out(uint8_t row)
+{
+    field_name(row, nm_c, nm_n, nm_s);
+    nm_n = 0;
+}
+#define NAME_HERE(c, s) name_here(c, s)
+#define NAME_OUT(row) name_out(row)
+#else
+#define NAME_HERE(c, s)
+#define NAME_OUT(row)
+#endif
+
 static void putn(uint8_t col, uint16_t v)
 {
     char b[6];
@@ -225,21 +258,22 @@ static void items_line(void)
     case M_ITEM:
         cat_name(cat_item(item) + 6, nm, ITM_NAME_N);
         put(0, nm);
-        put(ITM_X_C, "X");
+        PUT_L(ITM_X_C, "X");
         putn(ITM_X_C + 1, INV(item));
         if (item == I_PARACHUTE || item == I_IMPACT_FUSE)
             put(ITM_ON_C, PL(my_seat, P_FLAGS) & (item == I_PARACHUTE ? PF_CHUTE : PF_FUSE) ? "ON" : "OFF");
-        put(ITM_USE_C, "<> FIRE USE");
+        PUT_L(ITM_USE_C, "<> FIRE USE");
         break;
     case M_TARGET:
-        put(0, "TARGET");
+        PUT_L(0, "TARGET");
         memcpy(line + 7, NAME(target), nlen(NAME(target), NAME_LEN));
-        put(ITM_ON_TGT_C, "<> FIRE ON");
+        NAME_HERE(7, target);
+        PUT_L(ITM_ON_TGT_C, "<> FIRE ON");
         break;
     default:
-        put(0, "DRIVE <>  FUEL");
+        PUT_L(0, "DRIVE <>  FUEL");
         putn(ITM_FUEL_C, INV(I_FUEL));
-        put(ITM_DONE_C, "FIRE DONE");
+        PUT_L(ITM_DONE_C, "FIRE DONE");
     }
 }
 
@@ -254,12 +288,14 @@ static void hud(void)
     memset(line, ' ', SCR_COLS);
     line[SCR_COLS] = 0;
     memcpy(line, NAME(s), nlen(NAME(s), NAME_LEN));
-    put(HUD_ANG_L, TXT_ANGLE);
+    NAME_HERE(0, s);
+    PUT_L(HUD_ANG_L, TXT_ANGLE);
     putn(HUD_ANG_C, my_turn && s == my_seat ? aim_a : PL(s, P_ANGLE));
-    put(HUD_POW_L, TXT_POWER);
+    PUT_L(HUD_POW_L, TXT_POWER);
     putn(HUD_POW_C, my_turn && s == my_seat ? aim_p : PL16(s, P_POWER));
-    put(HUD_E_L, "E");
+    PUT_L(HUD_E_L, "E");
     putn(HUD_E_C, energy[s]);
+    NAME_OUT(0);
     field_status(0, 0, line);
     memset(line, ' ', SCR_COLS);
     if (defending()) {                  /* the defence window: what to do */
@@ -269,10 +305,10 @@ static void hud(void)
         cat_name(cat_item(my_turn && s == my_seat ? weapon : PL(s, P_WEAPON)) + 6, nm, HUD_WPN_N);
         put(0, nm);
         if (s == my_seat && weapon != I_MINI_MISSILE) {
-            put(HUD_X_C, "X");
+            PUT_L(HUD_X_C, "X");
             putn(HUD_X_C + 1, INV(weapon));
         }
-        put(HUD_WIND_C, "WIND");
+        PUT_L(HUD_WIND_C, "WIND");
         if (w < 0) {
             put(HUD_DIR_C, "<");
             w = -w;
@@ -286,9 +322,9 @@ static void hud(void)
     }
     field_status(1, 0, line);
     memset(line, ' ', SCR_COLS);
-    put(0, TXT_ROUND);
+    PUT_L(0, TXT_ROUND);
     putn(HUD_RD_C, st[OFF_ROUND]);
-    put(HUD_OF_C, TXT_OF);
+    PUT_L(HUD_OF_C, TXT_OF);
     putn(HUD_RDS_C, st[OFF_ROUNDS]);
 #if ITEMS_ROW == 2
     if (menu)
@@ -297,21 +333,24 @@ static void hud(void)
 #endif
     {
         if (defending())
-            put(HUD_MSG_C, TXT_ITEMS);
+            PUT_L(HUD_MSG_C, TXT_ITEMS);
         else if (my_turn)
             put(HUD_MSG_C, fl_kind == FL_BANNER ? "YOUR TURN!" : TXT_AIM_FIRE);
         else if (st[OFF_PHASE] == PH_AIM && st[OFF_TURN] < SEATS) {
             memcpy(line + HUD_MSG_C, NAME(st[OFF_TURN]), nlen(NAME(st[OFF_TURN]), NAME_LEN));
+            NAME_HERE(HUD_MSG_C, st[OFF_TURN]);
             put(HUD_MSG_C + nlen(NAME(st[OFF_TURN]), NAME_LEN), " AIMS");
         } else if (st[OFF_PHASE] == PH_AIM)
             put(HUD_MSG_C, "EVERYONE AIMS");
         if (!defending())
             putn(HUD_TIMER_C, st[OFF_TIMER]);    /* (defending: row 1 has it) */
     }
+    NAME_OUT(2);
     field_status(2, 0, line);
 #if ITEMS_ROW == 3
     if (menu) {                         /* its own row (talk's, in a script) */
         items_line();
+        NAME_OUT(3);
         field_status(3, 0, line);
     } else if (!in_script) {
         memset(line, ' ', SCR_COLS);

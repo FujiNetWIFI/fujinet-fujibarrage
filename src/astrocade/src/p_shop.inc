@@ -337,13 +337,23 @@ SF2:    LD      A,(SHSEL)       ; moved: scrolled, or its two rows
         SUB     (HL)
         CP      SHROWS
         JR      C,SF4
-        LD      A,(SHSEL)
-        SUB     SHROWS-1
-        LD      (SHTOP),A
-        JR      SF3T
-SF3S:   LD      (SHTOP),A
-SF3T:   CALL    SHALL
-        JR      SF5
+        LD      A,(SHSEL)       ; down the list: rows 1-8 up a row on the
+        SUB     SHROWS-1        ; screen (6 lines of 40 bytes each, one
+        LD      (SHTOP),A       ; band), then the two that changed (a
+        PUSH    BC              ; scroll was all 9 drawn: TODO 2026-11-23)
+        LD      HL,NORMEM+18*40
+        LD      DE,NORMEM+12*40
+        LD      BC,8*240
+        LDIR
+        POP     BC
+        JR      SF4
+SF3S:   LD      (SHTOP),A       ; up the list: rows 0-7 down a row
+        PUSH    BC
+        LD      HL,NORMEM+60*40-1
+        LD      DE,NORMEM+66*40-1
+        LD      BC,8*240
+        LDDR
+        POP     BC
 SF4:    LD      A,C
         LD      HL,SHTOP
         SUB     (HL)
