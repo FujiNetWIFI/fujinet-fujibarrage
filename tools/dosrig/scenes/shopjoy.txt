@@ -1,0 +1,16 @@
+# the shop with joystick 1: hold down 1 s, let go, watch the cursor
+wait 600
+press
+poke inp_hook 0
+wait 500
+snap 01shop
+joy y1 255
+wait 60
+snap 02held
+joy y1 128
+wait 30
+snap 03let_go
+wait 120
+snap 04later
+wait 240
+snap 05later

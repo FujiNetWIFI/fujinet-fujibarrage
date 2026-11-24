@@ -40,6 +40,7 @@ if [ "${VGA:-0}" = 1 ]; then
 else
     GAME=BARRAGE; MAMEARGS=""
 fi
+MAMEARGS="$MAMEARGS ${MAMEX:-}"      # (MAMEX: more, e.g. -isa3 sblaster1_0: a game port)
 PROG=${PROG:-$GAME}
 prog=$(echo "$PROG" | tr A-Z a-z)
 mkdir -p "$RIG" "$OUT"

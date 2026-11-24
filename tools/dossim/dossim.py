@@ -31,6 +31,10 @@ the game's clock:
     type TEXT                   type on the real keyboard (\\n ENTER, \\s space)
     poke SYMBOL VALUE
     until SYMBOL OFF VALUE      let frames pass till the byte at SYMBOL + OFF is VALUE
+    joy PORT VALUE              hold an analog input of MAME's at VALUE (1-255, 128 the
+                                middle), its port named by its tag's end: x1, y1 joystick
+                                1 (on DOSSIM_MAMEARGS="-isa5 sblaster1_0": a game port;
+                                the fields' names change with the machine's devices)
     dump FILE SEG LEN           LEN bytes of memory at SEG:0 (B800 the CGA's
                                 screen, A000 the VGA's) to OUTDIR/FILE
     dumpsym FILE SYMBOL LEN     LEN bytes at a DGROUP symbol to OUTDIR/FILE
@@ -147,6 +151,9 @@ def main():
             steps.append(("pc", int(w[1]) if len(w) > 1 else 1))
         elif c == "poke":
             steps.append(("poke", sym(w[1]), int(w[2], 0)))
+        elif c == "joy":
+            fld, val = line.split(None, 1)[1].rsplit(None, 1)
+            steps.append(("joy", fld, int(val)))
         elif c == "until":
             steps.append(("until", sym(w[1]) + int(w[2], 0), int(w[3], 0)))
         elif c == "dump":
@@ -183,6 +190,8 @@ def main():
             lua.append('{"test", %d, %d},' % s[1:])
         elif s[0] == "until":
             lua.append('{"until", %d, %d},' % s[1:])
+        elif s[0] == "joy":
+            lua.append('{"joy", "%s", %d},' % s[1:])
         elif s[0] in ("dump", "dumpsym"):
             lua.append('{"%s", "%s", %d, %d},' % s)
     lua.append("}")
@@ -203,8 +212,10 @@ local held = nil
 local early = %d
 local baud = %d
 local function a(off) return ds * 16 + off end
+local joyhold = {}
 emu.register_frame_done(function()
   frames = frames + 1
+  for _, h in pairs(joyhold) do h[1]:set_value(h[2]) end   -- (each frame: the host's input would put it back)
   if frames == 1 and baud >= 0 then
     -- the null modem's speed (MAME's RS232_BAUD_* codes)
     for tag, port in pairs(manager.machine.ioport.ports) do
@@ -289,6 +300,15 @@ emu.register_frame_done(function()
       while mem:read_u8(a(lo) + n) == 0xA5 do n = n + 1 end
       print("STACK never used: " .. n .. " bytes (mame frame " .. frames .. ")")
       i = i + 1
+    elseif s[1] == "joy" then
+      local done = false
+      for tag, port in pairs(manager.machine.ioport.ports) do
+        if tag:sub(-(#s[2] + 1)) == ":" .. s[2] then
+          for name, f in pairs(port.fields) do joyhold[tag] = {f, s[3]}; done = true end
+        end
+      end
+      if not done then print("NOJOY " .. s[2]) end
+      i = i + 1
     elseif s[1] == "until" then
       if mem:read_u8(a(s[2])) == s[3] then i = i + 1 else return end
     elseif s[1] == "dump" or s[1] == "dumpsym" then
@@ -354,7 +374,7 @@ end, "dossim")
     if os.environ.get("DOSSIM_VERBOSE"):
         print(r.stdout, r.stderr)
     for line in r.stdout.splitlines():
-        if line.startswith(("PEEK", "SNAP", "PC ", "EPC", "DGROUP", "TIMEOUT", "STACK", "NOKEY", "DUMP")):
+        if line.startswith(("PEEK", "SNAP", "PC ", "EPC", "DGROUP", "TIMEOUT", "STACK", "NOKEY", "DUMP", "NOJOY")):
             print(line)
     names = []
     if os.path.exists(os.path.join(out, "snaps.txt")):

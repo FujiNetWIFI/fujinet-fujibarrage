@@ -20,10 +20,14 @@
  * interrupts off, long enough to lose serial bytes. The PCjr's BIOS makes
  * the repeats itself; they are turned off there while the game runs.
  *
- * The joystick: port 201h's one-shots, timed with interrupts off. It is
- * used if it answers at start, when it should be centred. The axes are
- * timed only while no reply is on its way from the FujiNet (fb_busy), so
- * no byte is lost to them; a loop stops once both are past their mark.
+ * The joystick: port 201h's one-shots, timed by a loop that stops once
+ * both are past their mark. It is used if it answers at start, when it
+ * should be centred. While no reply is on its way from the FujiNet
+ * (fb_busy) the axes are timed with interrupts off; while one is, with
+ * them on, so the UART loses nothing, and a reading the UART's interrupt
+ * cut into (a byte came: fb_nrx) is dropped. (Timed only between replies,
+ * a live link left the last reading standing for whole seconds: a stick
+ * let go stayed down in the shop.)
  */
 #include <dos.h>
 #include <i86.h>
@@ -91,12 +95,17 @@ static void __interrupt __far kb_isr(union INTPACK r)
 static uint8_t joy_on;
 static uint16_t joy_cx, joy_cy, joy_end;
 
-/* Time both axes' one-shots (loop counts; 0xFFFF: still high at the end). */
-static void joy_read(uint16_t *x, uint16_t *y, uint16_t end)
+extern volatile uint16_t fb_nrx;        /* uartisr.asm: bytes the UART took */
+#pragma aux fb_nrx "_*"
+
+/* Time both axes' one-shots (loop counts; 0xFFFF: still high at the end),
+ * with interrupts off (cli) or on. */
+static void joy_read(uint16_t *x, uint16_t *y, uint16_t end, uint8_t cli)
 {
     uint16_t n = 0, ax = 0xFFFF, ay = 0xFFFF;
     uint8_t v;
-    _disable();
+    if (cli)
+        _disable();
     outp(0x201, 0);
     do {
         v = inp(0x201);
@@ -105,7 +114,8 @@ static void joy_read(uint16_t *x, uint16_t *y, uint16_t end)
         if (!(v & 2) && ay == 0xFFFF)
             ay = n;
     } while ((v & 3) && ++n < end);
-    _enable();
+    if (cli)
+        _enable();
     *x = ax;
     *y = ay;
 }
@@ -126,7 +136,7 @@ void input_init(void)
     old_int9 = _dos_getvect(0x09);
     _dos_setvect(0x09, kb_isr);
     typematic(4);
-    joy_read(&joy_cx, &joy_cy, 2000);
+    joy_read(&joy_cx, &joy_cy, 2000, 1);
     joy_on = joy_cx != 0xFFFF && joy_cy != 0xFFFF && joy_cx && joy_cy;
     /* past 1.5x the centre on both axes is all a read needs to know */
     joy_end = (joy_cx > joy_cy ? joy_cx : joy_cy);
@@ -198,8 +208,16 @@ void input_poll(void)
         btn_latch = 1;          /* however short the press */
     }
     if (joy_on) {
-        if (!fb_busy())
-            joy_read(&jx, &jy, joy_end);
+        if (!fb_busy()) {
+            joy_read(&jx, &jy, joy_end, 1);
+        } else {                                /* a reply coming: interrupts on */
+            uint16_t got = fb_nrx, x, y;
+            joy_read(&x, &y, joy_end, 0);
+            if (got == fb_nrx) {                /* (none came while it timed) */
+                jx = x;
+                jy = y;
+            }
+        }
         if (jx < joy_cx / 2) dir |= IN_LEFT;
         else if (jx > joy_cx + joy_cx / 2) dir |= IN_RIGHT;
         if (jy < joy_cy / 2) dir |= IN_UP;
