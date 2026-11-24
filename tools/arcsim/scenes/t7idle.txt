@@ -1,0 +1,11 @@
+# M4: test scene 7 left alone: YOUR TURN! flashes BANNERJ frames (TURNJ
+# down to 0), then the HUD; idle REMINDJ (600) frames: the turn's cue again
+# (IDLEL:IDLEH back to 0), our tank blinking all along
+test 7
+wait 100
+peek TURNJ 1
+wait 100
+peek TURNJ 1
+snap banner_over
+watch IDLEH 700 2
+peek IDLEL 2

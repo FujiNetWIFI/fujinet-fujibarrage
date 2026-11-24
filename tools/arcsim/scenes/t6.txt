@@ -1,0 +1,33 @@
+# M4: test scene 6, the waiting room as the host (p_tscr.inc): the seats
+# (bots' tiers, HOST, a person's link LOST, an empty seat), the settings
+# (Select), down the list (it scrolls), right: ACT_SET (AARGS: the key,
+# the value), Enter: the next page, the last page, Select: the seats
+test 6
+wait 60
+snap room0
+text
+press sel
+wait 10
+snap sets0
+text
+hold down 70
+wait 10
+snap sets1
+text
+press right
+peek AK 1
+peek AARGS 2
+press ent
+wait 10
+snap sets2
+text
+press ent
+wait 10
+snap sets3
+text
+press 1
+wait 10
+snap room1
+text
+press fire
+peek AK 1

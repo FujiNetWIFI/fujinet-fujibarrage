@@ -21,13 +21,28 @@ type Caps struct {
 	TankW, TankH   int // its tank sprite, pixels
 	Buf            int // script buffer, bytes
 	Bands          int // colour objects a band (0: any)
+	Slots          int // shell tracks (OP_ARC slots) kept at once (0: all, maxSlots)
 	Flags          int // proto.Cap*
 	Plat           int
 }
 
+// PlatSlots is how many shell tracks a platform keeps at once, when fewer
+// than maxSlots (the HELLO has no byte for it): the Arcadia's cart RAM is
+// 1K behind a mailbox.
+func PlatSlots(plat int) int {
+	if plat == proto.PlatArcadia {
+		return 6
+	}
+	return 0
+}
+
 // Key groups clients that get the same SCRIPT bytes.
 func (c Caps) Key() string {
-	return fmt.Sprintf("%dx%d@%d/%d", c.FieldW, c.FieldH, c.Hz, c.Buf)
+	k := fmt.Sprintf("%dx%d@%d/%d", c.FieldW, c.FieldH, c.Hz, c.Buf)
+	if c.Slots > 0 {
+		k += fmt.Sprintf("/s%d", c.Slots)
+	}
+	return k
 }
 
 // Hold says whether the client pauses its link while a segment plays.
@@ -47,6 +62,7 @@ func ParseHello(p []byte) (Caps, error) {
 		TankH:  int(p[proto.HTankH]),
 		Buf:    int(p[proto.HBuf]) | int(p[proto.HBuf+1])<<8,
 		Bands:  int(p[proto.HBands]),
+		Slots:  PlatSlots(int(p[proto.HPlat])),
 		Flags:  int(p[proto.HCaps]),
 		Plat:   int(p[proto.HPlat]),
 	}

@@ -1,0 +1,17 @@
+# M5: RESET while a tank talks, run after run (as resetitems.txt)
+wait 120
+press fire
+until NLINK 7 1800
+wait 60
+press fire
+wait 120
+press fire
+until $0600 3 2400
+peek IMENU 9
+peek TALKT 4
+untilnz TALKN 9000
+snap talk
+peek TALKT 4
+peek MYSEAT 1
+peek NBAD 1
+reset

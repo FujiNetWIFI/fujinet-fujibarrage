@@ -1,0 +1,20 @@
+# M5: RESET on our turn with the items line open, run after run (MAME
+# runs the script again after each reset; ARCSIM_SECONDS ends it): each
+# run back in the game, the same seat, the field's UI bytes fresh
+wait 120
+press fire
+until NLINK 7 1800
+wait 60
+press fire
+wait 120
+press fire
+until MYTURN 1 7200
+wait 30
+peek IMENU 9
+press 1
+wait 20
+peek IMENU 9
+snap items
+peek MYSEAT 1
+peek NBAD 1
+reset

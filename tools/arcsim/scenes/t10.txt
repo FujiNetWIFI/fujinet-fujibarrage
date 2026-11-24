@@ -1,0 +1,31 @@
+# M4: test scene 10, the shop with its timer ticking (p_tscr.inc): the
+# list, the cash, the chosen's stock; down the list (it scrolls to its
+# end), FIRE buys (offline: AARGS says what ACT_BUY would carry), a LEFT
+# push sells (only what we have), back up; Enter: ACT_DONE; the timer a
+# second down every 64 frames
+test 10
+wait 60
+snap shop0
+text
+hold down 40
+wait 10
+snap shop1
+text
+peek SHSEL 2
+press fire
+peek AK 1
+peek AARGS 2
+hold down 300
+wait 10
+snap shop_end
+text
+peek SHSEL 3
+press left
+peek AK 1
+peek AARGS 2
+hold up 300
+wait 70
+snap shop2
+text
+press ent
+peek AK 1

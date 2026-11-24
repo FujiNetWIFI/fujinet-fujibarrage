@@ -1,0 +1,100 @@
+# M5: link faults at chosen moments (tools/arcrig/rig.sh with
+# EXTRA="python3 tools/rigs/trigproxy.py 9914 9913 OUT/trig"
+# ROOM=tcp://127.0.0.1:9914/?table=dev1, DEVSET=tanks=3,order=robin,
+# timer=30,walls=3,talk=10,rounds=9,kit=1; the scenario's TRIG below is sed'ed to
+# OUT/trig): each fault with the items line open or a tank talking, then the
+# field's UI bytes (AIMV: IMENU ITEM GUIDE TARGET DRIVEN TURNJ IDLEL IDLEH
+# DEFOPN) and the game going on. kit=1: items to open (and each round's
+# defence window, which the bots end)
+wait 120
+press fire
+until SHOWN 1 1800
+wait 30
+press fire
+until $0600 1 1200
+wait 30
+press ent
+until SHOWN 3 2400
+wait 60
+press ent
+# 1. our turn, the items line open: the link cut
+until MYTURN 1 7200
+wait 30
+press 1
+wait 20
+peek IMENU 9
+snap c1_items
+trigger TRIG cut
+until NLINK 0 3000
+wait 10
+snap c1_lost
+until NLINK 7 1800
+wait 90
+snap c1_back
+text
+peek MYSEAT 1
+peek IMENU 9
+peek TALKT 4
+# 2. a tank talking: a byte garbled (NBAD, RESYNC mid-shot)
+untilnz TALKN 9000
+snap g2_talk
+peek TALKT 4
+trigger TRIG garble
+wait 240
+snap g2_after
+peek NBAD 1
+peek TALKT 4
+until MYTURN 1 9000
+wait 30
+snap g2_turn
+peek IMENU 9
+# 3. our turn, the items line open: a byte garbled
+press 1
+wait 20
+peek IMENU 9
+trigger TRIG garble
+wait 240
+snap g3_after
+peek NBAD 1
+peek IMENU 9
+press clr
+wait 10
+press fire
+# 4. a tank talking: the link cut
+untilnz TALKN 9000
+snap c4_talk
+trigger TRIG cut
+until NLINK 0 3000
+until NLINK 7 1800
+wait 90
+snap c4_back
+text
+peek TALKT 4
+peek IMENU 9
+# 5. a shot under way: the link stalled 8 s (the server gives up on it)
+until $0600 4 9000
+trigger TRIG stall 8
+wait 900
+snap s5_after
+peek NBAD 1
+until MYTURN 1 9000
+wait 30
+snap s5_turn
+peek IMENU 9
+# 6. our turn, the items line open: the link stalled 6 s
+press 1
+wait 20
+trigger TRIG stall 6
+wait 600
+snap s6_after
+peek IMENU 9
+press clr
+wait 10
+press fire
+until MYTURN 1 9000
+wait 30
+snap end
+text
+peek NBAD 1
+peek MYSEAT 1
+peek IMENU 9

@@ -1,0 +1,169 @@
+# M3: shots played live (tools/arc/fieldcheck.py compares the field after
+# each with the model: the terrain with the script's settles, the tanks
+# from the state). DEVSET=tanks=6,order=robin,timer=10,walls=3 EXTRA=
+# "python3 tools/rigs/tapproxy.py 9914 9913 OUT/tap.log" ROOM=tcp://127.0.0.1:9914/?table=dev1
+# join, start, done shopping; then each shot: the phase to PH_SHOT, back to
+# PH_AIM (the shot over, the tanks settled): a snapshot; ours: fire
+wait 120
+press fire
+until SHOWN 1 1800
+wait 30
+press fire
+until $0600 1 1200
+wait 30
+press ent
+until SHOWN 3 2400
+wait 240
+snap field0
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+until $0600 4 3600
+until $0600 3 3600
+wait 20
+snap shot1
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+press fire
+until $0600 4 3600
+until $0600 3 3600
+wait 20
+snap shot2
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+press fire
+until $0600 4 3600
+until $0600 3 3600
+wait 20
+snap shot3
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+press fire
+until $0600 4 3600
+until $0600 3 3600
+wait 20
+snap shot4
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+press fire
+until $0600 4 3600
+until $0600 3 3600
+wait 20
+snap shot5
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+press fire
+until $0600 4 3600
+until $0600 3 3600
+wait 20
+snap shot6
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+press fire
+until $0600 4 3600
+until $0600 3 3600
+wait 20
+snap shot7
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+press fire
+until $0600 4 3600
+until $0600 3 3600
+wait 20
+snap shot8
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+press fire
+until $0600 4 3600
+until $0600 3 3600
+wait 20
+snap shot9
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+press fire
+until $0600 4 3600
+until $0600 3 3600
+wait 20
+snap shot10
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+press fire
+until $0600 4 3600
+until $0600 3 3600
+wait 20
+snap shot11
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+press fire
+until $0600 4 3600
+until $0600 3 3600
+wait 20
+snap shot12
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek NBAD 1
+peek NSEGS 1
+press fire
+wait 60

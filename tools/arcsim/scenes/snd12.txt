@@ -1,0 +1,5 @@
+# M5: test scene 12: a tune (ARG: MUS_TITLE 26, MUS_WIN 27, MUS_OVER 28,
+# MUS_SHOP 29; sed the ARG in, or use sndwav.py which does), then quiet;
+# the title loops (40 s: once round and back into its loop)
+test 12 26
+wait 2400

@@ -1,0 +1,65 @@
+# M4: test scene 7, the field on our turn (p_tscr.inc, the shot fixture's
+# field): YOUR TURN! flashing (cut by the first input), our tank blinking
+# yellow; the items line (keypad 1): its items; fuel: driving (held right:
+# ACT_DRIVE 1); Select, Clear shut it; the heat seeker -> a target (its
+# tank a sprite, blinking), FIRE takes it; Enter: the next weapon
+# (ACT_WEAPON); FIRE: ACT_FIRE with the guidance and its target
+test 7
+wait 40
+snap turn0
+peek MYTURN 1
+wait 16
+snap turn1
+press 1
+wait 4
+snap items0
+peek IMENU 4
+press right
+press right
+wait 4
+snap fuel0
+peek ITEM 1
+press fire
+wait 4
+snap drive0
+peek IMENU 1
+hold right 20
+peek AK 1
+peek AARGS 1
+press fire
+wait 4
+peek IMENU 1
+press sel
+peek IMENU 1
+press clr
+peek IMENU 1
+press sel
+wait 4
+peek ITEM 1
+press fire
+wait 4
+snap target0
+peek IMENU 4
+peek SPRSEL 4
+press right
+wait 4
+snap target1
+peek TARGET 1
+wait 16
+snap target2
+press fire
+wait 4
+snap aim0
+peek IMENU 4
+press ent
+peek AK 1
+peek AARGS 1
+peek WEAPON 1
+wait 4
+snap aim1
+press fire
+peek AK 1
+peek AARGS 6
+peek MYTURN 1
+wait 20
+snap fired

@@ -1,0 +1,24 @@
+# M4: a waiting room with people, not ours to host: two tools/rigs/pyseat.py
+# persons (EXTRA="python3 tools/rigs/pyseat.py 127.0.0.1:9913 dev1 ANN 1 60 &
+# python3 tools/rigs/pyseat.py 127.0.0.1:9913 dev1 BOB 30 60; wait"): ANN
+# hosts; our row, theirs (names in their seats' colours), WAITING FOR HOST;
+# the settings, read-only (the disc's right sends nothing: AK stays)
+wait 120
+press fire
+until SHOWN 1 1800
+wait 900
+snap room3
+text
+peek $0603 1
+peek MYSEAT 1
+press sel
+wait 20
+snap sets
+text
+peek AK 1
+press right
+wait 20
+peek AK 1
+press sel
+wait 20
+text

@@ -1,0 +1,75 @@
+# M2: the field live (tools/arc/fieldcheck.py compares it with the model):
+# DEVSET=tanks=6,order=robin,timer=30,walls=3 EXTRA="python3 tools/rigs/tapproxy.py
+# 9914 9913 OUT/tap.log" ROOM=tcp://127.0.0.1:9914/?table=dev1
+# join, start, done shopping, the field drawn (RESYNC'd terrain, tanks);
+# our turn: aim left and up, the next weapon, fire; the next turns (the
+# shot unplayed: the field asked for again after it); our next turn
+wait 120
+press fire
+until SHOWN 1 1800
+wait 30
+press fire
+until $0600 1 1200
+wait 30
+press ent
+until SHOWN 3 2400
+wait 240
+snap field1
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek TKX 43
+until MYTURN 1 3600
+wait 30
+snap turn1
+peek NTV 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek TKX 43
+hold left 40
+hold up 70
+press ent
+wait 20
+snap aimed
+peek MYTURN 2
+peek AIMPH 3
+peek ST 378
+peek $1800 768
+peek TKX 43
+press fire
+until MYTURN 0 60
+wait 900
+snap after1
+peek NTV 1
+peek NSEGS 1
+peek NBAD 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+peek TKX 43
+# round 2: done shopping, the field again (all of it asked for again)
+until $0600 1 9000
+wait 60
+press ent
+until SHOWN 3 3000
+wait 240
+snap round2
+peek NTV 1
+peek NSEGS 1
+peek NBAD 1
+peek MYSEAT 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768
+wait 600
+snap later2
+peek NTV 1
+peek NSEGS 1
+peek NBAD 1
+peek MYTURN 2
+peek ST 378
+peek $1800 768

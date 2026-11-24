@@ -1,0 +1,44 @@
+# M4 live: driving with fuel (DEVSET=tanks=2,order=robin,timer=45,walls=3,
+# kit=1): done shopping, the defence window done, our turn: the items line
+# (1), fuel, FIRE: driving; the disc held left: ACT_DRIVE every 8 frames,
+# the tank's x (the state's P_X, world/field units) and the fuel go down;
+# FIRE stops; FIRE fires
+wait 120
+press fire
+until SHOWN 1 1800
+wait 60
+press fire
+until $0600 1 1200
+wait 30
+press ent
+until SHOWN 3 2400
+wait 60
+press ent
+until MYTURN 1 3600
+wait 30
+peek $0659 2
+peek $0770 1
+peek TKX 2
+press 1
+wait 10
+press right
+press right
+press right
+press right
+press right
+wait 10
+peek ITEM 1
+press fire
+wait 10
+snap drive0
+hold left 120
+wait 60
+snap drive1
+peek $0659 2
+peek $0770 1
+peek TKX 2
+press fire
+wait 10
+press fire
+wait 120
+peek NBAD 1

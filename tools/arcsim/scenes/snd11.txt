@@ -1,0 +1,5 @@
+# M5: test scene 11 (src/arcadia/src/p_snd.inc): every effect and cue from
+# id 0, 180 frames apart (26 of them); record with ARCSIM_WAV, then
+# tools/arc/sndwav.py cuts the recording into one WAV each
+test 11 0
+wait 4740

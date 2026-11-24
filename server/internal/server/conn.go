@@ -181,6 +181,8 @@ func (c *conn) frame(typ byte, p []byte) bool {
 		caps, err := project.ParseHello(p)
 		r := s.Room(cstr(p[proto.HRoom : proto.HRoom+proto.RoomLen]))
 		c.mu.Lock()
+		c.last, c.q, c.acked, c.ack = nil, nil, false, false // (before an error is queued: it would go too)
+		c.catSent, c.tv, c.have, c.seg, c.segSent, c.hold = 0, -1, nil, 0, false, false
 		switch {
 		case err != nil:
 			log.Printf("stream %s: %v", c.nc.RemoteAddr(), err)
@@ -192,8 +194,6 @@ func (c *conn) frame(typ byte, p []byte) bool {
 		c.room, c.caps = r, caps
 		c.name = cstr(p[proto.HName : proto.HName+proto.NameLen])
 		c.watch = p[proto.HFlags]&proto.HelloWatch != 0 || c.name == ""
-		c.last, c.q, c.acked, c.ack = nil, nil, false, false
-		c.catSent, c.tv, c.have, c.seg, c.segSent, c.hold = 0, -1, nil, 0, false, false
 		c.mu.Unlock()
 		if r != nil {
 			r.join(c)

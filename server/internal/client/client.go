@@ -123,6 +123,13 @@ var Msdos = project.Caps{FieldW: 320, FieldH: 176, Par: 55, Hz: 60, TankW: 12, T
 var MsdosVga = project.Caps{FieldW: 320, FieldH: 176, Par: 55, Hz: 60, TankW: 12, TankH: 6, Buf: 4096,
 	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatMsdosVga}
 
+// Arcadia is the Emerson Arcadia 2001 client's shape: the 2637's block
+// graphics make the screen RAM a 48x48-block field (a cell is 3x2 blocks,
+// a block 2.7 pixels by 4 lines: 78/64 wide), its 4 sprites the tanks; 1K
+// of cart RAM behind a mailbox holds a small script buffer.
+var Arcadia = project.Caps{FieldW: 48, FieldH: 48, Par: 78, Hz: 60, TankW: 2, TankH: 1, Buf: 160,
+	Bands: 0, Slots: project.PlatSlots(proto.PlatArcadia), Flags: proto.CapHold, Plat: proto.PlatArcadia}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps

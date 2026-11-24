@@ -163,6 +163,9 @@ func (e *enc) py(y float64) int { return clamp16(int(math.Floor(e.c.Y(y)))) }
 
 func (e *enc) slot(f0, f1 int) int {
 	for i, free := range e.slots {
+		if e.c.Slots > 0 && i >= e.c.Slots {
+			break
+		}
 		if free <= f0 {
 			e.slots[i] = f1 + 1
 			return i

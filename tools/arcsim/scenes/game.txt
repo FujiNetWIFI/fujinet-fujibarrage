@@ -1,0 +1,29 @@
+# a live one-round game (DEVSET=tanks=3,order=robin,timer=10,walls=3,rounds=1):
+# join, start, done shopping, FIRE on our first turn (the stub sends
+# ACT_FIRE with the seat's own aim: server.log shows it at once, not after
+# the 10 s timer); the other turns' shots come on the timer; the game's end
+# and back to the waiting room (the dev room's bots leave with the game)
+wait 120
+press fire
+until SHOWN 1 1800
+wait 30
+press fire
+until $0600 1 1200
+wait 30
+press ent
+until $0600 3 1200
+until $0604 0 1200
+wait 20
+snap turn1
+press fire
+until $0604 1 1200
+until $0600 6 9000
+wait 30
+snap over
+text
+until $0600 0 3000
+wait 60
+snap room
+text
+peek NBAD 1
+peek NSEGS 1

@@ -1,0 +1,28 @@
+# no lobby keys (NAME= ROOM=): the name by the disc wheel (A, then B), the
+# room list (the build's server's public rooms: the second), then the
+# waiting room
+wait 120
+press fire
+wait 30
+snap name0
+press fire
+wait 20
+hold down 4
+wait 10
+press fire
+wait 20
+snap name1
+text
+press ent
+wait 300
+snap rooms
+text
+press down
+wait 10
+press fire
+until SHOWN 1 2400
+wait 30
+snap room
+text
+peek MYNAME 9
+peek SRVTBL 9

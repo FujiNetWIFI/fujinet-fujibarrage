@@ -1,0 +1,6 @@
+# M4: test scene 4, a round's results (src/arcadia/src/p_tscr.inc): the
+# winner (seat 2), the seats with their wins
+test 4
+wait 60
+snap results
+text

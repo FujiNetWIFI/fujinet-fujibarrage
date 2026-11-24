@@ -1,0 +1,37 @@
+# M4: test scene 9, the defence window (p_tscr.inc: our seat has
+# PF_DEFENSE): its line opens by itself on the first defence we have (the
+# defences alone: the parachute, batteries, shields, the impact fuse; not
+# the Defense Computer, not guidance or fuel), SET UP DEFENCES flashing
+# with ENTER DONE and the timer; the parachute: FIRE switches it (ACT_USE,
+# the line stays); a shield used; Enter: ACT_DONE
+test 9
+wait 30
+snap def0
+peek IMENU 2
+peek DEFOPN 1
+wait 16
+snap def1
+press right
+wait 4
+snap def2
+peek ITEM 1
+press right
+press right
+press right
+peek ITEM 1
+press left
+press left
+press left
+press left
+press left
+press left
+peek ITEM 1
+press fire
+peek AK 1
+peek AARGS 1
+peek IMENU 1
+wait 4
+snap def3
+press ent
+peek AK 1
+peek IMENU 1

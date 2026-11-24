@@ -1,0 +1,11 @@
+# the first frame lost (dropproxy: EXTRA="python3 tools/rigs/dropproxy.py
+# 9914 9913" ROOM=tcp://127.0.0.1:9914/?table=dev1): HELLO again after
+# ASK_AGAIN frames, then the waiting room
+wait 120
+press fire
+until SHOWN 1 2400
+wait 30
+snap room
+text
+peek NLINK 1
+peek NBAD 1

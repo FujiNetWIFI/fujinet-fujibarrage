@@ -1,0 +1,14 @@
+# a room the server hasn't (ROOM=tcp://127.0.0.1:9913/?table=nosuch): an E
+# frame, SERVER SAID NO / NO SUCH ROOM, FIRE, the room forgotten (key 0x13
+# emptied), then the build's server's room list
+wait 120
+press fire
+wait 400
+snap said
+text
+press fire
+wait 400
+snap list
+text
+peek SRVTBL 9
+peek NERR 1

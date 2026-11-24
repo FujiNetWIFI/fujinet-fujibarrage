@@ -138,6 +138,13 @@ func TestAstrocadeGameAgainstBots(t *testing.T) {
 	}
 }
 
+// The Arcadia's shape: 48x48 blocks, CAP_HOLD and a 160-byte buffer.
+func TestArcadiaGameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.Arcadia, mode)
+	}
+}
+
 // The Apple II's shape: CAP_HOLD, 140x160, a 1536-byte buffer.
 func TestApple2GameAgainstBots(t *testing.T) {
 	for mode := 0; mode < 3; mode++ {
@@ -410,4 +417,19 @@ func TestCatalogDecodes(t *testing.T) {
 	if b[1] != proto.NItems || b[2] != proto.NSettings {
 		t.Fatal("catalog header")
 	}
+}
+
+// A HELLO for a room that isn't there is answered ERR_NO_ROOM (it was
+// queued, then dropped with the rest of the queue: clients timed out).
+func TestHelloNoRoom(t *testing.T) {
+	_, _, addr := serve(t)
+	c, err := client.Dial(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	if err := c.Hello("nowhere", "ANN", client.Arcadia, 0); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, c, "ERR_NO_ROOM", func() bool { return c.Err == proto.ErrNoRoom })
 }

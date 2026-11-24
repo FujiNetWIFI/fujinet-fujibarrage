@@ -2,7 +2,11 @@
 """tapproxy.py LISTEN_PORT SERVER_PORT LOG -- a TCP proxy that writes every
 frame the server sends (COBS-decoded, its sums checked) to LOG, a line
 each: its type's letter and its payload in hex. For checking a client
-against what it was sent (e.g. the field its TERRAIN frames make)."""
+against what it was sent (e.g. the field its TERRAIN frames make).
+TAP_BOTH=1: the client's frames too, as "> X hex"; each line then starts
+with the seconds since the tap began."""
+import os
+import time
 import asyncio
 import sys
 
@@ -28,13 +32,17 @@ def fletcher(b):
     return s1, s2
 
 
-async def pipe(r, w, log):
+BOTH = os.environ.get("TAP_BOTH")
+T0 = time.time()
+
+
+async def pipe(r, w, log, mark=""):
     buf = bytearray()
     try:
         while data := await r.read(4096):
             w.write(data)
-            await w.drain()
             if log is None:
+                await w.drain()
                 continue
             for x in data:
                 if x:
@@ -43,8 +51,10 @@ async def pipe(r, w, log):
                 f = cobs(bytes(buf))
                 buf.clear()
                 if f and len(f) >= 3 and fletcher(f[:-2]) == (f[-2], f[-1]):
-                    log.write("%s %s\n" % (chr(f[0]), f[1:-2].hex()))
+                    pre = "%.2f %s" % (time.time() - T0, mark) if BOTH else mark
+                    log.write("%s%s %s\n" % (pre, chr(f[0]), f[1:-2].hex()))
                     log.flush()
+            await w.drain()
     finally:
         w.close()
 
@@ -52,7 +62,8 @@ async def pipe(r, w, log):
 async def handle(cr, cw):
     sr, sw = await asyncio.open_connection("127.0.0.1", int(sys.argv[2]))
     log = open(sys.argv[3], "a")
-    await asyncio.gather(pipe(cr, sw, None), pipe(sr, cw, log), return_exceptions=True)
+    await asyncio.gather(pipe(cr, sw, log if BOTH else None, "> "), pipe(sr, cw, log),
+                         return_exceptions=True)
 
 
 async def main():

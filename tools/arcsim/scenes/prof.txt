@@ -1,0 +1,10 @@
+# the link's cost: 120 frames of the CPU (ARCSIM_DEBUG=1) from just after
+# FIRE on the title (the join: the catalog's and the state's K/Q frames
+# decoded), for tools/arcsim/traceprof.py
+# (traceprof.py build/rig-arcadia/prof.trace build/arcadia-rig/obj 25 120)
+wait 120
+press fire
+until NLINK 3 600
+cpu build/rig-arcadia/prof.trace 120
+wait 125
+peek NBAD 1

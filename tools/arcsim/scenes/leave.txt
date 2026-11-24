@@ -1,0 +1,11 @@
+# Clear in the waiting room: the seat given up, BYE, the room key emptied,
+# the room list (the build's server's rooms)
+wait 120
+press fire
+until SHOWN 1 1800
+wait 60
+press clr
+wait 400
+snap list
+text
+peek SRVTBL 9

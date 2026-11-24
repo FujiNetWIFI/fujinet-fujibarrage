@@ -1,0 +1,15 @@
+# a byte garbled mid-game (EXTRA="python3 tools/rigs/garbleproxy.py 9914
+# 9913 20" ROOM=tcp://127.0.0.1:9914/?table=dev1): a bad frame (NBAD 1), a
+# RESYNC, the state, field and segment again, then the game goes on
+wait 120
+press fire
+until SHOWN 1 1800
+wait 30
+press fire
+until $0600 1 1200
+wait 30
+press ent
+trace 2400 NBAD NTV NSEGS $0600 $0604 SHOWN
+snap after
+text
+peek NBAD 1

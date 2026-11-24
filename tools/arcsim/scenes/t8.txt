@@ -1,0 +1,21 @@
+# M4: test scene 8, a shot's segment on the field (p_tscr.inc): a talk
+# typed a letter a frame over both HUD rows (33 letters + the name: it
+# scrolls up), the wind turning (OP_WIND: the HUD mid-shot once the talk's
+# time is out), a hit (OP_DAMAGE: name E nnn HIT), a shield (OP_SHIELD), a
+# short talk with marks the field lacks; then the HUD again
+test 8
+burst talk 48
+wait 40
+snap talk1
+wait 40
+snap wind
+wait 30
+snap dmg
+wait 60
+snap shield
+wait 60
+snap talk2
+wait 140
+snap hud
+peek TALKT 4
+peek NSEGS 1

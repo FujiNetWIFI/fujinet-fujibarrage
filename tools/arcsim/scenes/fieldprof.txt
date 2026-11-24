@@ -1,0 +1,17 @@
+# the field's cost (ARCSIM_DEBUG=1): the CPU for 90 frames from the field's
+# entry (the RESYNC: the whole state and terrain decoded, the columns drawn,
+# the tanks), for tools/arcsim/traceprof.py; TRACE lines say when the
+# terrain was whole (NTV) and the tanks drawn (TBN)
+# (traceprof.py build/rig-arcadia/field.trace build/arcadia-rig/obj 25 90)
+wait 120
+press fire
+until SHOWN 1 1800
+wait 30
+press fire
+until $0600 1 1200
+wait 30
+press ent
+until SHOWN 3 2400
+cpu build/rig-arcadia/field.trace 90
+trace 95 NTV TBN NTERR SHOWN
+peek NBAD 1

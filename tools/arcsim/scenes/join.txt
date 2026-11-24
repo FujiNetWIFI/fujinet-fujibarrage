@@ -1,0 +1,26 @@
+# a live join (dev1; the rig's DEVSET tanks=3,order=robin,timer=10,walls=3):
+# the title, JOINING, the waiting room (we're the host), FIRE starts: the
+# opening shop; FIRE there is done; then the field's stub: segments given
+# up at once (the D each), the phases as the server runs them
+wait 120
+snap title
+press fire
+until SHOWN 1 1800
+wait 60
+snap room
+text
+peek $0600 24
+peek MYSEAT 1
+peek NBAD 1
+peek NTV 1
+press fire
+until $0600 1 1200
+wait 60
+snap shop
+text
+press fire
+trace 1800 $0600 $0604 SHOWN NSEGS NBAD NTV @$0600=3=aim+30
+snap later
+text
+peek NBAD 1
+peek TAKEN 1

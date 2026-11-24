@@ -1,0 +1,11 @@
+# the waiting room with three people: two tools/rigs/pyseat.py persons sit
+# down after we do (EXTRA="python3 tools/rigs/pyseat.py 127.0.0.1:9913 dev1
+# ANN 9 40 & python3 tools/rigs/pyseat.py 127.0.0.1:9913 dev1 BOB 11 40;
+# wait"): their names, the host's marker, ours
+wait 120
+press fire
+until SHOWN 1 1800
+wait 900
+snap room3
+text
+peek $0648 75

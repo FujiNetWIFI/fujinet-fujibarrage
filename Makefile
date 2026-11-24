@@ -25,6 +25,10 @@
 #                                  tools/atari5200/build.mk: cc65 in defoogi, TEST=1, TEST_SCENE=n)
 #   make adam                      r2r/adam/barrage.ddp (Coleco Adam; tools/adam/build.mk:
 #                                  z88dk in defoogi, TEST=1, TEST_SCENE=n and VIDEO_CARD=1)
+#   make arcadia                   r2r/arcadia/barrage.bin (Emerson Arcadia 2001, FujiNet
+#                                  cartridge; src/arcadia/build.sh: AS, the APPBANK image)
+#   make arcadia-rig               build/arcadia-rig/barrage.bin: default server 127.0.0.1:9913
+#   make fixture-arcadia           src/arcadia/test/fixture.inc: its test scene's field and shot
 #   make msdos                     r2r/msdos/barrage.img (an IBM PC: CGA, 128K, PCjr; or VGA
 #                                  and MCGA: tools/msdos/build.mk, Watcom in defoogi;
 #                                  TEST=1, TEST_SCENE=n, STATS=1, VIDEO_CARD=1, FIXDIR=)
@@ -344,5 +348,23 @@ fixture-astrocade:
 	    -fixture-asm ../src/astrocade/test/fixture.inc -out ../build/refview-astrocade
 
 .PHONY: astrocade astrocade-rig fixture-astrocade
+
+# ---- Emerson Arcadia 2001 (the FujiNet cartridge) ----------------------------
+# Signetics 2650 assembly (Macroassembler AS), not MekkoGX: src/arcadia/build.sh
+# builds the APPBANK image and runs its checks (call depth, clobbers, the RAM
+# ledger)
+arcadia:
+	$(if $(SERVER),DEFSRV=$(SERVER)) bash src/arcadia/build.sh
+
+arcadia-rig:
+	DEFSRV=127.0.0.1:9913 OUT=build/arcadia-rig/obj R2R=build/arcadia-rig bash src/arcadia/build.sh
+
+# the test scene's shot (tools/arc/refcheck.py swaps in each weapon's): the
+# Arcadia's caps as the server projects its HELLO (-plat: 6 track slots)
+fixture-arcadia:
+	cd server && go run ./cmd/refview -w 48 -h 48 -par 78 -buf 160 -tankw 2 -tankh 1 -plat 11 \
+	    -shots 1 -seed 5 -weapon 9 -fixture-asm ../src/arcadia/test/fixture.inc -out ../build/refview-arcadia
+
+.PHONY: arcadia arcadia-rig fixture-arcadia
 
 include mekkogx/toplevel-rules.mk

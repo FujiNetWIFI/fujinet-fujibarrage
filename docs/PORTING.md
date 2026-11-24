@@ -1,8 +1,8 @@
 # Porting FujiBarrage
 
 The Atari 400/800 is the first client, and the Intellivision the second;
-the Apple II, the Astrocade, the Color Computers, the 5200, the Adam and the
-PC followed. These notes say
+the Apple II, the Astrocade, the Color Computers, the 5200, the Adam, the
+PC and the Arcadia 2001 followed. These notes say
 what another machine needs, and what the ports taught.
 
 ## What the server does for you
@@ -139,6 +139,21 @@ is, on the FujiNet cartridge's APPBANK pages. What it took:
 - **CPU:** a Z80 at 1.79 MHz, about 30,000 cycles a frame, and the band interrupts take about a quarter of them. Explosions and craters are drawn a byte (4 pixels) at a time, and settles write 4 solid columns at once. The player catches up to 8 steps a frame and draws once. A MEGA MIRV still ends about a second late.
 - **The link:** `CAP_HOLD`. While a script waits for its next segment, the link runs its transactions back to back. Every read asks only for what STATUS says is waiting, because older firmware loses a short read's bytes.
 - **Sound:** three tones and a noise on one master oscillator. The tunes keep the master at 26 (from about 130 Hz up, so the bass is an octave or two up). On the field, where no tune plays, an effect's noise may set the master and modulate it: that gives thumps down to about 30 Hz and the nuke's roar. The tunes are voiced by instrument from music/*.txt, at 3 bytes a note.
+
+## The Arcadia 2001
+
+`src/arcadia/` is Signetics 2650 assembly (Macroassembler AS), on FujiBlast's
+Arcadia skeleton (the page model, the linker, the checks), with the
+Astrocade's link. What it took:
+- **The field is the screen RAM.** The 2637 shows 13 rows of 8x16 cells or, in its 26-row mode, 26 rows of 8x8; a cell in block graphics is 3x2 blocks. So the field is 48x48 blocks, 24 rows of cells, with two HUD rows of 15 cells under it. Multicolour mode gives a cell two of the round's colours: sky and dirt by the blocks, fire (yellow) as a cell of its own colour, so a cell with three values keeps its majority ground (`tools/arc/mock_arc.py` is the rule, and `refcheck.py`'s reference). Night colours only: black sky, red dirt, yellow fire.
+- **Four sprites, no multiplexing:** they are your tank, the shooter's and the next two to fire (all of them when four or fewer are alive); the others are 2x1 blocks in the field, saved and restored under them. Sprite images are user glyphs, so a sprite costs one of the eight.
+- **RAM is the gate.** 84 bytes of console RAM in 26-row mode and the cartridge's 1K (written through the mailbox, about 39 cycles a byte streamed; read directly). Everything is counted: the state (378 bytes) and the slow variables in $0600-$07FF, the script buffer (160 bytes) and the shot's tracks, blasts, settles, paths, flows and beams in $2900-$2AFF, the hot variables in console RAM. Bytes are shared by phase: the decoder's working set is the player's scratch while a held segment plays, the field's UI (items line, banner, reminder) lies over the beams, a text screen's state is in the screen RAM the field uses. `ram.inc` declares every such overlay, and `tools/arc/checkram.py` fails a build where two live in the same phase share a byte. The catalog is in ROM. The server keeps 6 shell tracks at once for it (`project.PlatSlots`: the HELLO has no byte for it).
+- **Code in 2K pages,** one mapped at $0800 at a time, with 3.8K fixed. A page calls another only through the fixed code, one level deep (`FARPG`). The 2650's return stack is eight deep and wraps silently: `tools/arc/checkdepth.py` keeps the deepest path at seven. Its other traps: only R0 can be the data register of an indexed load, `LODI` sets the condition code, and a store into cartridge RAM clobbers registers (`checkcc.py`, `checkclob.py`).
+- **CPU:** a 2650 at 0.9 MHz, about 5,000 cycles a frame. Cells are decoded and encoded whole; the player catches up to 8 steps a frame and draws once; a MEGA MIRV on a flat field ends about 1.7 s behind its script.
+- **Text:** the console's 16-column font has no lowercase and no `% - : / ! ?`: they are user glyphs on the text screens. Of its two ink sets, set 0 (white, cyan, magenta and more) is the one with white: labels cyan, values white, warnings magenta (the TODO's yellow labels would lose white).
+- **The link:** `CAP_HOLD`, the Astrocade's: while a script waits for its next segment, up to six transactions a frame run back to back.
+- **Sound:** one voice, a tone or a noise (or both) on one divider, eight levels. The effects are designed for it in `tools/arc/mksnd_arc.py`; the tunes are music/*.txt on that voice, two octaves down (the divider is coarse up high), the melody first, the kick and the snare cutting into it, the bass when it rests. A cue never cuts a tune, and the talk's letters blip only when nothing else plays.
+- **PAL:** the timers count the cartridge's 60 Hz tick, not frames (the shot's timeline, the sound, the banner and reminder, driving, the disc's repeats), so a PAL console plays in time and its HELLO says 60, the tick's rate. MAME's Arcadia runs at 60 Hz only: PAL is untested.
 
 ## The Color Computer
 

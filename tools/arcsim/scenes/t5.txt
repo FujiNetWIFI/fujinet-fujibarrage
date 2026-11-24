@@ -1,0 +1,5 @@
+# M4: test scene 5, the game's end
+test 5
+wait 60
+snap over
+text

@@ -55,8 +55,9 @@ func main() {
 	tankW := flag.Int("tankw", 7, "the client's tank, pixels wide")
 	tankH := flag.Int("tankh", 4, "and high")
 	fixtureAll := flag.String("fixture-all", "", "also write the field and the first shot, every segment, as a C header with 16-bit tank x (the CoCo's test scenes)")
+	plat := flag.Int("plat", 0, "the client's platform (proto PLAT_*): its caps as the server projects them from its HELLO (the Arcadia's 6 track slots)")
 	flag.Parse()
-	c := project.Caps{FieldW: *w, FieldH: *h, Hz: *hz, Par: *par, Buf: *buf, TankW: *tankW, TankH: *tankH}
+	c := project.Caps{FieldW: *w, FieldH: *h, Hz: *hz, Par: *par, Buf: *buf, TankW: *tankW, TankH: *tankH, Plat: *plat, Slots: project.PlatSlots(*plat)}
 	if err := c.Check(); err != nil {
 		log.Fatal(err)
 	}
@@ -162,6 +163,15 @@ func main() {
 			}
 			v.EndSegment()
 		}
+		var tk []byte // the tanks as the script left them (before place): on, x, y, angle/2
+		for _, t := range v.Tanks {
+			on := byte(0)
+			if t.On {
+				on = 1
+			}
+			tk = append(tk, on, byte(t.X), byte(t.Y), byte(t.Angle/2))
+		}
+		os.WriteFile(filepath.Join(*out, fmt.Sprintf("shot%d.tanks", n)), tk, 0o644)
 		place()
 		last = r.draw(v)
 		anim.Image = append(anim.Image, last)
@@ -169,7 +179,7 @@ func main() {
 		os.WriteFile(filepath.Join(*out, fmt.Sprintf("shot%d.bin", n)), sbin, 0o644)
 		os.WriteFile(filepath.Join(*out, fmt.Sprintf("shot%d.px", n)), v.Px, 0o644) // the field after it, a byte a pixel
 		if n == 1 && *fixtureAsm != "" {
-			writeFixtureAsm(*fixtureAsm, c, pre, tanks0, segs, *sky)
+			writeFixtureAsm(*fixtureAsm, c, pre, tanks0, segs, *sky, seat)
 		}
 		if n == 1 && *fixtureBas != "" {
 			writeFixtureBas(*fixtureBas, c, pre, tanks0, segs, *sky)
@@ -432,7 +442,7 @@ func writeFixtureBas(path string, c project.Caps, pre *world.Terrain, tanks [pro
 // shot as zmac source for the Astrocade's test scenes: FIXTERR's entries
 // (FIXNTER bytes), the tanks' x, y and angle, FIXNSEG segments' lengths
 // (FIXSLEN, words), then the segments end to end (FIXSEG).
-func writeFixtureAsm(path string, c project.Caps, pre *world.Terrain, tanks [proto.Seats]view.Tank, segs [][]byte, sky int) {
+func writeFixtureAsm(path string, c project.Caps, pre *world.Terrain, tanks [proto.Seats]view.Tank, segs [][]byte, sky, shooter int) {
 	f, err := os.Create(path)
 	if err != nil {
 		log.Fatal(err)
@@ -471,7 +481,7 @@ func writeFixtureAsm(path string, c project.Caps, pre *world.Terrain, tanks [pro
 		lens = append(lens, len(sg))
 		all = append(all, sg...)
 	}
-	fmt.Fprintf(f, "FIXSKY\tEQU\t%d\nFIXNTER\tEQU\t%d\nFIXNSEG\tEQU\t%d\n", sky, len(terr), len(segs))
+	fmt.Fprintf(f, "FIXSKY\tEQU\t%d\nFIXNTER\tEQU\t%d\nFIXNSEG\tEQU\t%d\nFIXSHOOT\tEQU\t%d\n", sky, len(terr), len(segs), shooter)
 	var tx, ty, ta []int
 	for _, t := range tanks {
 		tx, ty, ta = append(tx, t.X), append(ty, t.Y), append(ta, t.Angle)

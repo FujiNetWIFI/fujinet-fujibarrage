@@ -1,0 +1,11 @@
+# offline: the title, then (no FujiNet on the cart's other end) the name
+# wheel if the keys gave none, then CONNECTING / NO ANSWER
+wait 120
+snap title
+text
+peek TESTHK 4
+peek MYNAME 9
+press fire
+wait 60
+snap after
+text

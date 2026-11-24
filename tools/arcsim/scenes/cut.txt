@@ -1,0 +1,24 @@
+# the link cut mid-game (cutproxy: EXTRA="python3 tools/rigs/cutproxy.py
+# 9914 9913 30" ROOM=tcp://127.0.0.1:9914/?table=dev1): CONNECTION LOST,
+# then back in the room, the same seat (server.log: "ARC in seat 0" twice)
+wait 120
+press fire
+until SHOWN 1 1800
+wait 30
+press fire
+until $0600 1 1200
+wait 30
+press ent
+until NLINK 0 3000
+wait 10
+snap lost
+text
+until NLINK 7 1800
+wait 60
+snap back
+text
+peek MYSEAT 1
+peek SHOWN 1
+peek NBAD 1
+until $0604 1 2400
+peek NSEGS 1

@@ -5,8 +5,9 @@ no player get bots. It runs on the Atari 400/800/XL/XE with 48K, on the Apple
 //e, //c and IIgs with 128K, on the Color Computer 1 and 2 with 64K and the
 Color Computer 3 (one disk for all three), on the Coleco Adam, on an IBM PC,
 XT or PCjr with CGA and 128K or a PC with VGA or MCGA (one disk for both),
-and on the Atari 5200, the Intellivision (NTSC or PAL) and the Bally
-Astrocade with the FujiNet cartridge; other FujiNet machines are to follow
+and on the Atari 5200, the Intellivision (NTSC or PAL), the Bally Astrocade
+and the Emerson Arcadia 2001 with the FujiNet cartridge; other FujiNet
+machines are to follow
 (see `docs/PORTING.md`).
 
 The server plays the whole game. A client only shows it: the server sends each
@@ -126,6 +127,18 @@ On the Bally Astrocade:
 | C | Close the items line; otherwise leave the room |
 | MR | Sound off and on |
 
+On the Emerson Arcadia 2001 (and its clones):
+
+| | |
+|---|---|
+| Disc left / right | Angle (hold to go faster) |
+| Disc up / down | Power |
+| FIRE (either side button) | Shoot |
+| ENTER | Next weapon; done (shop, defence window) |
+| SELECT or keypad 1 | The items line, as the Atari's: the disc picks, FIRE uses |
+| CLEAR | Close the items line; otherwise leave the room |
+| OPTION | Sound off and on |
+
 - **Shop:** the stick (disc) moves up and down, Fire (a top button) buys, Left (the lower left button) sells, Return (ENTER) is done.
 - **Waiting room:** the host (the first person in) presses Fire to start, and bots fill the empty seats. S (the lower right button) shows the settings and TAB (lower left) turns their pages. The host changes a setting with the stick: up and down pick it, left and right change it.
 - **The Intellivision's name:** the disc's up and down pick a letter, right or a top button takes it, left or CLEAR takes one back, the keypad's digits type themselves, and ENTER is done.
@@ -135,6 +148,7 @@ On the Bally Astrocade:
 - **The Adam:** the screens are the Atari's, 32 columns in colour; S (SmartKey III, keypad 2) shows the waiting room's settings and TAB turns their pages; the name is typed, and BACKSPACE takes a letter back.
 - **The PC:** the screens are the Atari's, 40 columns in the Namco font: CGA's in its palette 1 on blue, VGA's shaded and the seats in their colours. S shows the waiting room's settings and TAB turns their pages; the name is typed, and BACKSPACE takes a letter back.
 - **The Astrocade:** the shop and waiting room are the Atari's, with the trigger for Fire and = for Return; ÷ shows the settings and + turns their pages. The name: the stick's up and down pick a letter, right or the trigger takes it, left, C or CE takes one back, = is done.
+- **The Arcadia:** the screens are 16 columns of the console's own font in two inks (labels cyan, values white). The shop: the disc picks, FIRE buys, LEFT sells, ENTER is done. The waiting room: SELECT (or 1) shows the settings and ENTER turns their pages; the host changes one with the disc's left and right and starts with FIRE. The name: the disc's up and down pick a letter, FIRE or right takes it, left or CLEAR takes one back, ENTER or START is done. The field is 48x48 blocks; up to four tanks are sprites (yours, the shooter's and the next to fire), the rest blocks.
 
 The host's settings:
 
@@ -182,6 +196,7 @@ tank, and plays its fanfare again after 10 seconds without a press.
 | `src/msdos/vga/` | VGA and MCGA (`BARRVGA.EXE`, `BMENUVGA.EXE`): mode 13h, the screen is the field, a byte a pixel (`fld.asm`): each value's colour by its line and x from tables (`video.c`): a sky ramp, stars, dirt strata with a grain, fire bands the DAC cycles; ten tanks in their seats' colours. A round's look is the DAC, set through the BIOS. |
 | `src/8086/` | The script player in 8086 (`ply.asm`, `ops.asm`, `trk.asm`, `pt.asm`: the Z80's), drawing through the build's `fld.asm`. |
 | `src/astrocade/` | The Bally Astrocade client, for the FujiNet cartridge: Z80 assembly (zmac), an APPBANK image of 4K pages. The field is the screen's own 160x56 bitmap, as on the Atari; a band interrupt every 4 lines gives each band its sky, two tank colours and the split between them (past two tanks in a band, the extra ones shimmer at 30 Hz). The 4K of screen RAM is all the RAM there is. |
+| `src/arcadia/` | The Emerson Arcadia 2001 client, for the FujiNet cartridge: Signetics 2650 assembly (Macroassembler AS), an APPBANK image of 2K pages. The field is the 2637's screen RAM in block graphics: 24 rows of cells of 3x2 blocks, multicolour (sky, dirt, fire), two HUD rows under it; four tanks are sprites, the rest blocks. 84 bytes of console RAM and the cartridge's 1K are all the RAM there is: `tools/arc/checkram.py` keeps the ledger. |
 | `music/` | The tunes, in FujiBlast's text format (`tools/mus.py`). |
 | `docs/PROTOCOL.md` | The wire protocol, the state layout and the script ops. |
 | `docs/OPS.md` | How every weapon and item reaches the client as script ops. |
@@ -198,6 +213,7 @@ make proto              # src/proto.h (and src/6502/proto.inc, src/6809/proto.in
 make test               # the server's tests
 make intv               # r2r/intv/barrage.rom
 make astrocade          # r2r/astrocade/barrage.bin
+make arcadia            # r2r/arcadia/barrage.bin
 make coco               # r2r/coco/barrage.dsk
 make adam               # r2r/adam/barrage.ddp (and barrage.dsk)
 make atari5200          # r2r/atari5200/barrage.a52
@@ -211,6 +227,7 @@ make msdos              # r2r/msdos/barrage.img
 - **Memory:** the game fills 48K. `src/atari/barrage.cfg` says what goes where, and the link fails when it doesn't fit.
 - **The Apple II's disk:** a 140K ProDOS disk holding two programs, as the Atari's: `BARRAGE` (the game) and `MENU` (the title, the name and the rooms), each loaded by its own `.SYSTEM` loader (`tools/a2loader`), which skips the 8K of high-res page 1 in the file. Either runs the other by loading its loader (`src/apple2/chain.s`). It needs a 128K //e, //c or IIgs; `/RAM` is unplugged. The clock is a Mockingboard's timer if there is one, else the vertical blank. `src/apple2/barrage.cfg` says what goes where: code below the field, above it to $BDFF, and in the language card. `SERVER=host:port` works as the Atari's.
 - **The Astrocade's image:** `r2r/astrocade/barrage.bin`, 52K for the FujiNet cartridge's APPBANK: 8K at $2000 (page 0, then the resident code at $3000), then 4K pages that the code maps at $2000 one at a time. `src/astrocade/build.sh` needs zmac 1.3's source (`~/Workspace/zmac-1.3`, or `ZMACSRC=`) and builds it with a bigger symbol table. It writes the catalog into the image from `barraged -catalog`. Its checks fail a build that overruns a page, the resident code or RAM, or jumps between pages without `FAR`. `SERVER=host:port` works as the Atari's.
+- **The Arcadia's image:** `r2r/arcadia/barrage.bin`, 50K for the FujiNet cartridge's APPBANK: page 0's 8K (fixed code at $0000-$05FF and $2000-$28FF, the cartridge's RAM at $0600-$07FF and $2900-$2AFF), then 2K pages that the fixed code maps at $0800 one at a time. `src/arcadia/build.sh` needs Macroassembler AS (`~/asl/asl` and `p2bin`, or `ASL=`/`P2BIN=`) and Go (the catalog, kept in ROM: `barraged -catalog`). Its checks fail a build that overruns a page or the fixed code, nests calls deeper than seven (the 2650's return stack is eight), reads a register a cartridge-RAM write clobbered, branches on a constant's condition code, or overruns a RAM zone or shares a byte between two live overlays (`tools/arc/checkram.py`). `SERVER=host:port` works as the Atari's.
 - **The Color Computer's disk:** `r2r/coco/barrage.dsk`, a Disk BASIC disk for both machines: `BARRAGE.BIN` (`src/coco/launch.asm`) loads the CoCo 3's game on a CoCo 3, else the CoCo 1/2's; the lobby types `RUNM"BARRAGE"` (the disk's name) and `AUTOEXEC.BAS` LOADMs it. Each machine has a game (`BARRAG2`, `BARRAGE3`) and a menu (`BMENU`, `BMENU3`), as the Atari's two programs, and each program is a low core LOADM'd by BASIC and the files its `bank.c` loads after it into all-RAM (the high core at $8000, the art; the CoCo 3's art in a block of its own). The FujiNet boots it over DriveWire (HDB-DOS). `tools/coco/build.mk` needs CMOC 0.1.101, lwtools and toolshed's `decb` (`~/Workspace/toolshed`); `src/coco/barrage{,3}.link` say what goes where, and `tools/coco/lwlink-co.py` fails a link that overruns a region. `SERVER=host:port` works as the Atari's.
 - **The 5200's cartridge:** `r2r/atari5200/barrage.a52`, a 128K Super Cart (the claim's kind 4) for the FujiNet 5200 cartridge. Bank 0 is the menu (`src/atari5200/menu-a52.cfg`), banks 1-3 the game (`barrage-a52.cfg`); the console starts in bank 3, and each program starts the other as the Atari's two programs do. `tools/atari5200/build.mk` runs cc65 in defoogi; fujinet-lib is fujinet-lib-experimental's add-atari5200 branch (`FNLIB_5200`, default `~/Workspace/fnlib-5200`), built on the host (`tools/atari5200/mkfnlib.sh`). The catalog comes from the server's sources (`barraged -catalog`, `tools/atari5200/mkcat.py`): a server whose catalog has changed says UPDATE FUJIBARRAGE until the image is built again. `tools/atari5200/farcheck.py` fails a build that calls into another bank's overlay without a far wrapper, and `mkrom.py` one that writes into the cartridge's window, reads the mailbox or the bank switch outside their code, or overruns a bank. `SERVER=host:port` works as the Atari's.
 - **The Adam's image:** `r2r/adam/barrage.ddp`, a 256K tape image (the FujiNet boots it), and the same blocks as `barrage.dsk`, a 160K disk. Block 0 is z88dk's bootstrap; then the game, the menu and the art block. The game boots; the menu, the art and the game again are read with EOS's READ_BLOCK from the device it booted from. `tools/adam/build.mk` runs z88dk in the defoogi container (`tools/z80/z88dk`), at `-SO2` (`-SO3` miscompiles), and builds its fujinet-lib. `tools/adam/mkimage.py` writes the blocks and fails a build whose program overruns C800h (the bootstrap) or whose variables reach the field's store at A700h. `SERVER=host:port` works as the Atari's.
@@ -252,6 +269,12 @@ tools/astrosim/refcheck.py OUTDIR WEAPON...
 tools/astrosim/sndwav.py OUTDIR [SOUND...]
 make astrocade-rig      # build/astrocade-rig/barrage.bin: its room list the rig's server
 tools/astrorig/rig.sh SCENARIO OUTDIR
+python3 tools/arcsim/arcsim.py SCENARIO OUTDIR
+tools/arc/refcheck.py [-flat] [-shield I] OUTDIR WEAPON...
+tools/arc/fieldcheck.py OUTDIR
+tools/arc/sndwav.py OUTDIR
+make arcadia-rig        # build/arcadia-rig/barrage.bin: its room list the rig's server
+tools/arcrig/rig.sh SCENARIO OUTDIR
 make coco TEST=1
 python3 tools/cocosim/cocosim.py r2r/coco/barrage.dsk build/barrage-game2.map SCENARIO OUTDIR
 tools/cocosim/refcheck.py coco2|coco3 [-gate] OUTDIR [WEAPON...]
@@ -298,6 +321,10 @@ tools/dosrig/86box.sh FIXDIR SECONDS OUTDIR
 - **`tools/astrosim/refcheck.py`** is `refcheck.py` for the Astrocade, and also says how many frames each shot runs behind its script. Every weapon comes out at 0 pixels, on hilly and flat fields and with shields.
 - **`tools/astrosim/sndwav.py`** writes every effect and tune as a WAV.
 - **`tools/astrorig/rig.sh`** plays the Astrocade live, with a copy of fujinet-pc on BoIP; `EXTRA` and `ROOM` put `cutproxy.py`, `dropproxy.py`, `stallproxy.py` (which holds what the client sends, so the server gives up on a shot) or `tapproxy.py` (which logs what the server sends) in the link.
+- **`arcsim.py`** runs the Arcadia image in MAME's `arcadia` with the FujiNet cartridge, headless: the controls, screenshots and the screen as text, memory peeks, watches and traces, CPU traces (`traceprof.py`), sound (`ARCSIM_WAV=`). The image is always the test build: its hook (`src/arcadia/src/p_boot.inc`) answers the rig, and the scenes are a shot (3), the screens (4-10: results, game over, the room and settings, the items line, talk, the defence window, the shop), every effect (11) and a tune (12).
+- **`tools/arc/refcheck.py`** is `refcheck.py` for the Arcadia's 48x48 blocks: refview's field after each weapon's shot against the screen's 384 cells as `mock_arc.py` draws them, with each shot's lag. Every weapon comes out at 0 cells, on hilly and flat fields and with shields. The slowest shot (MEGA MIRV on a flat field) ends about 1.7 s behind its script. **`fieldcheck.py`** holds a live field against the server's terrain from `tapproxy.py`'s log, and MAME's picture against `arcmodel.py`'s.
+- **`tools/arc/sndwav.py`** writes every effect and tune as a WAV, recorded from MAME.
+- **`tools/arcrig/rig.sh`** plays the Arcadia live: MAME with a copy of fujinet-pc (the rs232 build: the cartridge's bus over BoIP), the server and bots in a network namespace; `EXTRA` and `ROOM` put `cutproxy.py`, `dropproxy.py`, `garbleproxy.py`, `stallproxy.py` or `tapproxy.py` in the link.
 - **`cocosim.py`** runs the Color Computer's test scenes in MAME, headless: the CoCo 2B by default, `MACHINE=coco3` (or `coco3p`, a PAL one). Screenshots, memory and screen-block dumps (`cocofield.py` decodes the field), CPU traces (`prof.py`), sound (`COCOWAV=`). Scene 7 plays every effect, 6 the tunes.
 - **`tools/cocosim/refcheck.py`** is `refcheck.py` for either machine, with each shot's lag; `-gate` runs every weapon on hilly and flat fields and with shields (99 shots), all at 0 pixels on both. The slowest shot (MEGA MIRV on a flat field) ends about 0.8 s behind its script on the CoCo 1/2 and 2.2 s on the CoCo 3.
 - **`tools/cocosim/terrcheck.py`** holds the field against its terrain: `--fixture` offline, `--live` against `tapproxy.py`'s log.

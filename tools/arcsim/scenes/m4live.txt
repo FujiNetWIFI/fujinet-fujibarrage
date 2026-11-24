@@ -1,0 +1,147 @@
+# M4 live (tools/arcrig/rig.sh; DEVSET=tanks=3,order=robin,timer=30,walls=3,
+# kit=1,talk=10,rounds=2 EXTRA="python3 tools/rigs/tapproxy.py 9914 9913
+# OUT/tap.log" TAP_BOTH=1 ROOM=tcp://127.0.0.1:9914/?table=dev1): the host
+# changes a setting (the turn timer, ACT_SET: the state answers), starts;
+# the shop: buys, sells, done; the defence window (kit=1: a Defense
+# Computer): its line opens by itself, the parachute switched, a shield
+# raised, Enter done; our turn: the items line, fuel: driving; the next
+# weapon; the heat seeker on a target, fired; the bots' talk; the round's
+# results, the second shop, the game's end, back to the room
+wait 120
+press fire
+until SHOWN 1 1800
+wait 60
+snap room
+text
+peek $0634 1
+press sel
+wait 20
+press ent
+press ent
+press down
+press down
+press down
+press down
+wait 10
+snap sets0
+text
+press right
+wait 90
+peek $0634 1
+snap sets1
+text
+press sel
+wait 20
+press fire
+until $0600 1 1200
+wait 60
+snap shop0
+text
+peek $0742 4
+hold down 30
+wait 10
+press fire
+wait 90
+snap shop1
+text
+peek $0742 4
+press left
+wait 90
+snap shop2
+text
+peek $0742 4
+press ent
+until SHOWN 3 2400
+wait 60
+snap def0
+peek $0600 1
+peek IMENU 9
+press fire
+wait 60
+peek $065D 1
+press right
+press right
+press right
+wait 10
+snap def1
+peek ITEM 1
+press fire
+wait 60
+snap def2
+peek $0654 2
+press ent
+wait 30
+peek $065D 1
+until MYTURN 1 3600
+wait 30
+snap turn0
+press 1
+wait 10
+press right
+press right
+press right
+press right
+press right
+wait 10
+peek ITEM 1
+snap fuel0
+peek TKX 3
+peek $0659 2
+press fire
+hold right 60
+wait 30
+peek TKX 3
+peek $0659 2
+snap drive1
+press fire
+wait 10
+press ent
+wait 20
+snap weapon
+peek WEAPON 1
+press 1
+wait 10
+peek ITEM 1
+press fire
+wait 10
+snap target0
+peek TARGET 1
+press right
+wait 20
+snap target1
+peek TARGET 1
+press fire
+wait 10
+press fire
+peek AARGS 6
+until $0600 4 1200
+burst shot 30
+until $0600 3 3600
+wait 20
+snap after1
+until $0600 4 3600
+burst talk 60
+until MYTURN 1 3600
+wait 20
+snap turn2
+press fire
+until $0600 5 9000
+wait 30
+snap results
+text
+until SHOWN 2 3600
+wait 30
+snap shop3
+text
+press ent
+until SHOWN 3 2400
+until $0600 6 18000
+wait 30
+snap over
+text
+until $0600 0 3000
+wait 60
+snap room2
+text
+peek NBAD 1
+peek NSEGS 1

@@ -25,6 +25,7 @@
 #define PLAT_ATARI5200     8
 #define PLAT_MSDOS         9
 #define PLAT_MSDOS_VGA     10
+#define PLAT_ARCADIA       11
 #define SC_HELLO           72
 #define SC_ROOMS           84
 #define SC_ACT             65
