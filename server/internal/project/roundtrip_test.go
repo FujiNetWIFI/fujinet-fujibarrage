@@ -24,6 +24,8 @@ var shapes = []Caps{
 	{FieldW: 160, FieldH: 80, Hz: 50, Buf: 1024, TankW: 7, TankH: 5},         // the same, PAL
 	{FieldW: 160, FieldH: 56, Hz: 60, Buf: 240, TankW: 7, TankH: 5},          // Astrocade
 	{FieldW: 48, FieldH: 48, Hz: 60, Buf: 160, TankW: 2, TankH: 1, Slots: 6}, // Arcadia
+	{FieldW: 160, FieldH: 44, Hz: 60, Buf: 2048, TankW: 4, TankH: 2},         // H89 (H19 quadrant blocks)
+	{FieldW: 160, FieldH: 44, Hz: 60, Buf: 1024, TankW: 4, TankH: 2},         // H89 under HDOS
 	{FieldW: 140, FieldH: 160, Hz: 60, Buf: 1536, TankW: 5, TankH: 5},        // Apple II (HGR colour pixels)
 	{FieldW: 140, FieldH: 160, Hz: 50, Buf: 1536, TankW: 5, TankH: 5},        // the same, PAL
 	{FieldW: 128, FieldH: 168, Hz: 60, Buf: 1536, TankW: 5, TankH: 5},        // CoCo 1/2 (PMODE 4 artifact)

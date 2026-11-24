@@ -1,0 +1,10 @@
+# the field's terrain, checked against the server's frames (tools/h89sim/terrcheck.py)
+# run: EXTRA="python3 tools/rigs/tapproxy.py 9914 9913 OUT/tap.log" ROOM=tcp://127.0.0.1:9914/?table=dev1
+start
+wait 400
+type \x20
+wait 300
+type \r
+wait 700
+peek fld_store 1760
+wait 30

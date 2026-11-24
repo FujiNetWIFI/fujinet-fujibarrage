@@ -1,0 +1,74 @@
+# shots played, then the field's store dumped (tools/h89sim/shotcheck.py)
+# run: EXTRA="python3 tools/rigs/tapproxy.py 9914 9913 OUT/tap.log" ROOM=tcp://127.0.0.1:9914/?table=dev1
+#      DEVSET=tanks=4,order=robin,timer=6,kit=1,arms=4 tools/h89rig/rig.sh tools/h89rig/gate.txt OUT
+#      then (server) go run ./cmd/tapview OUT/tap.log OUT/px.bin; tools/h89sim/shotcheck.py OUT/px.bin OUT/run.log
+start
+wait 400
+type \x20
+wait 300
+type \r
+wait 500
+keyname left
+wait 20
+keyname left
+wait 20
+type \x20
+wait 500
+keyname left
+wait 20
+keyname left
+wait 20
+type \x20
+wait 500
+keyname left
+wait 20
+keyname left
+wait 20
+type \x20
+wait 500
+keyname left
+wait 20
+keyname left
+wait 20
+type \x20
+wait 500
+keyname left
+wait 20
+keyname left
+wait 20
+type \x20
+wait 500
+keyname left
+wait 20
+keyname left
+wait 20
+type \x20
+wait 500
+keyname left
+wait 20
+keyname left
+wait 20
+type \x20
+wait 500
+keyname left
+wait 20
+keyname left
+wait 20
+type \x20
+wait 500
+keyname left
+wait 20
+keyname left
+wait 20
+type \x20
+wait 500
+keyname left
+wait 20
+keyname left
+wait 20
+type \x20
+wait 500
+wait 1500
+peek fld_store 1760
+peek _ovl_loads 2
+wait 60

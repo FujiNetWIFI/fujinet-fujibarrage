@@ -140,6 +140,27 @@
 #define TXT_ITEMS "I: ITEMS"
 #endif
 
+#ifdef __H89__
+/* the H19's graphics characters: a cell is 2 x 2 blocks (quadrants), the
+ * field 160 x 44 blocks = 80 x 22 cells over a 3-row HUD (rows 22, 23 and
+ * the 25th line); a tank is a cell pair, drawn over the store (src/h89/) */
+#define FIELD_W 160
+#define FIELD_H 44
+#define TANK_W  4
+#define TANK_H  2
+#define PAR     26              /* pixel aspect, 64ths: a block is 4 dots by 5.7 lines of 10 */
+#ifndef SCRIPT_BUF
+#define SCRIPT_BUF 3072
+#endif
+#define BANDS   0
+#define PLAT_ID   PLAT_H89
+#define PLAT_CAPS CAP_HOLD
+#define ITEMS_ROW 2
+#define PLY_CATCHUP 8
+#define MARK_UP 6                /* the turn's arrow, its top: over the barrel's cell */
+#define TXT_ITEMS "I: ITEMS"
+#endif
+
 void field_init(void);                      /* at start-up: all sky */
 void field_loading(void);                   /* a whole field is coming */
 void field_open(uint8_t sky, uint8_t pal);  /* the field screen on */

@@ -6,10 +6,19 @@
 #include <stdint.h>
 
 #define SCR_ROWS 24
-#if (defined(_COCO_BASIC_) && !defined(COCO3)) || defined(__ADAM__)
+#if defined(__H89__)
+#define SCR_COLS 80             /* the H19: 80 characters (layout.h has its own block) */
+#elif (defined(_COCO_BASIC_) && !defined(COCO3)) || defined(__ADAM__)
 #define SCR_COLS 32             /* the CoCo 1/2: 4 colour pixels a column (src/coco2/scr2.c); the TMS9918 */
 #else
 #define SCR_COLS 40
+#endif
+
+/* a text line's buffer (a 40-column line's has always been 41 bytes) */
+#if SCR_COLS > 40
+#define LINE_BUF (SCR_COLS + 1)
+#else
+#define LINE_BUF 41
 #endif
 
 /* palettes for a row */

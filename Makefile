@@ -368,3 +368,22 @@ fixture-arcadia:
 .PHONY: arcadia arcadia-rig fixture-arcadia
 
 include mekkogx/toplevel-rules.mk
+
+# ---- Heathkit H89: CP/M 2.2.04 or HDOS 2.0, the H19 terminal ----------------
+# z88dk in defoogi (tools/h89/build.mk, the whole make there): one program with
+# the menu and the game, the H19's graphics characters for the field (a cell
+# two blocks by two), fujinet-lib built with zsdcc (tools/z80/mkfnlib.sh). The
+# disks: r2r/h89-cpm/barrage.h8d, r2r/h89-hdos/barrage.h8d (overlays); h89-boot a bootable
+# CP/M disk (needs fujinet-go-h89-desktop built, tools/h89/mkboot.sh).
+FNLIB_H89 ?= $(HOME)/Workspace/fujinet-lib
+H89_ARGS = $(if $(ZOPT),ZOPT=$(ZOPT)) $(if $(TEST),TEST=$(TEST)) $(if $(TEST_SCENE),TEST_SCENE=$(TEST_SCENE) TEST_ARG=$(TEST_ARG)) \
+    $(if $(XFLAGS),XFLAGS="$(XFLAGS)") $(if $(H89_RIG_KEYS),H89_RIG_KEYS=$(H89_RIG_KEYS)) $(if $(H89_PROF),H89_PROF=$(H89_PROF))
+h89-cpm: gen/config.h build/fnlib-h89/fujinet-h89.lib
+	tools/z80/z88dk $(MAKE) -f tools/h89/build.mk OS=cpm $(H89_ARGS)
+h89-hdos: gen/config.h build/fnlib-h89/fujinet-h89.lib
+	tools/z80/z88dk $(MAKE) -f tools/h89/build.mk OS=hdos $(H89_ARGS)
+h89-boot: h89-cpm
+	tools/h89/mkboot.sh r2r/h89-cpm/barrage.com r2r/h89-cpm/barrage-boot.h8d
+build/fnlib-h89/fujinet-h89.lib: tools/z80/mkfnlib.sh $(wildcard $(FNLIB_H89)/common/*.c $(FNLIB_H89)/bus/h89/* $(FNLIB_H89)/include/*.h)
+	tools/z80/mkfnlib.sh $(FNLIB_H89) build/fnlib-h89 h89
+.PHONY: h89-cpm h89-hdos h89-boot

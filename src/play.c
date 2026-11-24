@@ -39,10 +39,12 @@ static uint8_t nlen(const char *s, uint8_t max)
 #ifdef __ATARI5200__                    /* (the core's, not the field's bank: its callers */
 #pragma code-name (push, "CODE")        /* pass pointers into their own banks) */
 #endif
+#ifndef __H89__                 /* (the H89's is src/h89/plat.c's: resident, net.c calls it) */
 uint16_t entry_len(const uint8_t *e)
 {
     return *e <= T_EMPTY ? 1 : 1 + 2 * (*e - T_SPANS);
 }
+#endif
 #ifdef __ATARI5200__
 #pragma code-name (pop)
 #endif
@@ -89,7 +91,7 @@ static void tanks_from_state(uint8_t all)
 #ifdef __CC65__
 #pragma bss-name (push, "PMGFREE")
 #endif
-static char line[41];
+static char line[LINE_BUF];
 #ifdef __CC65__
 #pragma bss-name (pop)
 #endif

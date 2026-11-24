@@ -1,0 +1,19 @@
+# HDOS run from the FujiNet's drive FN0: with FN: loaded (D090H is the ceiling), join and play
+start
+wait 900
+snap joined
+type \x20
+wait 500
+snap shop
+type \r
+wait 900
+snap field
+peek _ovl_loads 2
+keyname left
+wait 40
+type \x20
+wait 900
+snap shot
+peek _ovl_loads 2
+wait 600
+snap later

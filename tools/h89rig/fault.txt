@@ -1,0 +1,13 @@
+# a link fault in the middle of a game (EXTRA: tools/rigs cut/drop/garble/stall proxy in front of the server)
+start
+wait 400
+type \x20
+wait 300
+type \r
+wait 900
+snap before
+wait 1800
+snap after
+peek my_seat
+wait 1200
+snap later

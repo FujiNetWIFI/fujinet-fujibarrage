@@ -23,7 +23,7 @@
 
 enum { S_NONE, S_WAIT, S_SHOP, S_FIELD, S_RESULTS, S_OVER };
 
-#ifndef MENU
+#ifdef WITH_GAME
 static uint8_t screen_for(void)
 {
     switch (st[OFF_PHASE]) {
@@ -143,6 +143,37 @@ static uint8_t play_room(void)
 }
 
 void test_check(void);
+#ifdef ONE_PROGRAM
+/* the menu and the game in one program (the H89: no second program to
+ * load): the lobby's keys, or the title, the name and the rooms; leaving a
+ * room goes back to the rooms */
+int main(void)
+{
+    plat_init();
+    test_check();
+    appkey_load();
+    if (!my_name[0] || !srv_table[0]) {
+        title();
+        if (!my_name[0]) {
+            name_entry();
+            appkey_save_name();
+        }
+    }
+    field_init();
+    for (;;) {
+        while (!srv_table[0]) {
+            if (room_list()) {
+                net_close();
+                appkey_save_room();
+            }
+        }
+        if (!play_room()) {             /* left, or not let in */
+            message("BACK TO THE ROOMS", "", 1);
+            appkey_clear_room();
+        }
+    }
+}
+#else
 uint8_t xload(void);
 
 int main(void)
@@ -165,6 +196,7 @@ int main(void)
         }
 }
 
+#endif
 #else
 
 int main(void)

@@ -1,0 +1,18 @@
+# the tanks' look: the field as it opens, then the aim turned left and right
+start
+wait 400
+type \x20
+wait 300
+type \r
+wait 800
+snap look0
+hold l
+wait 40
+hold none
+wait 30
+snap look1
+hold r
+wait 80
+hold none
+wait 30
+snap look2

@@ -1,0 +1,22 @@
+# a live game: play into the field, fire on our turn, watch the line and the lag
+start
+wait 400
+type \x20
+wait 300
+type \r
+wait 600
+snap f0
+rate 120
+rate 120
+keyname left
+wait 40
+type \x20
+rate 120
+snap shot1
+rate 120
+rate 120
+rate 120
+snap shot2
+wait 300
+rate 300
+snap f1

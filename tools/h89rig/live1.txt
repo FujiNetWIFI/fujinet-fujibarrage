@@ -1,0 +1,14 @@
+# a live game: join the room, start it, buy nothing, play into the field
+start
+wait 400
+snap joined
+peek my_seat
+type \x20
+wait 300
+snap shop
+type \r
+wait 900
+snap field1
+rate 300
+wait 600
+snap field2

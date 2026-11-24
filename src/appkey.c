@@ -30,7 +30,7 @@ static uint8_t akbuf[68];
 #pragma bss-name (pop)
 #endif
 
-#ifndef MENU
+#ifdef WITH_GAME
 #ifdef __CC65__
 #pragma code-name (push, "BOOTCODE")     /* the game: run once, at start-up */
 #endif
@@ -62,7 +62,7 @@ static uint8_t ak_read(uint8_t key)
 #endif
 }
 
-#ifndef MENU
+#ifdef WITH_GAME
 #ifdef __CC65__
 #pragma rodata-name (pop)
 #endif
@@ -84,7 +84,7 @@ static void ak_write(uint8_t key, uint8_t n)
 #endif
 }
 
-#ifndef MENU
+#ifdef WITH_GAME
 #ifdef __CC65__
 #pragma code-name (push, "BOOTCODE")     /* the game: run once, at start-up */
 #endif
@@ -146,7 +146,7 @@ void appkey_load(void)
     srv_table[0] = 0;
 }
 
-#ifndef MENU
+#ifdef WITH_GAME
 #ifdef __CC65__
 #pragma rodata-name (pop)
 #endif
@@ -155,7 +155,7 @@ void appkey_load(void)
 #endif
 #endif
 
-#ifdef MENU
+#ifdef WITH_MENU
 void appkey_save_name(void)
 {
     memset(akbuf, 0, sizeof(akbuf));

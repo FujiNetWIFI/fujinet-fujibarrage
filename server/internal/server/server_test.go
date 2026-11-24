@@ -145,6 +145,14 @@ func TestArcadiaGameAgainstBots(t *testing.T) {
 	}
 }
 
+// The H89's shape: 160x44 blocks, CAP_HOLD and a 2048-byte buffer (1024 under HDOS).
+func TestH89GameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.H89, mode)
+		botGame(t, client.H89Hdos, mode)
+	}
+}
+
 // The Apple II's shape: CAP_HOLD, 140x160, a 1536-byte buffer.
 func TestApple2GameAgainstBots(t *testing.T) {
 	for mode := 0; mode < 3; mode++ {

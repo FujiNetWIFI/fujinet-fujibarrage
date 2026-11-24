@@ -130,6 +130,17 @@ var MsdosVga = project.Caps{FieldW: 320, FieldH: 176, Par: 55, Hz: 60, TankW: 12
 var Arcadia = project.Caps{FieldW: 48, FieldH: 48, Par: 78, Hz: 60, TankW: 2, TankH: 1, Buf: 160,
 	Bands: 0, Slots: project.PlatSlots(proto.PlatArcadia), Flags: proto.CapHold, Plat: proto.PlatArcadia}
 
+// H89 is the Heathkit H89 client's shape: the H19's graphics characters, a
+// cell two blocks by two (a block 4 dots by 5 lines of the desktop's 640x250
+// screen): the field 160x44 blocks over a 2-row HUD; the tanks are cells.
+var H89 = project.Caps{FieldW: 160, FieldH: 44, Par: 26, Hz: 60, TankW: 4, TankH: 2, Buf: 2048,
+	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatH89}
+
+// H89Hdos is the same client under HDOS 2.0, whose overlays leave a 1024-byte
+// script buffer.
+var H89Hdos = project.Caps{FieldW: 160, FieldH: 44, Par: 26, Hz: 60, TankW: 4, TankH: 2, Buf: 1024,
+	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatH89}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps
@@ -275,6 +286,31 @@ func (c *Client) frame(typ byte, p []byte) {
 	case proto.CSHold:
 		c.Held = true
 	}
+}
+
+// Feed applies one decoded frame as if it had come from the server (a
+// replay of a tap log: cmd/tapview).
+func (c *Client) Feed(typ byte, p []byte) { c.frame(typ, p) }
+
+// PlayReady plays every ready segment to its end, with nothing said to the
+// server.
+func (c *Client) PlayReady() error {
+	for len(c.Ready) > 0 {
+		s := c.Ready[0]
+		c.Ready = c.Ready[1:]
+		pl := c.V.Play(s.B)
+		for {
+			more, err := pl.Step()
+			if err != nil {
+				return err
+			}
+			if !more {
+				break
+			}
+		}
+		c.V.EndSegment()
+	}
+	return nil
 }
 
 // PlayAll plays every ready segment to its end (all at once: no frame

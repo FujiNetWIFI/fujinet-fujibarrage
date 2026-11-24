@@ -10,6 +10,17 @@
 #include "proto.h"
 #include "field.h"
 
+/* The menu and the game are two programs (-DMENU: the menu) on most
+ * machines; ONE_PROGRAM (the H89) builds both into one. */
+#if defined(ONE_PROGRAM)
+#define WITH_MENU 1
+#define WITH_GAME 1
+#elif defined(MENU)
+#define WITH_MENU 1
+#else
+#define WITH_GAME 1
+#endif
+
 #define NONE 0xFF
 #if defined(TEST_SCENES) && !defined(TEST_CATALOG)
 #define CAT_MAX 64              /* the scenes have no catalog: room for the fixture */

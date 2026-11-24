@@ -6,6 +6,12 @@
 
 #include "scr.h"
 
+#ifdef __H89__
+#define TXT_PRESS "PRESS SPACE"
+#else
+#define TXT_PRESS "PRESS FIRE"
+#endif
+
 #if SCR_COLS == 32
 /* the waiting room's and the results' seat rows */
 #define SEAT_NAME_C  1
@@ -76,6 +82,65 @@
 #define ITM_ON_TGT_C 22
 #define ITM_FUEL_C   15
 #define ITM_DONE_C   22
+#elif SCR_COLS == 80
+/* the H19: 80 columns (the H89), wider rows and longer names */
+#define SEAT_NAME_C  4
+#define SEAT_KIND_C  16
+#define SEAT_TIER_C  22
+#define SEAT_TIER_N  12
+#define SEAT_HOST_C  44
+#define SEAT_WN_C    52
+#define SET_NAME_C   4
+#define SET_NAME_N   28
+#define SET_VAL_C    36
+#define SHOP_NAME_N  22
+#define SHOP_PRICE_C 26
+#define SHOP_BUNDLE_C 34
+#define SHOP_OWN_C   42
+#define SHOP_ROUND_L "SHOP   ROUND"
+#define SHOP_ROUND_C 14
+#define SHOP_CASH_L  40
+#define SHOP_CASH_C  45
+#define SHOP_TIMER_C 76
+#define TXT_SHOP_HEAD "ITEM                     PRICE   BUNDLE  OWN"
+#define TXT_SHOP_HINT "SPACE BUYS   LEFT SELLS   UP DOWN: CHOOSE   RETURN: DONE"
+#define TXT_W_HOSTSET "S SEATS   TAB PAGE   UP DOWN: CHOOSE   LEFT RIGHT: CHANGE   SPACE: GO"
+#define TXT_W_SET     "S SEATS   TAB PAGE"
+#define TXT_W_WAIT    "WAITING FOR THE HOST   S: SETTINGS"
+#define TXT_W_PEOPLE  "SPACE STARTS (2+ PEOPLE)   S: SETTINGS"
+#define TXT_W_BOTS    "SPACE STARTS (BOTS FILL)   S: SETTINGS"
+#define TXT_TAGLINE  "ARTILLERY FOR UP TO TEN, ON FUJINET"
+#define TXT_GALORE   "WEAPONS, SHIELDS AND BOTS GALORE."
+#define HUD_ANG_L    12
+#define HUD_ANG_C    18
+#define HUD_POW_L    25
+#define HUD_POW_C    31
+#define HUD_E_L      38
+#define HUD_E_C      40
+#define TXT_ANGLE    "ANGLE"
+#define TXT_POWER    "POWER"
+#define HUD_WPN_N    20
+#define HUD_X_C      21
+#define HUD_WIND_C   28
+#define HUD_DIR_C    33
+#define HUD_WV_C     34
+#define HUD_TIMER_C  76
+#define TXT_ROUND    "ROUND"
+#define HUD_RD_C     6
+#define TXT_OF       "OF"
+#define HUD_OF_C     9
+#define HUD_RDS_C    12
+#define HUD_MSG_C    18
+#define TXT_AIM_FIRE "YOUR TURN: AIM, FIRE"
+#define ITM_NAME_N   20
+#define ITM_X_C      21
+#define ITM_ON_C     27
+#define ITM_USE_C    32
+#define ITM_ON_TGT_C 32
+#define ITM_FUEL_C   15
+#define ITM_DONE_C   30
+#define TXT_DEFENCES "SET UP DEFENCES, RETURN: DONE"
+#define QUIT_HINT "ESC: QUIT"
 #else
 #define SEAT_NAME_C  2
 #define SEAT_KIND_C  12

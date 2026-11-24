@@ -74,6 +74,7 @@ const (
 	PlatMsdos    // an IBM PC: CGA (320x200, 4 colours)
 	PlatMsdosVga // an IBM PC: VGA or MCGA (mode 13h)
 	PlatArcadia  // the Emerson Arcadia 2001 (2637 block graphics)
+	PlatH89      // the Heathkit H89 (the H19 terminal's graphics characters)
 )
 
 // Client -> server frame types.
@@ -483,7 +484,7 @@ var cdefs = []struct {
 	{"MAX_TALK", MaxTalk},
 	{"HELLO_WATCH", HelloWatch}, {"CAP_HOLD", CapHold}, {"PLAT_ATARI", PlatAtari}, {"PLAT_INTV", PlatIntv}, {"PLAT_ASTROCADE", PlatAstrocade},
 	{"PLAT_APPLE2", PlatApple2}, {"PLAT_COCO", PlatCoco}, {"PLAT_COCO3", PlatCoco3}, {"PLAT_ADAM", PlatAdam}, {"PLAT_ATARI5200", PlatAtari5200},
-	{"PLAT_MSDOS", PlatMsdos}, {"PLAT_MSDOS_VGA", PlatMsdosVga}, {"PLAT_ARCADIA", PlatArcadia},
+	{"PLAT_MSDOS", PlatMsdos}, {"PLAT_MSDOS_VGA", PlatMsdosVga}, {"PLAT_ARCADIA", PlatArcadia}, {"PLAT_H89", PlatH89},
 	{"SC_HELLO", SCHello}, {"SC_ROOMS", SCRooms}, {"SC_ACT", SCAct}, {"SC_DONE", SCDone},
 	{"SC_WANT", SCWant}, {"SC_RESYNC", SCResync}, {"SC_CREDIT", SCCredit}, {"SC_PING", SCPing},
 	{"SC_BYE", SCBye},

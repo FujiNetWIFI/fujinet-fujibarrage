@@ -12,12 +12,14 @@
 
 static uint8_t prev_dir;
 
+#ifndef __H89__                 /* (the H89's is in src/h89/plat.c: resident, the overlays call it) */
 void tick(void)
 {
     frame_wait();
     input_poll();
     input_take();
 }
+#endif
 
 uint8_t pressed(uint8_t bit)
 {
@@ -25,7 +27,7 @@ uint8_t pressed(uint8_t bit)
     return p;
 }
 
-#ifdef MENU
+#ifdef WITH_MENU
 static void tick_dir(void)
 {
     prev_dir = inp_dir;
@@ -57,7 +59,7 @@ void message(const char *a, const char *b, uint8_t frames)
         tick();
 }
 
-#ifdef MENU
+#ifdef WITH_MENU
 /* ---- the menu program's (MENU.COM): the title, the name, the room ---- */
 
 void title(void)
@@ -74,7 +76,10 @@ void title(void)
     centre(12, "AIM, FIRE, TALK TRASH.");
     centre(14, TXT_GALORE);
     scr_row(20, PAL_HILITE);
-    centre(20, "PRESS FIRE");
+    centre(20, TXT_PRESS);
+#ifdef QUIT_HINT
+    centre(22, QUIT_HINT);
+#endif
     scr_show();
 #endif
     snd_tune(t_title1, t_title2);       /* (it plays on through the menus) */

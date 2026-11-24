@@ -11,7 +11,7 @@
 #include "sound.h"
 
 static char b[20];
-static char ln[41];
+static char ln[LINE_BUF];
 static uint8_t rep_prev;
 static uint16_t rep_next;               /* the frame a held stick moves again */
 
