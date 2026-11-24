@@ -1,0 +1,187 @@
+# profile windows while shots play; the segment counters around each
+start
+wait 1100
+type \x20
+wait 300
+type \r
+wait 300
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2
+type \r
+wait 10
+type \x20
+peek _h89_seg_real 2
+pcprof 220
+peek _h89_seg_real 2

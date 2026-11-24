@@ -54,7 +54,7 @@
 #endif
 #define FMAX 136                /* an encoded frame, at most */
 #define OMAX 64                 /* a frame we send, at most */
-#define RBUF 255                /* the most a read takes (8-bit: nsfast.asm) */
+#define RBUF 200                /* the most a read takes (8-bit: nsfast.asm) */
 #define QBUF 96                 /* frames flushed, not yet written */
 
 enum { T_IDLE, T_STATUS, T_READ, T_WRITE };

@@ -13,6 +13,7 @@
 
 uint8_t scr_seq;
 uint8_t field_up;               /* (here, not field.c: resident under HDOS's overlays) */
+uint8_t field_coming;
 
 /* the text screen gives way: the field is drawn again when it is opened */
 void field_down(void)
@@ -30,6 +31,7 @@ void scr_begin(void)
 {
     uint8_t y;
     ++scr_seq;
+    field_coming = 0;
     field_down();
     for (y = 0; y < SCR_ROWS; ++y)
         rowrev[y] = 0;

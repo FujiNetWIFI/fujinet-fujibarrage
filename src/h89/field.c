@@ -128,6 +128,7 @@ void field_open(uint8_t sky, uint8_t pal)
     (void)sky;
     (void)pal;
     field_up = 1;
+    field_coming = 0;
     memset(ovt, 0, sizeof(ovt));
     memset(&bal, 0, sizeof(bal));
     memset(ovm, 0, sizeof(ovm));

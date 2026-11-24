@@ -27,10 +27,12 @@ IFDEF H89_HDOS
     EXTERN  __restore_sp_onexit
     EXTERN  _plat_shutdown
     EXTERN  _ovl_quiesce
+    EXTERN  _ticks_now
 
     PUBLIC  ovl_tramp
     PUBLIC  _ovl_tab
     PUBLIC  _ovl_loads
+    PUBLIC  _ovl_ticks
 
     defc    POSIT = 0x27
     defc    READ = 0x04
@@ -111,6 +113,8 @@ ovl_need:
     ld      (ovl_n),a
     push    ix
     push    iy
+    call    _ticks_now          ; (what a load costs: 2 ms ticks, a rig reads _ovl_ticks)
+    ld      (ovl_t0),hl
     call    _ovl_quiesce        ; (the link's request in flight finishes first)
     ld      hl,(_ovl_loads)
     inc     hl
@@ -142,6 +146,13 @@ ovl_need:
     rst     0x38
     defb    READ
     jr      c,ovl_fail
+    call    _ticks_now
+    ld      de,(ovl_t0)
+    or      a
+    sbc     hl,de
+    ld      de,(_ovl_ticks)
+    add     hl,de
+    ld      (_ovl_ticks),hl
     pop     iy
     pop     ix
     ld      a,(ovl_n)
@@ -195,9 +206,9 @@ ovl_tens:
 
     SECTION rodata_user
 ovl_msg1:
-    defm    "BARRAGE: overlay ", 0
+    defm    "OVL ", 0
 ovl_msg2:
-    defm    " did not load, HDOS error ", 0
+    defm    " ERR ", 0
 
     SECTION data_user
 ovl_sp:
@@ -206,6 +217,10 @@ ovl_sp:
     SECTION bss_user
 _ovl_loads:
     defw    0                   ; loads so far (a rig reads it)
+_ovl_ticks:
+    defw    0                   ; the 2 ms ticks they took
+ovl_t0:
+    defw    0
 ovl_cur:
     defb    0                   ; the overlay in the window
 ovl_req:

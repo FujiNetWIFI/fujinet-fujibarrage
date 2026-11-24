@@ -197,7 +197,9 @@ void h19_str(uint8_t x, uint8_t y, const char *s, uint8_t attr)
     q = s;
     a = UNKNOWN;
     for (; x < H19_COLS && (c = (uint8_t)*q) != 0; ++q, ++x, ++p) {
-        c = h19_char(c) | attr;
+        if (c < 0x20 || c > 0x5D)       /* (the characters that show as themselves: no call) */
+            c = h19_char(c);
+        c |= attr;
         if (*p != c) {
             *p = c;
             if (a == UNKNOWN)

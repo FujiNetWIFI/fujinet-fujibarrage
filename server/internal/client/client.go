@@ -138,7 +138,7 @@ var H89 = project.Caps{FieldW: 160, FieldH: 44, Par: 26, Hz: 60, TankW: 4, TankH
 
 // H89Hdos is the same client under HDOS 2.0, whose overlays leave a 1024-byte
 // script buffer.
-var H89Hdos = project.Caps{FieldW: 160, FieldH: 44, Par: 26, Hz: 60, TankW: 4, TankH: 2, Buf: 1024,
+var H89Hdos = project.Caps{FieldW: 160, FieldH: 44, Par: 26, Hz: 60, TankW: 4, TankH: 2, Buf: 896,
 	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatH89}
 
 // Hello sits down in room as name, with these capabilities.

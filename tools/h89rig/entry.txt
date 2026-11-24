@@ -1,0 +1,167 @@
+# HDOS from FN0:: frames from the shop's RETURN to the field up, overlay loads and ticks at each look
+start
+wait 900
+type \x20
+wait 500
+peek _ovl_ticks 2
+type \r
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2
+wait 30
+peek _field_up 1
+peek _ovl_loads 2
+peek _ovl_ticks 2

@@ -93,6 +93,10 @@ static uint8_t play_room(void)
 #endif
         }
         want = screen_for();
+#ifdef __H89__
+        if (field_coming && want == shown && shown != S_FIELD)
+            continue;                   /* (no text screen's code: it is the field's turn) */
+#endif
         if (r == NET_SCRIPT || want != shown || (want == S_FIELD && st[OFF_SEQ] != shown_seq)) {
             if (want != shown || (want == S_FIELD && st[OFF_SEQ] != shown_seq) ||
                 (r == NET_SCRIPT && shown != S_FIELD)) {

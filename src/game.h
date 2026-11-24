@@ -85,6 +85,13 @@ extern char srv_host[61];
 extern uint16_t srv_port;
 extern char srv_table[ROOM_LEN + 1];
 extern uint8_t my_seat;             /* NONE: watching */
+#ifdef __H89__
+/* The field's terrain began coming while a text screen was up: the next screen is
+ * the field's. Until the STATE says so the text screens' code is not called
+ * (under HDOS's overlays each call would load the other overlay again, seconds
+ * a time: src/h89/scr.c, main.c, net.c). */
+extern uint8_t field_up, field_coming;
+#endif
 
 /* net.c */
 enum { NET_NONE, NET_STATE, NET_ERROR, NET_LOST, NET_SCRIPT, NET_HELD };

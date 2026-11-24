@@ -125,6 +125,25 @@ it took:
 - **Memory:** 128K //e, //c, IIgs. Main RAM holds the field ($2000-$3FFF), code and data below it from $0803 and above it to $BDFF, the C stack at $BE00; the language card's $D400-$DFFF holds `fld.s`, its tables and the input. The loader skips the field's 8K in the file. The menu and the game are two programs that load each other's loader (with the ROM switched back in first: cc65's start-up asks the ROM what machine it is on). Zero page $80-$EF is full; the sound uses self-modified addresses instead.
 - **The clock:** no interrupts. A Mockingboard's 6522 timer counts every cycle (`frame_tick` turns them into jiffies, if it is called at least every 65536 cycles: the field's loops call it per column, per ellipse row, per tank, per HUD row); without one, the vertical blank (polled on a //e, latched on a //c, inverted on a IIgs). Jiffies a polled blank misses come back from the server's round timer (`clock_check`).
 - **CPU:** a 1 MHz 6502. An aim step redraws two numbers and the barrel, not the HUD and the tank. The player catches up 8 steps a frame. The worst shots (a MEGA MIRV, a SHOVEL BLAST) run about as far behind their scripts as on the Atari: settles write whole 160-line columns.
+- **Speed.** The Z80 is the limit, so: the store's fills are by byte (four
+  blocks a store, a block is compared and its cell marked only where a byte
+  changed: `rowfill`, `mark_bytes` in `fld.c`), the ellipse steps its
+  widths by adds, a cell's character is composed from two nibbles, a blast's
+  rings are redrawn only when the client is not behind and no more than
+  every third frame (`draw()` in `play.c`: each ring holds the last, the
+  blast's end is the script's), and `h19_str` maps the ordinary characters
+  inline. `tools/h89/fldtest.c` runs the old and the new primitives on
+  random operations on the host: same store, same characters, every changed
+  block's cell marked. Under HDOS the field's terrain begins to arrive while the
+  shop is still up: calls into the room overlay then would load it again
+  each pass (seconds each; round 1 never got to its field), so `field_coming`
+  (set by the terrain frames, `net.c`) keeps the text screens' code from
+  being called until the state shows the field (`main.c`).
+- **Measuring lag:** `-DH89_STATS` keeps, per segment played, the jiffies it
+  took and the script frames it was (`h89_seg_log`, tools/h89rig/lagseg.txt,
+  `peek`ed by h89sim); `_ovl_loads` and `_ovl_ticks` (2 ms) count and time the
+  HDOS overlay loads (tools/h89rig/entry.txt). A FIELD load from FN0: is about
+  5 s, ROOM about 2.5 s.
 - **Input:** the //e's "a key is down" flag holds an arrow; AppleWin's libretro core never sets it, so a direction also lasts two polls after its last key repeat. The joystick is read every other pass.
 - **Sound:** a Mockingboard's first AY: the effects are the Intellivision's, every period scaled to the Apple's 1.02 MHz (`tools/mksfx_a2.py`), and the tunes its converter's voicing (`tools/mkmus_a2.py`). Without one, the speaker gives each cue a few milliseconds of tone or noise, and there are no tunes.
 
@@ -270,7 +289,7 @@ the 2 MHz Z80 spends a quarter of itself on CP/M's clock. So the field is
 characters, and the work is not sending them twice.
 
 - **Caps:** 160x44 blocks (`client.H89`: PAR 26, tank 4x2, a 2048-byte
-  buffer (1024 under HDOS), CAP_HOLD), 80x22 cells over a 3-row HUD (rows 22, 23 and the 25th
+  buffer (896 under HDOS), CAP_HOLD), 80x22 cells over a 3-row HUD (rows 22, 23 and the 25th
   line). A cell is 2x2 blocks, drawn by one graphics character: the 14
   quadrant patterns exist (`l m n o`, halves `p q` and their reverses), the
   two diagonals are the checkerboard, fire is the checkerboard too.
@@ -313,7 +332,7 @@ characters, and the work is not sending them twice.
   packs the overlays on. What had to be resident: `tick`, `entry_len`,
   `field_up`/`field_down` (a frame's calls into the other overlay would load
   it every pass). The compiler's size options (`-SO3`, `--opt-code-size`),
-  a 1024-byte script buffer (the server splits shots into more segments),
+  an 896-byte script buffer (the server splits shots into more segments),
   no terminal-side scroll in the shop and no file control blocks
   (`CLIB_OPEN_MAX=0`) make the rest of the room: about 700 bytes spare.
 - **Input:** the //e's "a key is down" flag holds an arrow; AppleWin's libretro core never sets it, so a direction also lasts two polls after its last key repeat. The joystick is read every other pass.

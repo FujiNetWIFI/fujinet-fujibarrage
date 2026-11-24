@@ -808,11 +808,28 @@ void __fastcall__ c_op(uint8_t o)
     }
 }
 
+#ifdef __H89__
+/* A blast's rings are redrawn whole each frame its radius changes; on the H89
+ * (a Z80 that costs seconds for a big one, and the line can show ~16 bytes a
+ * frame anyway) they are drawn when the client is not behind, and no more than
+ * every third frame: each ring holds the one before, and the blast's end is
+ * the script's, not the rings'. */
+static uint8_t late;
+static uint16_t ring_at;
+#endif
+
 /* draw what moved: the blasts at their size now; the whistle */
 static void draw(void)
 {
     uint8_t f;
+#ifdef __H89__
+    if (!late && (uint16_t)(frame_count - ring_at) >= 3) {
+        ring_at = frame_count;
+        ply_draw();
+    }
+#else
     ply_draw();
+#endif
     if (recolour) {
         recolour = 0;
         field_colours();
@@ -839,10 +856,22 @@ static void script_end(void)
     net_terrain = 1;                    /* settles cut through tanks: all again */
 }
 
+#ifdef H89_STATS
+/* for a rig: the jiffies the segments took to play, and the script frames they
+ * were (more jiffies than frames: the client is behind) */
+uint16_t h89_seg_real, h89_seg_frames, h89_seg_n;
+uint16_t h89_seg_log[32][3];            /* the last 32: jiffies, script frames, bytes */
+static uint16_t seg_f0;
+#endif
+
 /* play the segment in script[] (seg_len bytes) to its end */
 void play_segment(void)
 {
     uint8_t last, behind;
+#ifdef H89_STATS
+    uint16_t t0 = frame_count;
+    seg_f0 = h89_seg_frames;
+#endif
     in_script = 1;
     my_turn = 0;
     turn_mark(NONE);                    /* (no arrow in the field a script plays on) */
@@ -855,9 +884,15 @@ void play_segment(void)
     while (!ply_done) {
         while ((behind = (uint8_t)(vbi_count - last)) == 0)
             ;
+#ifdef __H89__
+        late = behind > 1;
+#endif
         if (behind > PLY_CATCHUP)
             behind = PLY_CATCHUP;
         last += behind;
+#ifdef H89_STATS
+        h89_seg_frames += behind;
+#endif
         while (behind--) {
             ply_step();
             if (ply_done)
@@ -866,6 +901,16 @@ void play_segment(void)
         draw();
     }
     ply_end();
+#ifdef H89_STATS
+    h89_seg_real += (uint16_t)(frame_count - t0);
+    {
+        uint16_t *l = h89_seg_log[h89_seg_n & 31];
+        l[0] = (uint16_t)(frame_count - t0);
+        l[1] = h89_seg_frames - seg_f0;
+        l[2] = seg_len;
+    }
+    ++h89_seg_n;
+#endif
     if (seg_flags & S_LAST_SEG)
         script_end();
 }

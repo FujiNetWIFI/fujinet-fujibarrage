@@ -257,6 +257,10 @@ static uint8_t frame(uint8_t n)
         }
         if (p[0] == 0xFF) {
             net_tv = 0xFE;              /* being built */
+#ifdef __H89__
+            if (!field_up)
+                field_coming = 1;
+#endif
             field_loading();            /* (over a text screen: blank it) */
         }
         x = LE16(p + 3);

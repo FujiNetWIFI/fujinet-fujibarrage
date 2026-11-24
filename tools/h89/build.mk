@@ -58,7 +58,7 @@ ifeq ($(OS),cpm)
 else
   TARGET := +hdos -startup=3 -Cz--abs -pragma-define:CLIB_DISABLE_FGETS_CURSOR=1
   OVL_WIN := 0x2480
-  OVL_SIZE ?= 0x3C00
+  OVL_SIZE ?= 0x3EA0
   H89_HDOS_ORG := $(shell printf '0x%X' $$(($(OVL_WIN) + $(OVL_SIZE))))
   LDFLAGS := $(TARGET) $(LDCOMMON) -pragma-define:CRT_ORG_CODE=$(H89_HDOS_ORG) \
 	-pragma-define:REGISTER_SP=$(shell printf '0x%X' $$(($(OVL_WIN) - 2))) \
@@ -67,7 +67,7 @@ else
   ASX += -Ca-DH89_HDOS -Ca-DH89_OVL_WIN=$(OVL_WIN) -Ca-DH89_ORG=$(H89_HDOS_ORG)
   EXT := abs
   TOP := 0xD090
-  SBUF := 1024
+  SBUF := 896
 endif
 CFLAGS := $(TARGET) $(COMMON) -DSCRIPT_BUF=$(SBUF) $(INC)
 

@@ -151,12 +151,66 @@ void c_fld_swap(void)
 
 /* ---- spans -------------------------------------------------------------- */
 
-/* line fy, fx..fx1 (both in), clipped: every block (any), or those that are
- * fold (swap) */
-static void span(uint8_t swap)
+/* the four blocks of a byte all one value, by value */
+static const uint8_t pat[4] = { 0, 0x55, 0xAA, 0xFF };
+/* the blocks of a byte from the n-th on, and up to the n-th */
+static const uint8_t em_from[4] = { 0xFF, 0xFC, 0xF0, 0xC0 };
+static const uint8_t em_to[4] = { 0x03, 0x0F, 0x3F, 0xFF };
+/* the cell bits from the n-th on of a bitmap byte, and up to it */
+static const uint8_t cb_from[8] = { 0xFF, 0xFE, 0xFC, 0xF8, 0xF0, 0xE0, 0xC0, 0x80 };
+static const uint8_t cb_to[8] = { 0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF };
+
+/* the cells of block row y over store bytes b0..b1 (a byte is two cells):
+ * composed again at the next sync */
+static void mark_bytes(uint8_t y, uint8_t b0, uint8_t b1)
+{
+    static uint8_t cy, c0, c1, k, k1, m;
+    cy = y >> 1;
+    c0 = b0 << 1;
+    c1 = (b1 << 1) + 1;
+    k = c0 >> 3;
+    k1 = c1 >> 3;
+    for (;; ++k) {
+        m = 0xFF;
+        if (k == c0 >> 3)
+            m = cb_from[c0 & 7];
+        if (k == k1)
+            m &= cb_to[c1 & 7];
+        fld_cd[cy][k] |= m;
+        if (k == k1)
+            break;
+    }
+    if (c0 < fld_lo[cy])
+        fld_lo[cy] = c0;
+    if (c1 >= fld_hi[cy])
+        fld_hi[cy] = c1 + 1;
+    fld_any = 1;
+}
+
+/* the cells of column x over block rows y0..y1-1 */
+static void mark_col(uint8_t x, uint8_t y0, uint8_t y1)
+{
+    static uint8_t cy, cx, bit, k;
+    cx = x >> 1;
+    k = cx >> 3;
+    bit = 1 << (cx & 7);
+    for (cy = y0 >> 1; cy <= (uint8_t)(y1 - 1) >> 1; ++cy) {
+        fld_cd[cy][k] |= bit;
+        if (cx < fld_lo[cy])
+            fld_lo[cy] = cx;
+        if (cx >= fld_hi[cy])
+            fld_hi[cy] = cx + 1;
+    }
+    fld_any = 1;
+}
+
+/* line fy, fx..fx1 (both in), clipped, by bytes: swap 0 every block becomes
+ * the value P is of; swap 1 only those that are Pf's value. A changed byte
+ * is written, and its cells marked once, over the changed range. */
+static void rowfill(uint8_t swap, uint8_t P, uint8_t Pf)
 {
     static int16_t a, b;
-    static uint8_t *p, y, x, i, n;
+    static uint8_t y, ba, bb, n, em, x, z, m, first, last, any, *p, i;
     if ((uint16_t)fy >= FIELD_H)
         return;
     a = fx < 0 ? 0 : fx;
@@ -164,42 +218,63 @@ static void span(uint8_t swap)
     if (a > b)
         return;
     y = (uint8_t)fy;
-    for (x = (uint8_t)a; x <= (uint8_t)b; ++x) {
-        i = x & 3;
-        p = &fld_store[y][x >> 2];
-        if (swap && unpack(*p, i) != fold)
-            continue;
-        n = (*p & clr[i]) | vin[i][fv];
+    ba = (uint8_t)a >> 2;
+    bb = (uint8_t)b >> 2;
+    p = &fld_store[y][ba];
+    any = 0;
+    for (i = ba;; ++i, ++p) {
+        em = 0xFF;
+        if (i == ba)
+            em = em_from[(uint8_t)a & 3];
+        if (i == bb)
+            em &= em_to[(uint8_t)b & 3];
+        if (swap) {
+            x = *p ^ Pf;
+            z = ~(x | (x >> 1)) & 0x55;         /* a bit a block that is Pf's value */
+            m = (z | (z << 1)) & em;
+        } else
+            m = em;
+        n = (*p & ~m) | (P & m);
         if (n != *p) {
             *p = n;
-            mark(x, y);
+            if (!any) {
+                first = i;
+                any = 1;
+            }
+            last = i;
         }
+        if (i == bb)
+            break;
     }
+    if (any)
+        mark_bytes(y, first, last);
 }
 
 void c_fld_hspan(void)
 {
-    span(0);
+    rowfill(0, pat[fv], 0);
 }
 
 void c_fld_vrun(void)
 {
     static int16_t a, b;
-    static uint8_t x, y, i, *p, n;
+    static uint8_t x, y, i, *p, n, keep, val;
     if ((uint16_t)fx >= FIELD_W)
         return;
     a = fy < 0 ? 0 : fy;
     b = fx1 > FIELD_H ? FIELD_H : fx1;
+    if (a >= b)
+        return;
     x = (uint8_t)fx;
     i = x & 3;
-    for (y = (uint8_t)a; (int16_t)y < b; ++y) {
-        p = &fld_store[y][x >> 2];
-        n = (*p & clr[i]) | vin[i][fv];
-        if (n != *p) {
-            *p = n;
-            mark(x, y);
-        }
+    keep = clr[i];
+    val = vin[i][fv];
+    p = &fld_store[(uint8_t)a][x >> 2];
+    for (y = (uint8_t)a; (int16_t)y < b; ++y, p += FIELD_W / 4) {
+        n = (*p & keep) | val;
+        *p = n;
     }
+    mark_col(x, (uint8_t)a, (uint8_t)b);
 }
 
 /* ---- a column ----------------------------------------------------------- */
@@ -225,33 +300,26 @@ uint8_t c_fld_col(void)
         sky = vin[i][PX_SKY];
         dirt = vin[i][PX_DIRT];
         keep = clr[i];
+        p = &fld_store[0][x >> 2];
         if (v < T_SPANS_) {
-            for (y = 0; y < top; ++y) {
-                p = &fld_store[y][x >> 2];
+            for (y = 0; y < top; ++y, p += FIELD_W / 4)
                 *p = (*p & keep) | sky;
-            }
-            for (; y < FIELD_H; ++y) {
-                p = &fld_store[y][x >> 2];
+            for (; y < FIELD_H; ++y, p += FIELD_W / 4)
                 *p = (*p & keep) | dirt;
-            }
         } else {
-            for (y = 0; y < FIELD_H; ++y) {
-                p = &fld_store[y][x >> 2];
+            for (y = 0; y < FIELD_H; ++y, p += FIELD_W / 4)
                 *p = (*p & keep) | sky;
-            }
             for (i = 0; i < v - T_SPANS_; ++i) {
                 top = e[1 + 2 * i];
                 end = e[2 + 2 * i];
                 if (end > FIELD_H)
                     end = FIELD_H;
-                for (y = top; y < end; ++y) {
-                    p = &fld_store[y][x >> 2];
-                    *p = (*p & clr[x & 3]) | dirt;
-                }
+                p = &fld_store[top][x >> 2];
+                for (y = top; y < end; ++y, p += FIELD_W / 4)
+                    *p = (*p & keep) | dirt;
             }
         }
-        for (y = 0; y < FIELD_H; y += 2)
-            mark(x, y);
+        mark_col(x, 0, FIELD_H);
     }
     return n;
 }
@@ -271,28 +339,25 @@ void c_fld_cols(void)
  * 1 the sky becomes fv, 2 the fire becomes sky) */
 static void erow(int16_t y, uint8_t hw)
 {
-    static uint8_t keep;
     fy = y;
     fx = ex - hw;
     fx1 = ex + hw;
-    if (emode == 0) {
-        span(0);
-    } else if (emode == 1) {
-        fold = PX_SKY;
-        span(1);
-    } else {
-        fold = PX_FX;
-        keep = fv;
-        fv = PX_SKY;
-        span(1);
-        fv = keep;
-    }
+    if (emode == 0)
+        rowfill(0, pat[fv], 0);
+    else if (emode == 1)
+        rowfill(1, pat[fv], pat[PX_SKY]);
+    else
+        rowfill(1, pat[PX_SKY], pat[PX_FX]);
 }
 
+/* A row dy is as wide as the largest hw with hw^2 ry^2 + dy^2 rx^2 <= rx^2 ry^2
+ * (view.go's). Both terms are stepped by adds: hw^2 ry^2 falls by
+ * (2 hw - 1) ry^2 a step, which itself falls by 2 ry^2; dy^2 rx^2 rises
+ * by (2 dy - 1) rx^2. */
 void c_fld_ellipse(void)
 {
     static uint8_t dy, hw;
-    static uint32_t full, rxs, rys, row;
+    static uint32_t full, rxs, rys, row, rinc, xx, xd;
     if (!ery)
         ery = 1;
     if (!erx)
@@ -301,13 +366,21 @@ void c_fld_ellipse(void)
     rys = (uint32_t)ery * ery;
     full = rxs * rys;
     hw = erx;
+    xx = full;                          /* hw^2 ry^2 */
+    xd = (uint32_t)(2 * (uint16_t)erx - 1) * rys;   /* what it falls by when hw does */
+    row = 0;                            /* dy^2 rx^2 */
+    rinc = rxs;                         /* what it rises by to the next dy: (2 dy + 1) rx^2 */
     for (dy = 0; dy <= ery; ++dy) {
-        row = (uint32_t)dy * dy * rxs;
-        while (hw && (uint32_t)hw * hw * rys + row > full)
+        while (hw && xx + row > full) {
+            xx -= xd;
+            xd -= rys + rys;
             --hw;
+        }
         erow(ey - dy, hw);
         if (dy)
             erow(ey + dy, hw);
+        row += rinc;
+        rinc += rxs + rxs;
     }
 }
 
@@ -339,21 +412,17 @@ const uint8_t fld_glyph[16] = {
 uint8_t fld_quad(uint8_t cx, uint8_t cy)
 {
     static const uint8_t *p;
-    static uint8_t m, a, b, c, d, t, u, i;
+    static uint8_t t, u, m;
     p = &fld_store[(uint8_t)(cy << 1)][cx >> 1];
     t = p[0];
     u = p[FIELD_W / 4];
-    i = (cx & 1) ? 4 : 0;               /* the byte's left cell, or right */
-    if (i) {
+    if (cx & 1) {
         t >>= 4;
         u >>= 4;
     }
-    a = t & 3;
-    b = (t >> 2) & 3;
-    c = u & 3;
-    d = (u >> 2) & 3;
-    if (a == PX_FX || b == PX_FX || c == PX_FX || d == PX_FX)
-        return 'i';                     /* fire: the checkerboard, whatever it burns */
-    m = (a > PX_SKY) | (b > PX_SKY) << 1 | (c > PX_SKY) << 2 | (d > PX_SKY) << 3;
+    /* (nibbles: the upper blocks' bits 0-1 and 2-3, the lower's the same) */
+    if ((t & (t >> 1) & 5) | (u & (u >> 1) & 5))
+        return 'i';                     /* a fire block: the checkerboard, whatever it burns */
+    m = ((t >> 1) & 1) | ((t >> 2) & 2) | ((u << 1) & 4) | (u & 8);
     return fld_glyph[m];
 }
