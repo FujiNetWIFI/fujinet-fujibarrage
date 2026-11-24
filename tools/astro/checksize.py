@@ -12,7 +12,8 @@ budgeted on its own: a page 4096 bytes, the resident half 2816 (3000H-3AFFH).
 RAM: ram.inc hands out variables upward from the end of the picture
 (RAMBASE) to RAMEND; RAMTOP is the first byte that isn't theirs (SCRATCH,
 then the IM 2 vector, then the stack from STKLOW to STACK). RAMEND > RAMTOP
-fails the build.
+fails the build, and so does ST below TXTEND: a text screen clears and shows
+its lines, where only the shot's tables may be.
 
 Usage: checksize.py fujiblst.lst
 """
@@ -76,6 +77,10 @@ def main():
             bad = 1
     else:
         print("checksize: no RAMEND/RAMTOP in the listing", file=sys.stderr)
+        bad = 1
+    if "ST" in syms and "TXTEND" in syms and syms["ST"] < syms["TXTEND"]:
+        print(f"checksize: ST at {syms['ST']:04X} is under the text screens' lines "
+              f"(TXTEND {syms['TXTEND']:04X}): TEXTSCR would clear it", file=sys.stderr)
         bad = 1
     return bad
 

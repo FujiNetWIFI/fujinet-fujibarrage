@@ -64,6 +64,14 @@ SHOT    EQU     RAMP
         VAR     LON,1
         VAR     LERR,2
 SHOTEND EQU     RAMP
+; the text screens clear and show TLINES lines (to TXTEND): only the shot's
+; tables may be there, so what follows starts at TXTEND at the lowest (the
+; shot's shrank on 2026-11-22: ST's first 14 bytes were in them, the shop's
+; TEXTSCR zeroed its phase and the waiting room came back, its bytes showed
+; under the hints)
+        IF      RAMP < TXTEND
+RAMP    DEFL    TXTEND
+        ENDIF
 
 ; ---- the state (src/proto.h's layout): ST + OFF_* ----------------------------------
         VAR     ST,STATE_SIZE
