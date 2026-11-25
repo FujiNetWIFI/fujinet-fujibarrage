@@ -264,18 +264,18 @@ static void items_line(void)
         putn(ITM_X_C + 1, INV(item));
         if (item == I_PARACHUTE || item == I_IMPACT_FUSE)
             put(ITM_ON_C, PL(my_seat, P_FLAGS) & (item == I_PARACHUTE ? PF_CHUTE : PF_FUSE) ? "ON" : "OFF");
-        PUT_L(ITM_USE_C, "<> FIRE USE");
+        PUT_L(ITM_USE_C, TXT_ITM_USE);
         break;
     case M_TARGET:
         PUT_L(0, "TARGET");
         memcpy(line + 7, NAME(target), nlen(NAME(target), NAME_LEN));
         NAME_HERE(7, target);
-        PUT_L(ITM_ON_TGT_C, "<> FIRE ON");
+        PUT_L(ITM_ON_TGT_C, TXT_ITM_ON);
         break;
     default:
         PUT_L(0, "DRIVE <>  FUEL");
         putn(ITM_FUEL_C, INV(I_FUEL));
-        PUT_L(ITM_DONE_C, "FIRE DONE");
+        PUT_L(ITM_DONE_C, TXT_ITM_DONE);
     }
 }
 

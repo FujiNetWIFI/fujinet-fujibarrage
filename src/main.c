@@ -169,6 +169,9 @@ int main(void)
             if (room_list()) {
                 net_close();
                 appkey_save_room();
+            } else {                    /* no rooms, or ESC: the title (its ESC quits) */
+                net_close();
+                title();
             }
         }
         if (!play_room()) {             /* left, or not let in */

@@ -102,16 +102,29 @@ static void all_spans(uint8_t y1)
     any_dirty = 1;
 }
 
-/* The modes: the power-up ones (ESC z: no hold screen...), no reverse,
- * cursor off, no key click, no LF after CR nor CR after LF, discard at the
- * end of a line (never wrap), keypad shifted (its arrows are ESC A-D),
- * the 25th line on; lines 1-24 cleared, and the 25th; graphics mode, for
- * good. */
+/* The modes: the power-up ones (ESC z: no hold screen...), then, once the
+ * terminal is back (settle), no reverse, cursor off, no key click, no LF
+ * after CR nor CR after LF, discard at the end of a line (never wrap),
+ * keypad shifted (its arrows are ESC A-D), the 25th line on; lines 1-24
+ * cleared, and the 25th; graphics mode, for good. */
 static const char init_seq[] =
-    "\033z\033q\033x5\033x2\033y8\033y9\033w\033t\033x1\033E\033Y8 \033l\033F";
+    "\033q\033x5\033x2\033y8\033y9\033w\033t\033x1\033E\033Y8 \033l\033F";
 /* Graphics off, the 25th line off (which erases it), the DIP switches'
  * modes and a clear screen. */
 static const char exit_seq[] = "\033G\033q\033y1\033z";
+
+/* ESC z gone out and done: a real H19 resetting drops what comes meanwhile
+ * (the ESC x5 after it was lost on a real H89: the cursor showed). The
+ * emulator's takes it all at once. */
+static void settle(void)
+{
+    uint16_t t;
+    while (!con_flushed())
+        con_pump();
+    t = ticks_now();
+    while ((uint16_t)(ticks_now() - t) < 125)       /* 250 ms */
+        ;
+}
 
 void h19_init(void)
 {
@@ -124,6 +137,8 @@ void h19_init(void)
     }
     memset(bg, ' ', sizeof(bg));
     memset(have, ' ', sizeof(have));
+    send_all("\033z");
+    settle();
     send_all(init_seq);
     cur_x = cur_y = UNKNOWN;
     cur_rev = 0;
@@ -132,16 +147,11 @@ void h19_init(void)
 
 void h19_exit(void)
 {
-    uint16_t t;
     if (!active)
         return;
     active = 0;
     send_all(exit_seq);
-    while (!con_flushed())
-        con_pump();
-    t = ticks_now();            /* (the terminal takes a moment) */
-    while ((uint16_t)(ticks_now() - t) < 100)
-        ;
+    settle();
 }
 
 void h19_cleared(void)

@@ -6,10 +6,18 @@
 
 #include "scr.h"
 
-#ifdef __H89__
+#ifdef __H89__                          /* (no fire button: SPACE is it) */
 #define TXT_PRESS "PRESS SPACE"
+#define TXT_JOIN_HINT "UP/DOWN: CHOOSE   SPACE: JOIN   ESC: BACK"
+#define TXT_ITM_USE "<> SPACE USE"
+#define TXT_ITM_ON "<> SPACE ON"
+#define TXT_ITM_DONE "SPACE DONE"
 #else
 #define TXT_PRESS "PRESS FIRE"
+#define TXT_JOIN_HINT "UP/DOWN, FIRE TO JOIN"
+#define TXT_ITM_USE "<> FIRE USE"
+#define TXT_ITM_ON "<> FIRE ON"
+#define TXT_ITM_DONE "FIRE DONE"
 #endif
 
 #if SCR_COLS == 32
@@ -131,7 +139,7 @@
 #define HUD_OF_C     9
 #define HUD_RDS_C    12
 #define HUD_MSG_C    18
-#define TXT_AIM_FIRE "YOUR TURN: AIM, FIRE"
+#define TXT_AIM_FIRE "YOUR TURN: AIM, SPACE FIRES"
 #define ITM_NAME_N   20
 #define ITM_X_C      21
 #define ITM_ON_C     27

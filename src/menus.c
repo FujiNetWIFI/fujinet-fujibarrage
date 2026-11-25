@@ -175,7 +175,7 @@ uint8_t room_list(void)
             scr_text(5 + i * 2, 30, b);
         }
     }
-    centre(22, "UP/DOWN, FIRE TO JOIN");
+    centre(22, TXT_JOIN_HINT);
     scr_show();
     for (;;) {
         for (i = 0; i < n; ++i)
@@ -190,6 +190,10 @@ uint8_t room_list(void)
             snd_cue(UI_TICK, 0);
         }
         tick_dir();
+#ifdef ONE_PROGRAM
+        if (ev_key == KEY_ESC)
+            return 0;                   /* back to the title, where ESC quits */
+#endif
         if (ev_btn) {
             memset(srv_table, 0, sizeof(srv_table));
             memcpy(srv_table, rooms[sel], ROOM_LEN);

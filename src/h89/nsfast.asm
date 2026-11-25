@@ -6,7 +6,14 @@
 ;       call): SLIP undone, the header into ns_hdr, the data into
 ;       ns_dptr[6..ns_dend), the checksum folded into ns_sum. 1 when the
 ;       reply is to be judged (its header's length is in, or an END came in
-;       the middle), 0 when more is to come.
+;       the middle), 0 when more is to come. Once a reply's bytes have
+;       begun, the next is waited for (next_byte): a real card's ESP32
+;       hands the next byte over at once only to a host that took the last
+;       within 2 ms; after that it looks every 10 ms (fujinet-firmware's
+;       PPIChannel::dataOut: a 2 ms spin, then vTaskDelay at the 100 Hz
+;       FreeRTOS tick). Leaving at the first empty look got a byte a pass:
+;       60 a second, and every reply longer than ~88 bytes timed out (an
+;       emulated card refills at once, so only real ones showed it).
 ;   void ns_request(void)
 ;       A request to the card: ns_rq[6] (the header, its checksum byte 0)
 ;       and ns_rq_data[0..ns_rq_n), checksummed, SLIP-framed and written
@@ -28,6 +35,7 @@
         SECTION code_user
 
         PUBLIC  _ns_collect, _ns_fletcher, _ns_decode, _ns_request
+        EXTERN  TICKS                   ; (h89io.asm: the 2 ms count)
         EXTERN  _ns_got, _ns_sum, _ns_inframe, _ns_esc, _ns_hdr, _ns_dptr, _ns_dend
         EXTERN  _nst_buf, _rbuf, _rpos, _rlen, _ns_dec, _nst_taken
         EXTERN  _ns_rq, _ns_rq_data, _ns_rq_n, _ns_stuck
@@ -39,6 +47,8 @@
         defc    SL_ESC = $DB
         defc    SL_ESCEND = $DC
         defc    SL_ESCESC = $DD
+        defc    NEXT_TICKS = 15         ; 2 ms ticks for a reply's next byte (the
+                                        ; ESP32's 10 ms look, and some)
 
 _ns_collect:
         ld      hl,(_ns_got)            ; HL = got
@@ -48,7 +58,8 @@ _ns_collect:
 co_loop:
         in      a,(PPI_C)
         and     IBF
-        jp      z,co_more
+        jp      z,co_wait
+co_in:
         in      a,(PPI_A)
         ld      e,a                     ; E = the byte
 co_got:
@@ -138,6 +149,14 @@ co_len:
 co_next:
         inc     c
         jp      nz,co_loop
+        jr      co_more
+co_wait:
+        ld      a,c                     ; a byte of the reply has come (this call,
+        or      h                       ; or one before): the next is waited for
+        or      l
+        jr      z,co_more               ; (none yet: the ESP32 is still at it)
+        call    next_byte
+        jp      nz,co_in
 co_more:
         ld      (_ns_got),hl
         ld      a,b
@@ -192,7 +211,8 @@ cf_room:
 cf_loop:
         in      a,(PPI_C)
         and     IBF
-        jr      z,cf_out
+        jr      z,cf_wait
+cf_in:
         in      a,(PPI_A)
         cp      SL_END
         jr      z,cf_special
@@ -214,7 +234,9 @@ cf_skip:
         jr      nz,cf_loop
         ld      hl,(_ns_hdr + 2)        ; all of it: judge
         jp      co_judge
-cf_out:
+cf_wait:
+        call    next_byte
+        jr      nz,cf_in
         ld      hl,(_ns_hdr + 2)        ; got = len - left
         or      a
         sbc     hl,de
@@ -231,6 +253,25 @@ cf_special:
 co_fast_no:
         ex      de,hl                   ; (HL = got again)
         jp      co_next
+
+; NZ when a byte waits in port A, looked for over NEXT_TICKS ticks at most
+; (Z: none came). Keeps BC, DE, HL.
+next_byte:
+        push    de
+        ld      a,(TICKS)
+        ld      d,a                     ; D = the tick it began
+nb_loop:
+        in      a,(PPI_C)
+        and     IBF
+        jr      nz,nb_out
+        ld      a,(TICKS)
+        sub     d
+        cp      NEXT_TICKS
+        jr      c,nb_loop
+        xor     a
+nb_out:
+        pop     de
+        ret
 
 _ns_fletcher:
         ld      b,l                     ; B = n

@@ -37,7 +37,7 @@
         PUBLIC  _con_install, _con_remove, _con_put, _con_free, _con_pump
         PUBLIC  _con_flushed, _kbd_get, _ticks_now, _os_print, _os_exit
         PUBLIC  _frame_count, _tx_count, _tx_held, _tx_waits
-        PUBLIC  con_emit
+        PUBLIC  con_emit, TICKS         ; (nsfast.asm times the card's bytes by it)
 
         defc    CON_DATA = $E8          ; RBR / THR
         defc    CON_IER  = $E9
