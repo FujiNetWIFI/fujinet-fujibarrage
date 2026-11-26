@@ -113,8 +113,12 @@ void name_entry(void)
     centre(8, "WHAT'S YOUR NAME?");
     scr_row(12, PAL_HILITE);
 #ifdef NAME_WHEEL
-    centre(16, "UP/DOWN: LETTER  FIRE: TAKE IT");
-    centre(18, "LEFT: BACK  START: DONE");
+#ifndef TXT_WHEEL1
+#define TXT_WHEEL1 "UP/DOWN: LETTER  FIRE: TAKE IT"
+#define TXT_WHEEL2 "LEFT: BACK  START: DONE"
+#endif
+    centre(16, TXT_WHEEL1);
+    centre(18, TXT_WHEEL2);
 #endif
     scr_show();
     for (;;) {

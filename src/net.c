@@ -39,7 +39,9 @@ uint8_t net_err, net_heard, net_tv = 0xFF, net_terrain;
 uint8_t catalog[CAT_MAX];
 #endif
 uint16_t cat_len;
+#ifndef SCRIPT_AT                       /* (elsewhere: an address of its own, src/sms/map.asm) */
 uint8_t script[SCRIPT_BUF];
+#endif
 uint16_t seg_len;
 uint8_t seg_ready, seg_sid, seg_no, seg_flags;
 
@@ -57,6 +59,9 @@ void net_want(uint8_t reason, uint8_t secs) { (void)reason; (void)secs; }
 uint8_t net_act(uint8_t act, const uint8_t *args, uint8_t n) { (void)act; (void)args; (void)n; return 1; }
 void net_leave(void) {}
 void net_close(void) {}
+#ifdef ONE_PROGRAM
+uint8_t net_rooms(void) { return 0; }   /* (the menu's, in the same program) */
+#endif
 #else
 static uint8_t link, joined, seq, credited, resync_hold, resync_owed, held, d_owed, d_sid, d_seg;
 #ifdef WITH_MENU

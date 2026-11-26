@@ -31,8 +31,13 @@
         PUBLIC  fld_w, fld_h, fld_mid, fld_espan
         PUBLIC  _fld_shadow
 
+IFDEF FLD_SH_HI                         ; (the SMS: in the cart's RAM, src/sms/map.asm)
+        defc    _fld_shadow = FLD_SH_HI * 256
+        defc    SH_HI   = FLD_SH_HI
+ELSE
         defc    _fld_shadow = $A700     ; (tools/adam/mkimage.py's SHADOW_ORG)
         defc    SH_HI   = $A7
+ENDIF
         defc    FLINES  = 168
         defc    FROWS   = 21
         defc    PX_SKY  = 1

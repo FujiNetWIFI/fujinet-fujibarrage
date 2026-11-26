@@ -18,3 +18,4 @@ tools/atarisim/asim
 tools/a2rig/a2rig
 tools/a2rig/*.o
 tools/adamsim/adamrun
+tools/smssim/smsrun

@@ -24,6 +24,7 @@
 	defc PLAT_MSDOS_VGA = 10
 	defc PLAT_ARCADIA = 11
 	defc PLAT_H89 = 12
+	defc PLAT_SMS = 13
 	defc SC_HELLO = 72
 	defc SC_ROOMS = 84
 	defc SC_ACT = 65

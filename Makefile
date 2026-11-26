@@ -387,3 +387,19 @@ h89-boot: h89-cpm
 build/fnlib-h89/fujinet-h89.lib: tools/z80/mkfnlib.sh $(wildcard $(FNLIB_H89)/common/*.c $(FNLIB_H89)/bus/h89/* $(FNLIB_H89)/include/*.h)
 	tools/z80/mkfnlib.sh $(FNLIB_H89) build/fnlib-h89 h89
 .PHONY: h89-cpm h89-hdos h89-boot
+
+# ---- Sega Master System (the FujiNet SMS cartridge) ---------------------------
+# z88dk in defoogi (tools/sms/build.mk, the whole make there): one program
+# (the menu and the game) in a Sega-mapper image, Mode 4 (src/sms/), the cart's
+# 32K of RAM for the field's store and the tile cache's tables, the SN76489
+# and, when there is one, the YM2413. fujinet-lib is
+# fujinet-lib-experimental's add-sms branch (FNLIB_SMS, a worktree) built
+# with zsdcc -SO2 (tools/z80/mkfnlib.sh).
+FNLIB_SMS ?= $(HOME)/Workspace/fnlib-sms
+SMS_ARGS = $(if $(TEST),TEST=$(TEST)) $(if $(TEST_SCENE),TEST_SCENE=$(TEST_SCENE) TEST_ARG=$(TEST_ARG)) \
+    $(if $(VIDEO_CARD),VIDEO_CARD=$(VIDEO_CARD)) $(if $(TESTX),TESTX="$(TESTX)") $(if $(XFLAGS),XFLAGS="$(XFLAGS)")
+sms: gen/config.h build/fnlib-sms/fujinet-sms.lib
+	tools/z80/z88dk $(MAKE) -f tools/sms/build.mk $(SMS_ARGS)
+build/fnlib-sms/fujinet-sms.lib: tools/z80/mkfnlib.sh $(wildcard $(FNLIB_SMS)/common/*.c $(FNLIB_SMS)/bus/sms/* $(FNLIB_SMS)/include/*.h)
+	ZOPT=-SO2 tools/z80/mkfnlib.sh $(FNLIB_SMS) build/fnlib-sms sms
+.PHONY: sms

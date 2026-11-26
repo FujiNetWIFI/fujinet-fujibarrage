@@ -115,6 +115,28 @@
 #define TXT_ITEMS "I: ITEMS"
 #endif
 
+#ifdef __SMS__
+/* the Sega Master System's Mode 4: the Adam's field, 256x168 (21 rows of
+ * tiles) over a 3-row HUD, drawn through a tile cache; the tanks are
+ * sprites, 8 on a line (src/sms/) */
+#define FIELD_W 256
+#define FIELD_H 168
+#define TANK_W  7
+#define TANK_H  5
+#define PAR     73              /* pixel aspect, 64ths (5.37 MHz pixels) */
+#ifndef SCRIPT_BUF
+#define SCRIPT_BUF 1536         /* (in the cart's RAM, after the field's store: src/sms/map.asm) */
+#endif
+#define BANDS   8               /* sprites on a line (the rest go in the tiles) */
+#define FIELD_COLUMNS           /* field_columns: a frame's columns at once */
+#define PLAT_ID   PLAT_SMS
+#define PLAT_CAPS CAP_HOLD
+#define ITEMS_ROW 2
+#define PLY_CATCHUP 8
+#define MARK_UP (TANK_H + 7)     /* the turn's arrow, its top: over the barrel */
+#define TXT_ITEMS "2+1: ITEMS"
+#endif
+
 #ifdef __MSDOS__
 /* an IBM PC: CGA's 320x200 in 4 colours (src/msdos/cga) or VGA's and
  * MCGA's 256 (DOS_VGA: src/msdos/vga), the field 320x176 over a 3-row HUD;

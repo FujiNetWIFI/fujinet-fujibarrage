@@ -141,6 +141,15 @@ var H89 = project.Caps{FieldW: 160, FieldH: 44, Par: 26, Hz: 60, TankW: 4, TankH
 var H89Hdos = project.Caps{FieldW: 160, FieldH: 44, Par: 26, Hz: 60, TankW: 4, TankH: 2, Buf: 896,
 	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatH89}
 
+// Sms is the Sega Master System client's shape: Mode 4 tiles, the Adam's
+// field (256x168 over a 3-row HUD); the tanks are sprites, 8 on a line.
+var Sms = project.Caps{FieldW: 256, FieldH: 168, Par: 73, Hz: 60, TankW: 7, TankH: 5, Buf: 1536,
+	Bands: 8, Flags: proto.CapHold, Plat: proto.PlatSms}
+
+// SmsPal is the same on a 50 Hz console.
+var SmsPal = project.Caps{FieldW: 256, FieldH: 168, Par: 73, Hz: 50, TankW: 7, TankH: 5, Buf: 1536,
+	Bands: 8, Flags: proto.CapHold, Plat: proto.PlatSms}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps

@@ -14,6 +14,9 @@
         SECTION code_user
 
         PUBLIC  _field_sparks, pt_step, pt_clear
+IFDEF PT_SPRITES                        ; (the SMS: the sparks are sprites, src/sms/field.asm)
+        PUBLIC  sparks_, plive
+ENDIF
         EXTERN  _tk, _fld_get, _fld_plot, _fld_swap, fld_w, fld_h, fld_mid
         EXTERN  _fx, _fy, _fv, _fold
 
@@ -255,9 +258,11 @@ st_p:   ld      a,(ix+SP_LIFE)
         call    _fld_get
         cp      PX_SKY
         jr      nz,st_n
+IFNDEF PT_SPRITES
         ld      a,PX_FX
         ld      (_fv),a
         call    _fld_plot
+ENDIF
         ld      hl,(_fx)
         ld      (ix+SP_OX),l
         ld      (ix+SP_OX+1),h
@@ -312,6 +317,9 @@ erase:  ld      a,(ix+SP_SH)
         or      a
         ret     z
         ld      (ix+SP_SH),0
+IFDEF PT_SPRITES
+        ret
+ENDIF
         ld      l,(ix+SP_OX)
         ld      h,(ix+SP_OX+1)
         ld      (_fx),hl

@@ -19,9 +19,18 @@
         SECTION code_user
 
         PUBLIC  sn_update, sn_quiet
+IFDEF SN_SEGA                           ; (the SMS's tunes share the chip: src/sms/mus.asm)
+        PUBLIC  s_tone, s_nctl, s_natt
+ENDIF
         EXTERN  snd_va, snd_vb, snd_vc
 
+IFDEF SN_SEGA                           ; (the Master System's: port 7Fh; its noise's
+        defc    SN = $7F                ; periodic mode is 16 steps, the TI's 15)
+        defc    PDIV = 16
+ELSE
         defc    SN = $FF
+        defc    PDIV = 15
+ENDIF
 
 ; the AY's volume (3 dB a step) as the SN's attenuation (2 dB a step)
 att:    defb    15, 15, 15, 15, 14, 12, 11, 9, 8, 6, 5, 3, 2, 0, 0, 0
@@ -327,7 +336,7 @@ owner_voice:
 
 ; div15: HL = HL / 15 (at least 1)
 div15:  ld      de,0
-        ld      bc,15
+        ld      bc,PDIV
 d15:    or      a
         sbc     hl,bc
         jr      c,d15x

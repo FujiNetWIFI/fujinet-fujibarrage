@@ -16,7 +16,7 @@ void frame_wait(void);
 
 uint8_t plat_rand(void);
 uint8_t plat_hz(void);          /* 50 or 60: the display's frames a second */
-#ifdef __ATARI5200__
+#if defined(__ATARI5200__) || defined(__SMS__)
 #define NAME_WHEEL              /* no keyboard: the name from a letter wheel (menus.c) */
 #endif
 #ifdef __APPLE2__
@@ -25,7 +25,7 @@ uint8_t plat_hz(void);          /* 50 or 60: the display's frames a second */
 void frame_tick(void);
 uint8_t vbi_now(void);
 #define vbi_count (vbi_now())
-#elif defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__H89__)
+#elif defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__H89__) || defined(__SMS__)
 /* The CoCo counts frames in its interrupt. Asking is also where the CoCo
  * 1/2 (no timer) plays a slice of sound while a script waits, where the
  * Adam draws the field's changed cells (src/tms9918/render.asm), and where

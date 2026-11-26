@@ -116,7 +116,7 @@ for c in "$out"/src/*.c "$out"/src/*.s; do
     [ -e "$c" ] || continue
     o="$out/obj/$(basename "$c").o"
     objs="$objs $o"
-    cmds="$cmds zcc $target -compiler=sdcc -SO3 -D$define -I$out/include -I$out/src -c -o $o $c || exit 1;"
+    cmds="$cmds zcc $target -compiler=sdcc ${ZOPT:--SO3} -D$define -I$out/include -I$out/src -c -o $o $c || exit 1;"
 done
 cmds="$cmds z80asm -x$out/fujinet-$plat.lib $objs"
 "$z88dk" sh -c "$cmds"

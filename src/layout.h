@@ -6,7 +6,13 @@
 
 #include "scr.h"
 
-#ifdef __H89__                          /* (no fire button: SPACE is it) */
+#ifdef __SMS__                          /* (the Master System's pad: buttons 1 and 2, Pause) */
+#define TXT_PRESS "PRESS 1"
+#define TXT_JOIN_HINT "UP/DOWN, 1 TO JOIN"
+#define TXT_ITM_USE "<> 1 USE"
+#define TXT_ITM_ON "<> 1 ON"
+#define TXT_ITM_DONE "1 DONE"
+#elif defined(__H89__)                  /* (no fire button: SPACE is it) */
 #define TXT_PRESS "PRESS SPACE"
 #define TXT_JOIN_HINT "UP/DOWN: CHOOSE   SPACE: JOIN   ESC: BACK"
 #define TXT_ITM_USE "<> SPACE USE"
@@ -43,7 +49,11 @@
 #define SHOP_CASH_C  20
 #define SHOP_TIMER_C 30
 #define TXT_SHOP_HEAD "ITEM          PRICE BUY  OWN"
-#ifdef __ADAM__                 /* (the Adam: RETURN, and a TAB key) */
+#ifdef __SMS__                  /* (the SMS: 1 fire, 2 TAB, 2+1 I/S, Pause RETURN) */
+#define TXT_SHOP_HINT "1 BUY  LEFT SELL  PAUSE DONE"
+#define TXT_W_HOSTSET "2+1 SEATS 2 PAGE <> SET 1 GO"
+#define TXT_W_SET     "2+1 SEATS  2 PAGE"
+#elif defined(__ADAM__)         /* (the Adam: RETURN, and a TAB key) */
 #define TXT_SHOP_HINT "FIRE BUY  LEFT SELL  RETURN DONE"
 #define TXT_W_HOSTSET "S SEATS TAB PAGE <> SET FIRE GO"
 #define TXT_W_SET     "S SEATS  TAB PAGE"
@@ -53,9 +63,15 @@
 #define TXT_W_HOSTSET "S SEATS  W PAGE  <> SET FIRE GO"
 #define TXT_W_SET     "S SEATS  W PAGE"
 #endif
+#ifdef __SMS__
+#define TXT_W_WAIT    "WAITING FOR THE HOST  2+1: SET"
+#define TXT_W_PEOPLE  "1 STARTS (2+ PEOPLE)  2+1: SET"
+#define TXT_W_BOTS    "1 STARTS (BOTS FILL)  2+1: SET"
+#else
 #define TXT_W_WAIT    "WAITING FOR THE HOST  S: SET"
 #define TXT_W_PEOPLE  "FIRE STARTS (2+ PEOPLE) S: SET"
 #define TXT_W_BOTS    "FIRE STARTS (BOTS FILL) S: SET"
+#endif
 /* the title */
 #define TXT_TAGLINE  "ARTILLERY FOR TEN ON FUJINET"
 #define TXT_GALORE   "WEAPONS, SHIELDS, BOTS GALORE."
@@ -231,12 +247,20 @@
 #define TXT_DEFENCES "SET UP DEFENCES, ENTER: DONE"
 #elif defined(__ADAM__)
 #define TXT_DEFENCES "SET UP DEFENCES, RETURN DONE"   /* (28: the timer at 29) */
+#elif defined(__SMS__)
+#define TXT_DEFENCES "SET UP DEFENCES, PAUSE DONE"
 #elif defined(__ATARI5200__)
 #define TXT_DEFENCES "SET UP DEFENCES, START: DONE"
 #endif
 
 #ifdef __MSDOS__
 #define QUIT_HINT "ESC: LOBBY"          /* the title: ESC goes back to the lobby (menus.c) */
+#endif
+#ifdef __SMS__
+#define QUIT_HINT "2+PAUSE: LOBBY"      /* (2 held and Pause is ESC: src/sms/input.c) */
+/* the name wheel's hints (menus.c) */
+#define TXT_WHEEL1 "UP/DOWN: LETTER  1: TAKE IT"
+#define TXT_WHEEL2 "LEFT: BACK  PAUSE: DONE"
 #endif
 
 #endif

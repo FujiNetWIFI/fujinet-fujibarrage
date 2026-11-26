@@ -27,6 +27,9 @@
         PUBLIC  snd_va, snd_vb, snd_vc
         EXTERN  sn_update, sn_quiet
         EXTERN  _sx_cues, _sx_booms, _sx_ui, _mus_per, _mus_nz, _frame_count
+IFDEF SMS_MUSIC
+        EXTERN  _sms_tune, _sms_mus_stop
+ENDIF
 
         defc    UI_TICK = $40
         defc    NOISE0 = 112
@@ -133,6 +136,9 @@ _snd_blip:
 
 ; void snd_tune(const uint8_t *ch1, const uint8_t *ch2)
 _snd_tune:
+IFDEF SMS_MUSIC                         ; (the SMS's tunes: src/sms/mus.asm)
+        jp      _sms_tune
+ENDIF
         ld      hl,2
         add     hl,sp
         ld      e,(hl)
@@ -150,6 +156,9 @@ _snd_tune:
 
 ; void snd_stop(void)
 _snd_stop:
+IFDEF SMS_MUSIC
+        call    _sms_mus_stop
+ENDIF
         ld      a,1
         ld      (stop_req),a
         xor     a

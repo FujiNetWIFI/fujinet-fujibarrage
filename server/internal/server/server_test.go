@@ -176,6 +176,14 @@ func TestAdamGameAgainstBots(t *testing.T) {
 	}
 }
 
+// The Master System's shape (the Adam's, 8 sprites a line), at 60 and 50 Hz.
+func TestSmsGameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.Sms, mode)
+		botGame(t, client.SmsPal, mode)
+	}
+}
+
 func TestAtari5200GameAgainstBots(t *testing.T) {
 	for mode := 0; mode < 3; mode++ {
 		botGame(t, client.Atari5200, mode)
