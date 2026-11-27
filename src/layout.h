@@ -12,6 +12,12 @@
 #define TXT_ITM_USE "<> 1 USE"
 #define TXT_ITM_ON "<> 1 ON"
 #define TXT_ITM_DONE "1 DONE"
+#elif defined(__NES__)                  /* (the NES's pad: A, B, START, SELECT) */
+#define TXT_PRESS "PRESS A"
+#define TXT_JOIN_HINT "UP/DOWN, A TO JOIN"
+#define TXT_ITM_USE "<> A USE"
+#define TXT_ITM_ON "<> A ON"
+#define TXT_ITM_DONE "A DONE"
 #elif defined(__H89__)                  /* (no fire button: SPACE is it) */
 #define TXT_PRESS "PRESS SPACE"
 #define TXT_JOIN_HINT "UP/DOWN: CHOOSE   SPACE: JOIN   ESC: BACK"
@@ -53,6 +59,10 @@
 #define TXT_SHOP_HINT "1 BUY  LEFT SELL  PAUSE DONE"
 #define TXT_W_HOSTSET "2+1 SEATS 2 PAGE <> SET 1 GO"
 #define TXT_W_SET     "2+1 SEATS  2 PAGE"
+#elif defined(__NES__)          /* (the NES: A fire, B TAB, B+A I/S, START RETURN) */
+#define TXT_SHOP_HINT "A BUY  LEFT SELL  START DONE"
+#define TXT_W_HOSTSET "B+A SEATS B PAGE <> SET A GO"
+#define TXT_W_SET     "B+A SEATS  B PAGE"
 #elif defined(__ADAM__)         /* (the Adam: RETURN, and a TAB key) */
 #define TXT_SHOP_HINT "FIRE BUY  LEFT SELL  RETURN DONE"
 #define TXT_W_HOSTSET "S SEATS TAB PAGE <> SET FIRE GO"
@@ -67,6 +77,10 @@
 #define TXT_W_WAIT    "WAITING FOR THE HOST  2+1: SET"
 #define TXT_W_PEOPLE  "1 STARTS (2+ PEOPLE)  2+1: SET"
 #define TXT_W_BOTS    "1 STARTS (BOTS FILL)  2+1: SET"
+#elif defined(__NES__)
+#define TXT_W_WAIT    "WAITING FOR THE HOST  B+A: SET"
+#define TXT_W_PEOPLE  "A STARTS (2+ PEOPLE)  B+A: SET"
+#define TXT_W_BOTS    "A STARTS (BOTS FILL)  B+A: SET"
 #else
 #define TXT_W_WAIT    "WAITING FOR THE HOST  S: SET"
 #define TXT_W_PEOPLE  "FIRE STARTS (2+ PEOPLE) S: SET"
@@ -249,12 +263,19 @@
 #define TXT_DEFENCES "SET UP DEFENCES, RETURN DONE"   /* (28: the timer at 29) */
 #elif defined(__SMS__)
 #define TXT_DEFENCES "SET UP DEFENCES, PAUSE DONE"
+#elif defined(__NES__)
+#define TXT_DEFENCES "SET UP DEFENCES, START DONE"
 #elif defined(__ATARI5200__)
 #define TXT_DEFENCES "SET UP DEFENCES, START: DONE"
 #endif
 
 #ifdef __MSDOS__
 #define QUIT_HINT "ESC: LOBBY"          /* the title: ESC goes back to the lobby (menus.c) */
+#endif
+#ifdef __NES__
+#define QUIT_HINT "SELECT: LOBBY"       /* (SELECT is ESC: src/nes/input.c) */
+#define TXT_WHEEL1 "UP/DOWN: LETTER  A: TAKE IT"
+#define TXT_WHEEL2 "LEFT: BACK  START: DONE"
 #endif
 #ifdef __SMS__
 #define QUIT_HINT "2+PAUSE: LOBBY"      /* (2 held and Pause is ESC: src/sms/input.c) */

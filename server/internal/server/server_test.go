@@ -184,6 +184,14 @@ func TestSmsGameAgainstBots(t *testing.T) {
 	}
 }
 
+// The NES's shape (the Adam's, a 1K script buffer), at 60 and 50 Hz.
+func TestNesGameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.Nes, mode)
+		botGame(t, client.NesPal, mode)
+	}
+}
+
 func TestAtari5200GameAgainstBots(t *testing.T) {
 	for mode := 0; mode < 3; mode++ {
 		botGame(t, client.Atari5200, mode)

@@ -19,3 +19,4 @@ tools/a2rig/a2rig
 tools/a2rig/*.o
 tools/adamsim/adamrun
 tools/smssim/smsrun
+tools/nessim/nesrun

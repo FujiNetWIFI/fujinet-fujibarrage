@@ -2,7 +2,8 @@
 
 The Atari 400/800 is the first client, and the Intellivision the second;
 the Apple II, the Astrocade, the Color Computers, the 5200, the Adam, the
-PC and the Arcadia 2001 followed. These notes say
+PC, the Arcadia 2001, the H89, the Master System and the NES followed.
+These notes say
 what another machine needs, and what the ports taught.
 
 ## What the server does for you
@@ -368,6 +369,25 @@ FujiBlast's mailbox link and pad. What it took:
 - **Input:** the pad and two buttons, and Pause (an NMI that only flips a flag): 2 tapped is TAB, 2 held with 1 is I on the field and S elsewhere, Pause is RETURN, 2 held with Pause is ESC. The name comes from the 5200's wheel.
 - **PAL:** a 50 Hz console counts every fifth frame twice (FujiBlast's), so the clock, the sound and the tunes keep their speed; HELLO says 50.
 - **Tests:** `tools/smssim/` (`smsrun` on FujiNet Go SMS's core, compiled from its sources; `refcheck.py`, `vramcheck.py`, `tccheck.py`; `rig.sh` live with fujinet-pc over BoIP).
+
+## The NES
+
+`src/nes/` is the Atari's C again on cc65, with the 6502 script player
+(`src/6502/`, its x widened to 16 bits under `FLD_WIDE` for a 256-wide
+field), the 5200's ROM catalog and far wrappers, and the Master System's
+mailbox link and pad. The FujiNet NES cartridge is MMC3 with 32K of CHR-RAM
+and 8K of WRAM. What it took:
+- **10K of RAM, no bitmap.** The 2K inside and the cartridge's 8K have to hold the client (about 4K: the script buffer is 1024 bytes) and the field, so the store is the Adam's two exact planes squeezed by cell (`fld.s`): a byte a cell (672), 1 all sky, 2 all dirt, 3 all fire, 4-255 a block from a pool of 252 eight-byte blocks (one plane each; a cell of sky, dirt and fire takes two). `server/cmd/tilestat -pools` sized it first: the worst of 377 scenes needs 208 blocks. A blast's whole cells are set at once. When the pool runs dry a cell is left whole and `fld_lossy` counts it (no shot of the gate does).
+- **Each field cell is a tile of its own.** The field is seven bands of three tile rows, each band a 2K bank of CHR-RAM: 96 tiles for its cells and 32 constants (all sky, all dirt, all fire, the crust's, eight stars). The MMC3's IRQ switches the banks every 24 lines (`crt0.s`). A cell all one thing gets a constant's name byte; any other gets its own tile, built from the store: plane 0 fire or not dirt, plane 1 fire, or dirt with dirt the two lines over it (`render.s`). Colour 0 is the backdrop, the round's crust colour, so every surface has a crust; a cell whose last two lines of dirt change marks the cell under it.
+- **The look:** the four background palettes are four bands down the field, each a sky shade, a stratum of dirt and the fire (its colour by the dirt, never the dirt's); the fire's colours turn every 8 frames, a band apart. The HUD (three rows under a black gap) has palettes of its own: rendering goes off at the gap and one palette write a line lands in each horizontal blank, so nothing streaks. The entries 4, 8 and 12 must be black (the gap parks the PPU's address on one).
+- **Tanks are sprites,** 8x8 in the seats' colours (four sprite palettes of three), yours with a pennant; yours and the turn's go first and the rest rotate every frame, so a ninth on a line blinks. The sparks are sprites after them, shown only over sky. The talk balloon is a row of the band's cells (letters in the crust colour on the fire's); the shake is the X scroll, the flash all palettes white. The title is a field scene (hills, the name in fire letters, a shell's arc and its burst).
+- **The PPU queue:** everything bound for the PPU is a queued command (a tile, a copy, a fill, a text row re-inked or moved), drained in the vblank and with rendering off under the HUD. The text screens keep no copy in RAM: re-inking and scrolling are queue commands that read the name table.
+- **Memory:** zero page, the queue's buffer and the sparks at the bottom of the stack page, two sprite pages, the PPU queue, the player's tables at $0500 and 480 bytes of C stack; the cartridge's 8K holds the store, the script and everything else. The code is over 24K: R6 takes the field's, the rooms', the menus', the boot code's and the field screen's set-up overlays in turn (`tools/nes/far.txt`, 6 bytes a wrapper); R7 holds the link, `main.c`, the font and the shared tables.
+- **Drawing while a shot plays:** the Master System's three rules (a minimum of cells every frame, the scan going on from the last cell drawn, a blast growing once its last size is on the screen). The NES is the slowest port at it so far: the worst shot (MEGA MIRV on a flat field) ends about 7.7 s behind its script, a field takes about 4 s to show, and about half of a missile's fireball reaches the screen.
+- **The link:** the Master System's mailbox machine (`nstrans.c`) at $5000, with `CAP_HOLD`.
+- **Input:** controller 1, read until two reads agree. A is the button, B tapped is TAB, B held with A is I on the field and S elsewhere, START is RETURN, SELECT is ESC. The name comes from the 5200's wheel.
+- **Not yet:** sound (the APU), PAL (the HUD's split is timed to an NTSC line), the HUD's gauges.
+- **Tests:** `tools/nessim/` (`nesrun` on FujiNet Go NES's core, compiled from its sources; `refcheck.py`, `vramcheck.py`, `firecheck.py`; `rig.sh` live with fujinet-pc over BoIP).
 
 ## Testing a port
 

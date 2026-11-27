@@ -150,6 +150,16 @@ var Sms = project.Caps{FieldW: 256, FieldH: 168, Par: 73, Hz: 60, TankW: 7, Tank
 var SmsPal = project.Caps{FieldW: 256, FieldH: 168, Par: 73, Hz: 50, TankW: 7, TankH: 5, Buf: 1536,
 	Bands: 8, Flags: proto.CapHold, Plat: proto.PlatSms}
 
+// Nes is the NES client's shape: the Adam's field (256x168, 21 rows of
+// tiles in CHR-RAM over a 3-row HUD); the tanks are sprites, 8 on a line.
+// Its RAM is 2K and the cartridge's 8K: a 1K script buffer.
+var Nes = project.Caps{FieldW: 256, FieldH: 168, Par: 73, Hz: 60, TankW: 7, TankH: 5, Buf: 1024,
+	Bands: 8, Flags: proto.CapHold, Plat: proto.PlatNes}
+
+// NesPal is the same on a 50 Hz console.
+var NesPal = project.Caps{FieldW: 256, FieldH: 168, Par: 73, Hz: 50, TankW: 7, TankH: 5, Buf: 1024,
+	Bands: 8, Flags: proto.CapHold, Plat: proto.PlatNes}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps

@@ -388,6 +388,25 @@ build/fnlib-h89/fujinet-h89.lib: tools/z80/mkfnlib.sh $(wildcard $(FNLIB_H89)/co
 	tools/z80/mkfnlib.sh $(FNLIB_H89) build/fnlib-h89 h89
 .PHONY: h89-cpm h89-hdos h89-boot
 
+# ---- NES (the FujiNet NES cartridge) ------------------------------------------
+# cc65 in defoogi (tools/nes/build.mk): an MMC3 image, 256K PRG, 32K CHR-RAM,
+# 8K WRAM (src/nes/), one program with overlays. fujinet-lib is
+# fujinet-lib-experimental's add-nes branch (FNLIB_NES, a worktree), built on
+# the host (tools/nes/mkfnlib.sh); the catalog is in ROM (the 5200's
+# tools/atari5200/mkcat.py). CARD=1: M0's test card.
+FNLIB_NES ?= $(HOME)/Workspace/fnlib-nes
+NES_ARGS = $(if $(CARD),CARD=$(CARD)) $(if $(TEST),TEST=$(TEST)) \
+    $(if $(TEST_SCENE),TEST_SCENE=$(TEST_SCENE) TEST_ARG=$(TEST_ARG)) $(if $(XFLAGS),XFLAGS="$(XFLAGS)") $(if $(XAFLAGS),XAFLAGS="$(XAFLAGS)")
+nes: gen/config.h $(if $(CARD),,build/fnlib-nes/fujinet-nes.lib gen/nes/catalog.h)
+	defoogi $(MAKE) -f tools/nes/build.mk $(NES_ARGS)
+build/fnlib-nes/fujinet-nes.lib: tools/nes/mkfnlib.sh $(wildcard $(FNLIB_NES)/common/*.c $(FNLIB_NES)/bus/nes/* $(FNLIB_NES)/include/*.h)
+	tools/nes/mkfnlib.sh $(FNLIB_NES) build/fnlib-nes
+gen/nes/catalog.h: $(SERVER_GO) tools/atari5200/mkcat.py src/proto.h
+	@mkdir -p build/nes gen/nes
+	cd server && go run ./cmd/barraged -catalog ../build/nes/catalog.bin
+	$(PYTHON) tools/atari5200/mkcat.py build/nes/catalog.bin src/proto.h gen/nes/catalog.s $@
+.PHONY: nes
+
 # ---- Sega Master System (the FujiNet SMS cartridge) ---------------------------
 # z88dk in defoogi (tools/sms/build.mk, the whole make there): one program
 # (the menu and the game) in a Sega-mapper image, Mode 4 (src/sms/), the cart's

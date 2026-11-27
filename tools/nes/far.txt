@@ -1,0 +1,58 @@
+# far.txt -- the NES game's overlay functions called from outside their
+# overlay (tools/nes/mkfar.py; the 5200's tools/atari5200/far.txt): each
+# gets a wrapper in the fixed banks that puts the overlay's bank in R6
+# ($8000), calls it, and puts the caller's back. The overlay's own is
+# renamed ovl_<name> when it is compiled. tools/nes/farcheck.py fails a
+# build that calls across without one. A far function must not be given a
+# pointer into its caller's bank (it reads with its own bank in); a pointer
+# into its own (cat_item's, to cat_name) is fine.
+#
+# bank 2: the field (src/play.c)
+2 play_enter
+2 play_state
+2 play_frame
+2 play_script
+2 play_esc
+2 play_skip
+2 c_op
+2 c_anim
+2 play_segment
+# bank 3: the rooms (src/room.c), the catalog (src/cat.c and the ROM's)
+3 wait_enter
+3 wait_state
+3 wait_frame
+3 shop_enter
+3 shop_state
+3 shop_frame
+3 results_enter
+3 results_frame
+3 cat_check
+3 cat_item
+3 cat_setting
+3 cat_tier
+3 cat_page
+3 cat_name
+3 cat_count
+3 cat_value
+3 numstr
+3 num32
+# bank 4: the menus (src/menus.c), the appkeys' saves (src/appkey.c)
+4 message
+4 name_entry
+4 room_list
+4 tick
+4 title
+4 appkey_clear_room
+4 appkey_save_name
+4 appkey_save_room
+# bank 5: the boot (src/appkey.c's BOOTCODE), the test scenes (src/test.c)
+5 appkey_load
+5 test_check
+# bank 7: the field screen's set-up, HUD and talk (src/nes/fieldo.c)
+7 field_open
+7 field_status
+7 field_status_hi
+7 field_status_clear
+7 field_name
+7 field_balloon
+7 field_title

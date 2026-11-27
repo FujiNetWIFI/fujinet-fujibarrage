@@ -157,6 +157,38 @@ extern uint16_t fld_nd;
 #define RING_READY() (fld_nd <= RING_GATE)
 #endif
 
+#ifdef __NES__
+/* the NES on the FujiNet cartridge: the Adam's field, 256x168 (21 rows of
+ * tiles, each its own in CHR-RAM: 7 bands of 3 rows) over a 3-row HUD; the
+ * tanks are sprites, 8 on a line (the rest blink) (src/nes/) */
+#define FIELD_W 256
+#define FIELD_H 168
+#define TANK_W  7
+#define TANK_H  5
+#define PAR     73              /* pixel aspect, 64ths (5.37 MHz pixels) */
+#ifndef SCRIPT_BUF
+#define SCRIPT_BUF 1024         /* (2K and the cartridge's 8K of RAM) */
+#endif
+#define BANDS   8               /* sprites on a line */
+#define FIELD_COLUMNS           /* field_columns: a frame's columns at once */
+#define PLAT_ID   PLAT_NES
+#define PLAT_CAPS CAP_HOLD
+#define ITEMS_ROW 2
+#define PLY_CATCHUP 8
+#define MARK_UP (TANK_H + 7)     /* the turn's arrow, its top: over the barrel */
+#define TXT_ITEMS "B+A: ITEMS"
+/* a blast is drawn at a new size once the last one is on the screen (the
+ * SMS's: at most RING_GATE cells still to go, or RING_MAX frames on) */
+extern uint16_t fld_nd;
+#ifndef RING_GATE
+#define RING_GATE 4
+#endif
+#ifndef RING_MAX
+#define RING_MAX 8
+#endif
+#define RING_READY() (fld_nd <= RING_GATE)
+#endif
+
 #ifdef __MSDOS__
 /* an IBM PC: CGA's 320x200 in 4 colours (src/msdos/cga) or VGA's and
  * MCGA's 256 (DOS_VGA: src/msdos/vga), the field 320x176 over a 3-row HUD;

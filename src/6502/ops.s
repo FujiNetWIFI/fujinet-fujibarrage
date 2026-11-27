@@ -3,7 +3,8 @@
 ; on the field (docs/PROTOCOL.md). Paths and flows read their bytes where
 ; they lie in script[]; at a segment's end they finish (ops_seg_end). The
 ; coordinates are the field's own (x 0-159, y 0-167): a byte each, and one
-; that wraps past an edge is simply off the field.
+; that wraps past an edge is simply off the field. FLD_WIDE (the NES: x
+; 0-255, where no wrap is off it): x is the script's 16 bits.
 ;
 ; uint8_t __fastcall__ ops_path(const uint8_t *args)  an OP_PATH's arguments:
 ; uint8_t __fastcall__ ops_flow(const uint8_t *args)  each says how many
@@ -46,6 +47,13 @@ lsy:    .res 1
 lerr:   .res 2
 le2:    .res 2
 lon:    .res 1
+.ifdef FLD_WIDE
+lx0h:   .res 1          ; the line's x, high bytes
+lx1h:   .res 1
+ldxh:   .res 1          ; |dx|'s
+lsxh:   .res 1          ; the step's (0 or $FF)
+ohi:    .res 1
+.endif
 
         .segment "MIDBSS"
 data:
@@ -73,6 +81,11 @@ be_x0:  .res NBEAM
 be_y0:  .res NBEAM
 be_x1:  .res NBEAM
 be_y1:  .res NBEAM
+.ifdef FLD_WIDE
+pa_xh:  .res NPATH
+be_x0h: .res NBEAM
+be_x1h: .res NBEAM
+.endif
 data_end:
 
         .code
@@ -94,6 +107,10 @@ phead:  stx     oi
         lda     pa_x,x
         ldy     pa_y,x
         jsr     setxy
+.ifdef FLD_WIDE
+        lda     pa_xh,x
+        sta     _fx+1
+.endif
         jsr     _fld_get
         ldx     oi
         cmp     #PX_SKY
@@ -119,6 +136,10 @@ pleave: stx     oi
         lda     pa_x,x
         ldy     pa_y,x
         jsr     setxy
+.ifdef FLD_WIDE
+        lda     pa_xh,x
+        sta     _fx+1
+.endif
         lda     #PX_FX
         sta     _fold
         lda     #PX_SKY
@@ -149,6 +170,11 @@ _ops_path:
         iny
         lda     (optr),y        ; x (low byte)
         sta     pa_x,x
+.ifdef FLD_WIDE
+        iny
+        lda     (optr),y
+        sta     pa_xh,x
+.endif
         ldy     #4
         lda     (optr),y        ; y
         sta     pa_y,x
@@ -207,9 +233,23 @@ pstep:  ldx     #NPATH-1
         lda     (optr),y
         sta     otmp
         jsr     sr4
+.ifdef FLD_WIDE
+        ldy     #0              ; (its sign, for the high byte)
+        cmp     #$80
+        bcc     @sx
+        dey
+@sx:    sty     ohi
         clc
         adc     pa_x,x
         sta     pa_x,x
+        lda     pa_xh,x
+        adc     ohi
+        sta     pa_xh,x
+.else
+        clc
+        adc     pa_x,x
+        sta     pa_x,x
+.endif
         lda     otmp
         jsr     nib
         clc
@@ -413,6 +453,10 @@ fstep:  ldx     #NFLOW-1
 lplot:  lda     lx0
         ldy     ly0
         jsr     setxy
+.ifdef FLD_WIDE
+        lda     lx0h
+        sta     _fx+1
+.endif
         lda     lon
         beq     @off
         lda     #PX_FX
@@ -439,6 +483,33 @@ bline:  stx     oi
         sta     lx1
         lda     be_y1,x
         sta     ly1
+.ifdef FLD_WIDE
+        lda     be_x0h,x
+        sta     lx0h
+        lda     be_x1h,x
+        sta     lx1h
+        ldy     #1              ; dx = x1 - x0, 16-bit: |dx|, its sign
+        lda     #0
+        sta     lsxh
+        sec
+        lda     lx1
+        sbc     lx0
+        sta     ldx_
+        lda     lx1h
+        sbc     lx0h
+        sta     ldxh
+        bpl     @px
+        sec
+        lda     #0
+        sbc     ldx_
+        sta     ldx_
+        lda     #0
+        sbc     ldxh
+        sta     ldxh
+        ldy     #$FF
+        sty     lsxh
+@px:    sty     lsx
+.else
         ldy     #1
         lda     lx1
         sec
@@ -449,6 +520,7 @@ bline:  stx     oi
         ldy     #$FF
 @px:    sta     ldx_
         sty     lsx
+.endif
         ldy     #1
         lda     ly1
         sec
@@ -463,13 +535,22 @@ bline:  stx     oi
         lda     ldx_
         sbc     ldy_
         sta     lerr
+.ifdef FLD_WIDE
+        lda     ldxh
+.else
         lda     #0
+.endif
         sbc     #0
         sta     lerr+1
 @l:     jsr     lplot
         lda     lx0
         cmp     lx1
         bne     @go
+.ifdef FLD_WIDE
+        lda     lx0h
+        cmp     lx1h
+        bne     @go
+.endif
         lda     ly0
         cmp     ly1
         beq     @x
@@ -499,18 +580,31 @@ bline:  stx     oi
         lda     lx0
         adc     lsx
         sta     lx0
+.ifdef FLD_WIDE
+        lda     lx0h
+        adc     lsxh
+        sta     lx0h
+.endif
 @ny:    sec                     ; e2 < dx: y moves
         lda     le2
         sbc     ldx_
         lda     le2+1
+.ifdef FLD_WIDE
+        sbc     ldxh
+.else
         sbc     #0
+.endif
         bpl     @l
         clc
         lda     lerr
         adc     ldx_
         sta     lerr
         lda     lerr+1
+.ifdef FLD_WIDE
+        adc     ldxh
+.else
         adc     #0
+.endif
         sta     lerr+1
         clc
         lda     ly0
@@ -540,6 +634,14 @@ _ops_beam:
         ldy     #0
         lda     (optr),y
         sta     be_x0,x
+.ifdef FLD_WIDE
+        iny
+        lda     (optr),y
+        sta     be_x0h,x
+        ldy     #5
+        lda     (optr),y
+        sta     be_x1h,x
+.endif
         ldy     #2
         lda     (optr),y
         sta     be_y0,x

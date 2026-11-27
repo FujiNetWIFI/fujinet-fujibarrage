@@ -4,7 +4,13 @@
 // cell turned into the palette indices of a look model, cells deduplicated
 // (and their horizontal mirrors). It prints the high-water marks per scene.
 //
-//	tilestat [-w 256 -h 168] [-seeds 3] [-shots 10] [-games 40] [-gshots 30]
+// -pools: instead, the blocks of detail a cell store needs (the NES's
+// src/nes/fld.s): each frame, the cells mixing sky and dirt, the cells with
+// fire and one other value (a block each: the other pixels follow) and the
+// cells with all three (two blocks); the high-water of the blocks in all,
+// and of the fire's.
+//
+//	tilestat [-pools] [-w 256 -h 168] [-seeds 3] [-shots 10] [-games 40] [-gshots 30]
 package main
 
 import (
@@ -121,6 +127,59 @@ var looks = []look{
 	{name: "row+top2+stars4", rowSky: true, topsoil: 2, stars: 4},
 }
 
+// pool counts the blocks a cell store needs for v: sky and dirt mixed (d),
+// fire and one other (f), all three (f3: two blocks).
+type pool struct {
+	w, h          int
+	max, maxF, d0 int
+}
+
+func (p *pool) update(v *view.View) {
+	d, f, f3 := 0, 0, 0
+	for cy := 0; cy < p.h/8; cy++ {
+		for cx := 0; cx < p.w/8; cx++ {
+			var has [3]bool
+			for y := 0; y < 8; y++ {
+				for x := 0; x < 8; x++ {
+					switch v.At(cx*8+x, cy*8+y) {
+					case view.PxSky:
+						has[0] = true
+					case view.PxDirt:
+						has[1] = true
+					case view.PxFx:
+						has[2] = true
+					}
+				}
+			}
+			n := 0
+			for _, b := range has {
+				if b {
+					n++
+				}
+			}
+			switch {
+			case n == 3:
+				f3++
+			case n == 2 && has[2]:
+				f++
+			case n == 2:
+				d++
+			}
+		}
+	}
+	if t := d + f + 2*f3; t > p.max {
+		p.max = t
+	}
+	if t := f + 2*f3; t > p.maxF {
+		p.maxF = t
+	}
+	if d > p.d0 {
+		p.d0 = d
+	}
+}
+
+var pools bool
+
 type result struct {
 	scene string
 	max   []int
@@ -150,7 +209,14 @@ func run(c project.Caps, seed uint64, wp world.Params, ceiling bool, shots, weap
 	ms := make([]*model, len(looks))
 	for i, l := range looks {
 		ms[i] = newModel(l, c.FieldW, c.FieldH)
-		ms[i].update(v)
+		if !pools {
+			ms[i].update(v)
+		}
+	}
+	pl0 := &pool{w: c.FieldW, h: c.FieldH}
+	if pools {
+		ms = nil
+		pl0.update(v)
 	}
 	inv := [proto.NItems]int{}
 	for i := range inv {
@@ -192,6 +258,9 @@ func run(c project.Caps, seed uint64, wp world.Params, ceiling bool, shots, weap
 				for _, m := range ms {
 					m.update(v)
 				}
+				if pools {
+					pl0.update(v)
+				}
 				if !more {
 					break
 				}
@@ -200,7 +269,13 @@ func run(c project.Caps, seed uint64, wp world.Params, ceiling bool, shots, weap
 			for _, m := range ms {
 				m.update(v)
 			}
+			if pools {
+				pl0.update(v)
+			}
 		}
+	}
+	if pools {
+		return []int{pl0.max, pl0.maxF, pl0.d0}
 	}
 	out := make([]int, len(ms))
 	for i, m := range ms {
@@ -216,6 +291,7 @@ func main() {
 	shots := flag.Int("shots", 10, "shots per weapon scene")
 	games := flag.Int("games", 40, "bot games per terrain kind")
 	gshots := flag.Int("gshots", 30, "shots per bot game")
+	flag.BoolVar(&pools, "pools", false, "the cell store's blocks (the NES), not tiles")
 	flag.Parse()
 	c := project.Caps{FieldW: *w, FieldH: *h, Hz: 60, Par: 73, Buf: 1536, TankW: 7, TankH: 5, Plat: proto.PlatSms}
 	type task struct {
@@ -264,10 +340,13 @@ func main() {
 	for _, l := range looks {
 		names = append(names, l.name)
 	}
+	if pools {
+		names = []string{"blocks", "fire", "sky/dirt"}
+	}
 	fmt.Printf("%-28s %s\n", "scene", strings.Join(names, " "))
-	for i := range looks {
+	for i := range names {
 		sort.SliceStable(res, func(a, b int) bool { return res[a].max[i] > res[b].max[i] })
-		fmt.Printf("\n== worst 12 by %s ==\n", looks[i].name)
+		fmt.Printf("\n== worst 12 by %s ==\n", names[i])
 		for _, r := range res[:12] {
 			fmt.Printf("%-28s %v\n", r.scene, r.max)
 		}

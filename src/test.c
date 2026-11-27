@@ -45,6 +45,8 @@ void test_check(void)
 #include "adam/test/fixext.h"       /* (the rig's: tools/adamsim/fixture.py) */
 #elif defined(__SMS__)
 #include "sms/test/fixext.h"        /* (the rig's: tools/smssim/fixture.py) */
+#elif defined(__NES__)
+#include "nes/test/fixext.h"        /* (the rig's: tools/nessim) */
 #elif defined(__MSDOS__)
 #include "msdos/test/fixext.h"      /* (files on the disk: tools/dossim/fixture.py) */
 #else
@@ -119,7 +121,7 @@ static void ground(void)
 #endif
 }
 
-#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__)
+#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__)
 static uint8_t show;                    /* scene 8's extras */
 #endif
 
@@ -128,7 +130,7 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
     uint16_t t;
     ground();
     play_enter();
-#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__)
+#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__)
     if (show & 0x40)
         field_balloon(0, "NICE SHOT. NOW WATCH THIS ONE!", 30);
     if (show & 0x80) {
@@ -206,7 +208,7 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
     }
 }
 
-#if defined(TEST_CATALOG) && (defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__))
+#if defined(TEST_CATALOG) && (defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__))
 /* scene 10 (a TEST_CATALOG build): the shop on the server's catalog (the
  * PC's from CAT.BIN on its disk; elsewhere the rig puts it in catalog[]
  * and sets cat_len), every item shown, the cursor stepped down the list a
@@ -286,7 +288,7 @@ void test_check(void)
         if (test_hook[3] & 0x80)
             st[OFF_SKY] = test_hook[3] & 7;
         field_scene(0, 0);
-#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__)
+#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__)
     case 8:
         st[OFF_TURN] = 0;
         st[OFF_SKY] = test_hook[3] & 7;
@@ -319,7 +321,7 @@ void test_check(void)
         }
         for (;;)
             tick();
-#if defined(TEST_CATALOG) && (defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__))
+#if defined(TEST_CATALOG) && (defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__))
     case 10:
         shop_timed();
         break;
