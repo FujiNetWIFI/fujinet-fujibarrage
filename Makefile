@@ -1,7 +1,7 @@
 # FujiBarrage for FujiNet 8-bit computers (MekkoGX).
 #
-#   make atari                     r2r/atari/barrage.atr (48K Atari 400/800, XL/XE)
-#   defoogi make atari             the same in the toolchain container
+#   make atari                     r2r/atari/barrage.atr (48K Atari 400/800, XL/XE; cc65
+#                                  in defoogi, as make apple2)
 #   make SERVER=host:9913          server used when the lobby gave none (remembered)
 #   make server                    server/barraged and server/refview (Go)
 #   make proto                     src/proto.h from the server's constants
@@ -39,6 +39,16 @@
 
 PRODUCT = barrage
 PLATFORMS = atari apple2
+
+# The Atari and the Apple II build in the defoogi container: its cc65 (Git
+# 2ea1df8b2) built the shipped images, and another cc65 makes other code (the
+# host's ~/Workspace/cc65 overflows the Atari's MAIN by 7 bytes). The gen
+# files are made here first; variables given on the command line go along
+# (a plain make, not $(MAKE): make -n only prints it).
+ifeq ($(wildcard /.dockerenv),)
+r2r/atari/$(PRODUCT) r2r/apple2/$(PRODUCT): FORCE
+	defoogi make $@ $(MAKEOVERRIDES)
+endif
 
 # src/6502: the script player (ply.s, trk.s, ops.s) every 6502 port shares,
 # drawing through its own fld.s
