@@ -26,6 +26,7 @@
 	defc PLAT_H89 = 12
 	defc PLAT_SMS = 13
 	defc PLAT_NES = 14
+	defc PLAT_CHANNELF = 15
 	defc SC_HELLO = 72
 	defc SC_ROOMS = 84
 	defc SC_ACT = 65

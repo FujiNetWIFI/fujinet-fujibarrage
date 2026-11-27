@@ -1,0 +1,13 @@
+# live, ROOM= empty: no room key: CONNECTING to the build's server, the
+# room list, the first room picked, its waiting room
+wait 240
+press
+wait 400
+snap rooms
+peek TBLN
+press
+wait 400
+snap room
+peek SHOWS
+peek SRVTBL 8
+vcheck

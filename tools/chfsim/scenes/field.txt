@@ -1,0 +1,14 @@
+# live, with tools/rigs/tapproxy.py in the link (EXTRA, ROOM): the field
+# at its first turn against the server's TERRAIN (tools/chf/fieldcheck.py)
+wait 240
+press
+wait 420
+key 13
+wait 300
+key 13
+wait 600
+peek SHOWS
+peek NBAD
+save FLD 6528 fld-1.bin
+save NTV 1 fld-1.ntv
+vcheck

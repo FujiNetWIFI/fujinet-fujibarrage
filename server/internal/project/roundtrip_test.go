@@ -35,6 +35,7 @@ var shapes = []Caps{
 	{FieldW: 256, FieldH: 168, Hz: 50, Buf: 1536, TankW: 7, TankH: 5},        // the same, PAL
 	{FieldW: 160, FieldH: 168, Hz: 60, Buf: 1024, TankW: 7, TankH: 5},        // Atari 5200 (the Atari's field, 16K)
 	{FieldW: 320, FieldH: 176, Hz: 60, Buf: 4096, TankW: 12, TankH: 6},       // MS-DOS (CGA and VGA)
+	{FieldW: 102, FieldH: 46, Hz: 60, Buf: 1536, TankW: 5, TankH: 3},         // Channel F
 }
 
 func field(seed uint64) *sim.Sim {

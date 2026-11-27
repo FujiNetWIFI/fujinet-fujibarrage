@@ -1,0 +1,28 @@
+# live: the title, the room from the key (dev1), the waiting room as host,
+# START: the shop, START: done, the field; FIRE when it is our turn
+wait 240
+snap title
+press
+wait 420
+snap room
+peek SHOWS
+peek MYSEAT
+peek NLINK
+peek NBAD
+key 13
+wait 300
+snap shop
+peek SHOWS
+key 13
+wait 600
+snap field
+peek SHOWS
+peek NTV
+peek ST+4
+press
+wait 600
+snap after
+peek SHOWS
+peek NBAD
+peek CATN 2
+vcheck

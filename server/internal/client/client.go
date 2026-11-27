@@ -160,6 +160,13 @@ var Nes = project.Caps{FieldW: 256, FieldH: 168, Par: 73, Hz: 60, TankW: 7, Tank
 var NesPal = project.Caps{FieldW: 256, FieldH: 168, Par: 73, Hz: 50, TankW: 7, TankH: 5, Buf: 1024,
 	Bands: 8, Flags: proto.CapHold, Plat: proto.PlatNes}
 
+// ChannelF is the Fairchild Channel F client's shape: the 128x64 VRAM shows
+// 102x58 pixels (a pixel ~0.76 as wide as tall: 48/64), the field 102x46
+// over two text rows; the tanks are drawn into the field. The cart's 30K of
+// RAM holds a 1.5K script buffer.
+var ChannelF = project.Caps{FieldW: 102, FieldH: 46, Par: 48, Hz: 60, TankW: 5, TankH: 3, Buf: 1536,
+	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatChannelF}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps

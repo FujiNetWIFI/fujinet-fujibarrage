@@ -1,0 +1,38 @@
+# live, tapproxy in the link: a game's shots (our turns time out: the server
+# fires for us); the field against the server's TERRAIN at an aiming phase
+# (PH_AIM: no script half played) after each wait
+wait 240
+press
+wait 420
+key 13
+wait 300
+key 13
+wait 900
+waitfor ST 3 2400
+wait 10
+save FLD 6528 fld-1.bin
+save NTV 1 fld-1.ntv
+wait 900
+waitfor ST 3 2400
+wait 10
+save FLD 6528 fld-2.bin
+save NTV 1 fld-2.ntv
+wait 900
+waitfor ST 3 2400
+wait 10
+save FLD 6528 fld-3.bin
+save NTV 1 fld-3.ntv
+wait 900
+waitfor ST 3 2400
+wait 10
+save FLD 6528 fld-4.bin
+save NTV 1 fld-4.ntv
+wait 900
+waitfor ST 3 2400
+wait 10
+save FLD 6528 fld-5.bin
+save NTV 1 fld-5.ntv
+snap last
+peek NBAD
+peek SHOWS
+vcheck

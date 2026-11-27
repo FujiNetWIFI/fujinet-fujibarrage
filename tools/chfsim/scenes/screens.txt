@@ -1,0 +1,45 @@
+# live: the waiting room, its settings (HOLD; down, right: a value changed),
+# start (push), the shop (scrolled, a buy, a sell, START), a one-round game
+# to its end (DEVSET rounds=1), the results
+wait 240
+press
+wait 420
+snap room
+key 09
+wait 90
+snap sets
+hold d
+wait 10
+hold none
+wait 10
+hold r
+wait 4
+hold none
+wait 90
+snap sets2
+key 09
+wait 60
+press
+wait 360
+snap shop
+hold d
+wait 60
+hold none
+wait 30
+snap shop2
+press
+wait 60
+snap bought
+hold l
+wait 4
+hold none
+wait 60
+snap sold
+key 13
+wait 600
+snap field
+waitfor ST 5 6000
+wait 120
+snap round
+peek NBAD
+vcheck

@@ -1,0 +1,16 @@
+# live: the title, then the field in the room's sky (DEVSET sky=), aimed
+wait 300
+snap title
+press
+wait 420
+key 13
+wait 300
+key 13
+wait 600
+snap field
+hold l
+wait 30
+hold none
+wait 30
+snap aimed
+vcheck

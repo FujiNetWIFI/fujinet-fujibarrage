@@ -77,6 +77,7 @@ const (
 	PlatH89      // the Heathkit H89 (the H19 terminal's graphics characters)
 	PlatSms      // the Sega Master System (Mode 4 tiles)
 	PlatNes      // the NES (the FujiNet cartridge: MMC3, CHR-RAM tiles)
+	PlatChannelF // the Fairchild Channel F (the FujiNet cartridge: VRAM a pixel at a time)
 )
 
 // Client -> server frame types.
@@ -486,7 +487,7 @@ var cdefs = []struct {
 	{"MAX_TALK", MaxTalk},
 	{"HELLO_WATCH", HelloWatch}, {"CAP_HOLD", CapHold}, {"PLAT_ATARI", PlatAtari}, {"PLAT_INTV", PlatIntv}, {"PLAT_ASTROCADE", PlatAstrocade},
 	{"PLAT_APPLE2", PlatApple2}, {"PLAT_COCO", PlatCoco}, {"PLAT_COCO3", PlatCoco3}, {"PLAT_ADAM", PlatAdam}, {"PLAT_ATARI5200", PlatAtari5200},
-	{"PLAT_MSDOS", PlatMsdos}, {"PLAT_MSDOS_VGA", PlatMsdosVga}, {"PLAT_ARCADIA", PlatArcadia}, {"PLAT_H89", PlatH89}, {"PLAT_SMS", PlatSms}, {"PLAT_NES", PlatNes},
+	{"PLAT_MSDOS", PlatMsdos}, {"PLAT_MSDOS_VGA", PlatMsdosVga}, {"PLAT_ARCADIA", PlatArcadia}, {"PLAT_H89", PlatH89}, {"PLAT_SMS", PlatSms}, {"PLAT_NES", PlatNes}, {"PLAT_CHANNELF", PlatChannelF},
 	{"SC_HELLO", SCHello}, {"SC_ROOMS", SCRooms}, {"SC_ACT", SCAct}, {"SC_DONE", SCDone},
 	{"SC_WANT", SCWant}, {"SC_RESYNC", SCResync}, {"SC_CREDIT", SCCredit}, {"SC_PING", SCPing},
 	{"SC_BYE", SCBye},

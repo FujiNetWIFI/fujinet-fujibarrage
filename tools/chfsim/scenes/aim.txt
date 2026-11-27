@@ -1,0 +1,28 @@
+# live: to the field as host of dev1, then aim (left 40 frames, up 40),
+# twist for the next weapon, fire
+wait 240
+press
+wait 420
+key 13
+wait 300
+key 13
+wait 600
+snap field
+peek MYTURN
+peek AIMA
+peek AIMP 2
+hold l
+wait 40
+hold u
+wait 40
+hold none
+wait 20
+snap aimed
+peek AIMA
+peek AIMP 2
+peek SENTA 3
+press
+wait 300
+snap fired
+peek NBAD
+vcheck

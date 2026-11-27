@@ -1,0 +1,10 @@
+wait 240
+press
+wait 420
+key 13
+wait 300
+key 13
+wait 600
+save FLD 6528 fld.bin
+save TKX 80 tk.bin
+peek MYSEAT

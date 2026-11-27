@@ -192,6 +192,13 @@ func TestNesGameAgainstBots(t *testing.T) {
 	}
 }
 
+// The Channel F's shape: 102x46, CAP_HOLD, a 1.5K buffer.
+func TestChannelFGameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.ChannelF, mode)
+	}
+}
+
 func TestAtari5200GameAgainstBots(t *testing.T) {
 	for mode := 0; mode < 3; mode++ {
 		botGame(t, client.Atari5200, mode)

@@ -2,7 +2,8 @@
 
 The Atari 400/800 is the first client, and the Intellivision the second;
 the Apple II, the Astrocade, the Color Computers, the 5200, the Adam, the
-PC, the Arcadia 2001, the H89, the Master System and the NES followed.
+PC, the Arcadia 2001, the H89, the Master System, the NES and the Channel F
+followed.
 These notes say
 what another machine needs, and what the ports taught.
 
@@ -391,6 +392,25 @@ and 8K of WRAM. What it took:
 - **Sound:** `snd.s` is the Z80 machines' engine (the Adam's and the SMS's effects, tunes and whistle as three voices) in 6502. C only queues; the NMI plays a jiffy (every 60th: `frame_count`) from bank 6, which it puts in R6 and takes out again. The voices on the APU: with no tune A pulse 1, B pulse 2, C the triangle; with a tune A the triangle (the bass), C pulse 1; noise on the noise channel. Periods are the AY's (CPU / 16 / Hz): a pulse's timer P - 1, the triangle's P/2 - 1; the AY's 3 dB volumes as the APU's linear ones; a pulse's high timer byte written only when it changes.
 - **PAL:** the start-up counts a frame (a 12-cycle loop in one page: 2482 NTSC, 2771 PAL, 2955 a Dendy). At 50 Hz every fifth frame counts twice (the 60 Hz clock, the sound) and HELLO says 50. PAL's lines are 106.56 cycles, so the HUD's split has a PAL copy: its palette bursts 107 and 106 cycles apart. A Dendy has NTSC's lines. Over 30 frames in each, no burst shows a colour outside a horizontal blank (`nesrun`'s `events`).
 - **Tests:** `tools/nessim/` (`nesrun` on FujiNet Go NES's core, compiled from its sources, with its PPU guard, `wav`, `prof`, `events`; `refcheck.py`, `vramcheck.py`, `textcheck.py`, `firecheck.py`, `prof.py`; `rig.sh` live with fujinet-pc over BoIP: 10 tanks, the shop scrolled, and the cut, drop, garble and stall proxies).
+
+## The Fairchild Channel F
+
+`src/channelf/` is F8 assembly (Macroassembler AS) on FujiBlast's Channel F
+skeleton (the cartridge's mailbox, the page model, the checks), with the
+Arcadia's flow and the 6502 script player rewritten op for op. The FujiNet
+cartridge gives a fixed 16K, 8K pages at $4800 and 30K of RAM the CPU reads,
+writes and runs code from. What it took:
+- **VRAM a pixel at a time.** The screen is 128x64 at 2 bits a pixel, write-only; a pixel is three port writes (its value, column, row), a strobe, and then no port write for the settle time (94 clocks at the default, about 150-190 clocks a written pixel: roughly 150 pixels a frame). Writing fewer pixels is everything: the field is kept as a byte a pixel in RAM, column by column (`FLD + 64x + y`, the byte the value as port 1 wants it), and that is the model and the screen's mirror at once: a set writes VRAM only when the byte changes. A column kernel (`FCOLW`) writes a column's run with the settle padded to the clock by the assembler (`NOPS`). Blasts are drawn a column at a time too (an ellipse as vertical runs), growing in rings (only the rows outside their last size). A text cell is drawn by the difference between its old glyph and the new one.
+- **The settle guard.** The settle time is unmeasured on a cartridge (M.U.L.E.'s 94 clocks, PAL's 105, the BIOS's own 136: `SETTLE=`), and MAME and FujiNet Go store a pixel at once, so `chfsim.py` fails any run that writes a port sooner than the settle time after a strobe. Every gate and live run has it on; the image is built to the clock at 94.
+- **A palette a line.** Each of the 64 lines takes one of four palettes from two bits written off-screen (columns 125 and 126): black with every ink white, or light blue, grey or green with blue, red and green inks. That is the sky (bands; a night sky black above the hills and tanks, so a shell there shows white), the HUD (white on black), a message's grey band, YOUR TURN! flashing (row 1 black and grey in turn), the flash (every field line's palette swapped) and the shake (the sky's lines over the land flickering every 4 jiffies: the picture can't move). A palette is two pixels; only the ones that change are written (`PALSET`, `PALX`).
+- **Three inks for the field:** the dirt green, the fire red, the tanks blue (all of them: yours has a pennant, the one aiming blinks). A tank keeps what it covers, so taking it off restores the slope under it.
+- **Code:** the shot player (`p_ply.inc`, about 5.5K) and the sounds are copied into cartridge RAM at start-up, so they run whatever page is in; the HUD's rows and the messages are fixed code (`hud.inc`) so both the HUD page and the player draw them; the rest are pages. The F8's traps, each now a check: PI and JMP destroy A and the flags (`checkacc.py`); the BIOS's K-stack in the scratchpad is 21 levels (`checkdepth.py`); ENTER spends r7 and LEAVE r10, so neither can carry an argument; a leaf can't call; `ADC` adds A signed (`ADCU` for a seat's record past 127 bytes: seats 6-9 read 256 bytes low without it); there is no OR with a register (`DCI X; OM`); AS's labels are global and case-blind (`checkdup.py`).
+- **CPU:** a 1.79 MHz F8, 29,568 clocks a frame. The player catches up to 8 steps a pass and draws once; a hit's event line waits while the player is behind and is drawn at the segment's end; a message stays until the shot's last segment instead of the HUD being drawn in the middle of it. The worst shot (MEGA MIRV on a flat field) ends about 1.8 s behind its script.
+- **The link:** the cartridge's mailbox (FujiBlast's), `CAP_HOLD`, the catalog streamed into RAM after each HELLO. MAME's cartridge device does its BoIP round trips synchronously, so a stalled fujinet-pc stalls MAME.
+- **Input:** the right controller and the console's buttons: push fires, twist changes the weapon, pull opens the items line (and rubs out in the name), START is done, MODE leaves, HOLD shows the settings, TIME the sound.
+- **Sound:** port 5's two bits pick 1 kHz, 500 Hz or a ~120 Hz buzz; there is no volume or noise, and a tone sounds only when the bits change, decaying in about 9 ms. A sound is steps of a tone held for its jiffies, struck again every jiffy (loudest), every other one (softer) or once (a pip) (`tools/chf/mksnd_chf.py`). The effects are drawn for it by hand; the tunes are music/*.txt by rhythm: the kick on the buzz, the melody on the high or middle tone by its pitch, the snare a high pip, the bass a buzz pip on its own. Priorities as the Arcadia's.
+- **PAL:** the timeline counts the cartridge's 60 Hz tick (the player, the sound, the flashes), so a PAL console (2 MHz, 50 Hz) plays in time and its HELLO says 60.
+- **Tests:** `tools/chfsim/` (MAME headless, the settle guard, `vcheck`, `auto` for long live games), `tools/chf/` (`refcheck.py`: the 99 shots at 0 pixels; `sndwav.py`; `mkstate_chf.py` for the screens over a canned state), `tools/chfrig/rig.sh` live with fujinet-pc over BoIP and the proxies.
 
 ## Testing a port
 

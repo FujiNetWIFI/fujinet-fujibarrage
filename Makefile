@@ -29,6 +29,9 @@
 #                                  cartridge; src/arcadia/build.sh: AS, the APPBANK image)
 #   make arcadia-rig               build/arcadia-rig/barrage.bin: default server 127.0.0.1:9913
 #   make fixture-arcadia           src/arcadia/test/fixture.inc: its test scene's field and shot
+#   make channelf                  r2r/channelf/barrage.bin (Fairchild Channel F, FujiNet
+#                                  cartridge: F8 asm, src/channelf/build.sh; SETTLE=)
+#   make fixture-channelf          src/channelf/test/fixture.inc: its test scenes' field and shot
 #   make msdos                     r2r/msdos/barrage.img (an IBM PC: CGA, 128K, PCjr; or VGA
 #                                  and MCGA: tools/msdos/build.mk, Watcom in defoogi;
 #                                  TEST=1, TEST_SCENE=n, STATS=1, VIDEO_CARD=1, FIXDIR=)
@@ -376,6 +379,20 @@ fixture-arcadia:
 	    -shots 1 -seed 5 -weapon 9 -fixture-asm ../src/arcadia/test/fixture.inc -out ../build/refview-arcadia
 
 .PHONY: arcadia arcadia-rig fixture-arcadia
+
+channelf:
+	$(if $(SERVER),DEFSRV=$(SERVER)) bash src/channelf/build.sh
+
+channelf-rig:
+	DEFSRV=127.0.0.1:9913 OUT=build/channelf-rig/obj R2R=build/channelf-rig bash src/channelf/build.sh
+
+# the test scenes' field and shot (tools/chf/refcheck.py swaps in each
+# weapon's): the Channel F's caps as the server projects its HELLO
+fixture-channelf:
+	cd server && go run ./cmd/refview -w 102 -h 46 -par 48 -buf 1536 -tankw 5 -tankh 3 -plat 15 \
+	    -shots 1 -seed 5 -weapon 9 -fixture-asm ../src/channelf/test/fixture.inc -out ../build/refview-channelf
+
+.PHONY: channelf channelf-rig fixture-channelf
 
 include mekkogx/toplevel-rules.mk
 
