@@ -205,6 +205,9 @@
 #elif defined(__ATARI5200__)            /* (the keypad's 0, the lower button) */
 #define TXT_W_HOSTSET "0 SEATS  LOWER PAGE  <> CHANGE  FIRE GO"
 #define TXT_W_SET     "0 SEATS  LOWER BUTTON PAGE"
+#elif defined(__ATARI7800__)            /* (SELECT, the right button) */
+#define TXT_W_HOSTSET "SEL SEATS  RIGHT PAGE  <> CHANGE  FIRE GO"
+#define TXT_W_SET     "SELECT SEATS  RIGHT BUTTON PAGE"
 #else
 #define TXT_W_HOSTSET "S SEATS  TAB PAGE  <> CHANGE  FIRE GO"
 #define TXT_W_SET     "S SEATS  TAB PAGE"
@@ -213,6 +216,10 @@
 #define TXT_W_WAIT    "WAITING FOR THE HOST  0 SETTINGS"
 #define TXT_W_PEOPLE  "FIRE STARTS (2+ PEOPLE)  0 SETTINGS"
 #define TXT_W_BOTS    "FIRE STARTS (BOTS FILL)  0 SETTINGS"
+#elif defined(__ATARI7800__)
+#define TXT_W_WAIT    "WAITING FOR THE HOST  SELECT SETTINGS"
+#define TXT_W_PEOPLE  "FIRE STARTS (2+ PEOPLE)  SEL SETTINGS"
+#define TXT_W_BOTS    "FIRE STARTS (BOTS FILL)  SEL SETTINGS"
 #else
 #define TXT_W_WAIT    "WAITING FOR THE HOST  S SETTINGS"
 #define TXT_W_PEOPLE  "FIRE STARTS (2+ PEOPLE)  S SETTINGS"
@@ -252,6 +259,8 @@
 #define TXT_SHOP_HINT "FIRE BUYS  LEFT SELLS  ENTER: DONE"
 #elif defined(__ATARI5200__)
 #define TXT_SHOP_HINT "FIRE BUYS  LEFT SELLS  START: DONE"
+#elif defined(__ATARI7800__)
+#define TXT_SHOP_HINT "FIRE BUYS  LEFT SELLS  PAUSE: DONE"
 #else
 #define TXT_SHOP_HINT "FIRE BUYS  LEFT SELLS  RETURN: DONE"
 #endif
@@ -267,10 +276,17 @@
 #define TXT_DEFENCES "SET UP DEFENCES, START DONE"
 #elif defined(__ATARI5200__)
 #define TXT_DEFENCES "SET UP DEFENCES, START: DONE"
+#elif defined(__ATARI7800__)
+#define TXT_DEFENCES "SET UP DEFENCES, PAUSE: DONE"
 #endif
 
 #ifdef __MSDOS__
 #define QUIT_HINT "ESC: LOBBY"          /* the title: ESC goes back to the lobby (menus.c) */
+#endif
+#ifdef __ATARI7800__            /* (RESET is ESC: the title's goes back to CONFIG) */
+#define QUIT_HINT "RESET: QUIT"
+#define TXT_WHEEL1 "UP/DOWN: LETTER  FIRE: TAKE IT"
+#define TXT_WHEEL2 "LEFT: BACK  PAUSE: DONE"
 #endif
 #ifdef __NES__                  /* (no QUIT_HINT: the cartridge has no way back to CONFIG) */
 #define TXT_WHEEL1 "UP/DOWN: LETTER  A: TAKE IT"

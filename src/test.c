@@ -121,7 +121,7 @@ static void ground(void)
 #endif
 }
 
-#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__)
+#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__) || defined(__ATARI7800__)
 static uint8_t show;                    /* scene 8's extras */
 #endif
 
@@ -130,7 +130,7 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
     uint16_t t;
     ground();
     play_enter();
-#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__)
+#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__) || defined(__ATARI7800__)
     if (show & 0x40)
         field_balloon(0, "NICE SHOT. NOW WATCH THIS ONE!", 30);
     if (show & 0x80) {
@@ -208,7 +208,7 @@ static void field_scene(uint8_t shots, uint8_t stream_only)
     }
 }
 
-#if defined(TEST_CATALOG) && (defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__))
+#if defined(TEST_CATALOG) && (defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__) || defined(__ATARI7800__))
 /* scene 10 (a TEST_CATALOG build): the shop on the server's catalog (the
  * PC's from CAT.BIN on its disk; elsewhere the rig puts it in catalog[]
  * and sets cat_len), every item shown, the cursor stepped down the list a
@@ -288,7 +288,7 @@ void test_check(void)
         if (test_hook[3] & 0x80)
             st[OFF_SKY] = test_hook[3] & 7;
         field_scene(0, 0);
-#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__)
+#if defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__) || defined(__ATARI7800__)
     case 8:
         st[OFF_TURN] = 0;
         st[OFF_SKY] = test_hook[3] & 7;
@@ -321,7 +321,7 @@ void test_check(void)
         }
         for (;;)
             tick();
-#if defined(TEST_CATALOG) && (defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__))
+#if defined(TEST_CATALOG) && (defined(_COCO_BASIC_) || defined(__ADAM__) || defined(__MSDOS__) || defined(__SMS__) || defined(__NES__) || defined(__ATARI7800__))
     case 10:
         shop_timed();
         break;

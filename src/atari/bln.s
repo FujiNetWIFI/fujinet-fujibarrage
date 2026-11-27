@@ -16,6 +16,13 @@ TANK_H  = 5
 UP      = TANK_H + 6 + B_ROWS + 2   ; the box's top, over the tank's bottom
 PX_TANK = 0
 PX_FX   = 3
+.ifdef __ATARI7800__            ; (the 7800: a white box, black words: a tank's
+BOX     = PX_FX             ; underlay, a colour behind the field's 0s, would
+INK     = PX_TANK           ; show through a black box where it crosses one)
+.else
+BOX     = PX_TANK
+INK     = PX_FX
+.endif
 
         .segment "ZEROPAGE"
 kp:     .res 2                  ; in keep
@@ -163,7 +170,7 @@ _balloon:
         jsr     rows            ; kept
         lda     #1
         sta     _keeping
-        lda     #PX_TANK        ; the box
+        lda     #BOX            ; the box
         sta     _fv
         lda     #0
         sta     r
@@ -190,7 +197,7 @@ _balloon:
         sta     tp
         lda     _bl_t+1
         sta     tp+1
-        lda     #PX_FX
+        lda     #INK
         sta     _fv
         lda     #0
         sta     i

@@ -7,10 +7,14 @@
  * balloon is a black box with the phrase in COLPF2 (white while it shows),
  * the pixels under it kept and put back.
  */
-#if defined(__ATARI__) || defined(__ATARI5200__)
+#if defined(__ATARI__) || defined(__ATARI5200__) || defined(__ATARI7800__)
 
 #include <string.h>
+#ifdef __ATARI7800__
+#include "a78.h"
+#else
 #include "atari.h"
+#endif
 #include "game.h"
 #include "field.h"
 #include "plat.h"
@@ -43,6 +47,12 @@ void fld_hspan(void);
 uint8_t fld_col(void);
 extern uint8_t rowlo[], rowhi[];
 
+#ifdef __ATARI7800__
+/* the 7800's display (src/atari7800/fieldm.c) */
+void m_field_open(uint8_t sky, uint8_t pal);
+void m_field_show(void);
+void m_box(uint8_t s, int16_t x, int16_t top, int8_t h);
+#else
 /* dsp.s, dlc.c */
 extern uint8_t dsp_dma, dsp_mode, dsp_flash, fx_col, fx_cycle, st_bk, st_c1, st_c2;
 void __fastcall__ dlc_palette(uint16_t sky_pal);    /* (dlc.s) */
@@ -50,6 +60,7 @@ uint8_t hue(uint8_t c);                             /* (scr.c) */
 void dlc_build(void);
 
 #define STATUS ((uint8_t *)STATUS_ADDR)
+#endif
 
 /* the body: rows top to bottom, bit 6 the left pixel */
 static const uint8_t body[TANK_H] = { 0x1C, 0x3E, 0x7F, 0x7F, 0x2A };
@@ -69,6 +80,15 @@ void field_init(void)
     fld_clear();
 }
 
+#ifdef __ATARI7800__
+/* (the 7800's text screen is its own memory: field_loading is fieldm.c's) */
+void field_open(uint8_t sky, uint8_t pal)
+{
+    m_field_open(sky, pal);
+    memset(drawn_on, 0, sizeof(drawn_on));
+    m_field_show();
+}
+#else
 /* a text screen borrows the field's memory: it goes dark while the field
  * is written over it */
 void field_loading(void)
@@ -93,6 +113,7 @@ void field_open(uint8_t sky, uint8_t pal)
     dsp_mode = 1;
     dsp_dma = 0x3E;             /* normal width, players and missiles, one line */
 }
+#endif
 
 void field_column(uint16_t x, const uint8_t *entry)
 {
@@ -167,6 +188,27 @@ static void sprite(int16_t x, uint8_t y, uint8_t a, uint8_t draw)
     }
 }
 
+#ifdef __ATARI7800__
+/* the tank's box (fieldm.c's underlay): its body and barrel's pixels */
+static void box(uint8_t s)
+{
+    int16_t x, bx, by, l, t;
+    if (!drawn_on[s]) {
+        m_box(s, 0, 0, 0);
+        return;
+    }
+    x = drawn_x[s];
+    barrel(x, drawn_y[s], drawn_a[s], 4, &bx, &by);
+    l = x - 3;
+    if (bx < l)
+        l = bx;
+    t = drawn_y[s] - TANK_H;
+    if (by + 1 < t)
+        t = by + 1;
+    m_box(s, l, t, (int8_t)(drawn_y[s] - t));
+}
+#endif
+
 void field_tank(uint8_t s, uint8_t draw)
 {
     if (drawn_on[s]) {
@@ -180,12 +222,17 @@ void field_tank(uint8_t s, uint8_t draw)
         drawn_a[s] = tk[s].angle;
         drawn_on[s] = 1;
     }
+#ifdef __ATARI7800__
+    box(s);
+#endif
 }
 
+#ifndef __ATARI7800__               /* (the 7800's: fieldm.c) */
 void field_colours(void)
 {
     dlc_build();
 }
+#endif
 
 /* ---- the balloon --------------------------------------------------------- */
 
@@ -204,6 +251,7 @@ void field_balloon(uint8_t s, const char *t, uint8_t n)
 
 /* ---- the status rows ----------------------------------------------------- */
 
+#ifndef __ATARI7800__               /* (the 7800's: fieldm.c) */
 void field_status(uint8_t row, uint8_t col, const char *s)
 {
     uint8_t *d = STATUS + row * 40 + col;
@@ -228,6 +276,7 @@ void field_status_clear(void)
 {
     memset(STATUS, 0, 120);
 }
+#endif
 
 void field_ellipse(int16_t x, int16_t y, uint8_t rx, uint8_t ry, uint8_t v, uint8_t mode)
 {

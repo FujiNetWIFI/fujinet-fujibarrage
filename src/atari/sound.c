@@ -6,10 +6,14 @@
  * Slots: 0 the effect, 1 its body or the UI, 2 and 3 (link held only) the
  * low end of blasts and the whistle.
  */
-#if defined(__ATARI__) || defined(__ATARI5200__)
+#if defined(__ATARI__) || defined(__ATARI5200__) || defined(__ATARI7800__)
 
 #include <string.h>
+#ifdef __ATARI7800__
+#include "a78.h"                        /* (the cartridge's POKEY: hw.inc) */
+#else
 #include "atari.h"
+#endif
 #include "sound.h"
 #include "proto.h"
 
@@ -19,6 +23,9 @@ extern uint8_t snd_left[8], snd_all, snd_ctl, snd_f[8], snd_c[8], snd_mute;
 
 #define END 0, 0, 0
 
+#ifdef __ATARI7800__                    /* (the steps in the sound's bank, 4: the frame's DLI */
+#pragma rodata-name (push, "SNDDATA")   /* plays them with it in; the tables that point at */
+#endif                                  /* them stay in the core, which snd_cue reads) */
 static const uint8_t s_fire[]   = { 20, 0x8C, 2, 40, 0x8A, 2, 80, 0x86, 3, 120, 0x83, 4, END };
 static const uint8_t s_thump[]  = { 200, 0xCA, 3, 230, 0xC8, 3, 255, 0xC5, 4, END };
 static const uint8_t s_boom0[]  = { 30, 0x8C, 3, 50, 0x8A, 3, 80, 0x87, 4, 120, 0x84, 4, END };
@@ -51,6 +58,9 @@ static const uint8_t s_plasma[] = { 30, 0xA8, 2, 34, 0xA8, 2, 30, 0xA8, 2, 34, 0
 static const uint8_t s_dig[]    = { 120, 0xC6, 3, 140, 0xC5, 3, 120, 0xC6, 3, 140, 0xC5, 3,
                                     160, 0xC4, 4, END };                            /* a grind */
 static const uint8_t s_roll[]   = { 200, 0xC5, 4, 220, 0xC4, 4, 200, 0xC4, 4, 230, 0xC3, 6, END };
+#ifdef __ATARI7800__
+#pragma rodata-name (pop)
+#endif
 
 extern uint8_t snd_pal;
 
@@ -73,8 +83,15 @@ void snd_tune(const uint8_t *a, const uint8_t *b)
 void snd_init(void)
 {
     memset(snd_c, 0, sizeof(snd_c));
+#ifdef __ATARI7800__
+    snd_pal = !m_ntsc;                  /* (maria.s's line count) */
+    *(volatile uint8_t *)0x045F = 0;    /* SKCTL: reset, then on */
+    *(volatile uint8_t *)0x045F = 3;
+    *(volatile uint8_t *)0x0458 = 0;    /* AUDCTL */
+#else
     snd_pal = (GTIA_PAL & 0x0E) == 0;   /* GTIA: 1 on NTSC, 0 on PAL */
-#ifdef __ATARI5200__
+#endif
+#if defined(__ATARI5200__) || defined(__ATARI7800__)
     snd_ctl = 0x00;                     /* no SIO: all four voices, always */
     snd_all = 1;
 #endif
@@ -128,7 +145,7 @@ void snd_cue(uint8_t id, uint8_t size)
 
 void snd_full(uint8_t on)
 {
-#ifdef __ATARI5200__
+#if defined(__ATARI5200__) || defined(__ATARI7800__)
     (void)on;                           /* (all four, always: snd_init) */
 #else
     if (on) {

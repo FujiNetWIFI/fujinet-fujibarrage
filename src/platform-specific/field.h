@@ -17,8 +17,10 @@
 #define PX_DIRT 2
 #define PX_FX   3
 
-#if defined(__ATARI__) || defined(__ATARI5200__)
-/* (the 5200: the Atari's display in 16K of RAM, src/atari5200) */
+#if defined(__ATARI__) || defined(__ATARI5200__) || defined(__ATARI7800__)
+/* (the 5200: the Atari's display in 16K of RAM, src/atari5200; the 7800:
+ * its field on MARIA, 160A, the tanks coloured by objects under it,
+ * src/atari7800) */
 #define FIELD_W 160
 #define FIELD_H 168
 #define TANK_W  7
@@ -28,6 +30,12 @@
 #define SCRIPT_BUF 1024
 #define PLAT_ID   PLAT_ATARI5200
 #define TXT_ITEMS "#: ITEMS"
+#elif defined(__ATARI7800__)
+#ifndef SCRIPT_BUF
+#define SCRIPT_BUF 1536
+#endif
+#define PLAT_ID   PLAT_ATARI7800
+#define TXT_ITEMS "SELECT: ITEMS"
 #else
 #ifndef SCRIPT_BUF                  /* (a rig's build may make it smaller) */
 #define SCRIPT_BUF 1536
@@ -35,7 +43,11 @@
 #define PLAT_ID   PLAT_ATARI    /* HELLO's platform and capabilities (proto.h) */
 #define TXT_ITEMS "OPTION/I: ITEMS"   /* (the defence window, the items line shut) */
 #endif
+#ifdef __ATARI7800__
+#define BANDS   0               /* (the tanks are in the bitmap) */
+#else
 #define BANDS   4
+#endif
 #define PLAT_CAPS CAP_HOLD
 #define ITEMS_ROW 2             /* the items line: the HUD's third row */
 #define PLY_CATCHUP 4           /* script steps a pass, at most, when behind */

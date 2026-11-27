@@ -16,7 +16,7 @@ void frame_wait(void);
 
 uint8_t plat_rand(void);
 uint8_t plat_hz(void);          /* 50 or 60: the display's frames a second */
-#if defined(__ATARI5200__) || defined(__SMS__) || defined(__NES__)
+#if defined(__ATARI5200__) || defined(__ATARI7800__) || defined(__SMS__) || defined(__NES__)
 #define NAME_WHEEL              /* no keyboard: the name from a letter wheel (menus.c) */
 #endif
 #ifdef __APPLE2__

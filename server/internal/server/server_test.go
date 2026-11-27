@@ -199,6 +199,13 @@ func TestChannelFGameAgainstBots(t *testing.T) {
 	}
 }
 
+// The Atari 7800's shape: the Atari's field, CAP_HOLD, a 1.5K buffer.
+func TestAtari7800GameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.Atari7800, mode)
+	}
+}
+
 func TestAtari5200GameAgainstBots(t *testing.T) {
 	for mode := 0; mode < 3; mode++ {
 		botGame(t, client.Atari5200, mode)

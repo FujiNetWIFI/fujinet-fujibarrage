@@ -1,0 +1,53 @@
+# far.txt -- the 7800 game's overlay functions called from outside their
+# overlay (tools/nes/mkfar.py; the NES's tools/nes/far.txt): each gets a
+# wrapper in the core that puts the overlay's bank in the window ($A000-
+# $BFFF is a bank's own), calls it, and puts the caller's back. The
+# overlay's own is renamed ovl_<name> when it is compiled.
+# tools/nes/farcheck.py fails a build that calls across without one. A far
+# function must not be given a pointer into its caller's bank (it reads
+# with its own bank in); a pointer into its own is fine.
+#
+# bank 0: the field (src/play.c)
+0 play_enter
+0 play_state
+0 play_frame
+0 play_script
+0 play_esc
+0 play_skip
+0 c_op
+0 c_anim
+0 play_segment
+# bank 1: the rooms (src/room.c), the catalog (src/cat.c and the ROM's)
+1 wait_enter
+1 wait_state
+1 wait_frame
+1 shop_enter
+1 shop_state
+1 shop_frame
+1 results_enter
+1 results_frame
+1 cat_check
+1 cat_item
+1 cat_setting
+1 cat_tier
+1 cat_page
+1 cat_name
+1 cat_count
+1 cat_value
+1 numstr
+1 num32
+# bank 2: the menus (src/menus.c), the appkeys' saves (src/appkey.c)
+2 message
+2 name_entry
+2 room_list
+2 tick
+2 title
+2 appkey_clear_room
+2 appkey_save_name
+2 appkey_save_room
+# bank 3: the boot (src/appkey.c's BOOTCODE), the test scenes (src/test.c)
+3 appkey_load
+3 test_check
+3 m_init
+# bank 5: the field screen's set-up (src/atari7800/fopen.c)
+5 m_field_open

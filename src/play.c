@@ -36,7 +36,7 @@ static uint8_t nlen(const char *s, uint8_t max)
     return n;
 }
 
-#if defined(__ATARI5200__) || defined(__NES__)  /* (the core's, not the field's bank: its */
+#if defined(__ATARI5200__) || defined(__ATARI7800__) || defined(__NES__)  /* (the core's, not the field's bank: its */
 #pragma code-name (push, "CODE")        /* callers, net.c's TERRAIN among them, pass pointers */
 #endif                                  /* into their own banks or run with another in) */
 #ifndef __H89__                 /* (the H89's is src/h89/plat.c's: resident, net.c calls it) */
@@ -45,7 +45,7 @@ uint16_t entry_len(const uint8_t *e)
     return *e <= T_EMPTY ? 1 : 1 + 2 * (*e - T_SPANS);
 }
 #endif
-#if defined(__ATARI5200__) || defined(__NES__)
+#if defined(__ATARI5200__) || defined(__ATARI7800__) || defined(__NES__)
 #pragma code-name (pop)
 #endif
 

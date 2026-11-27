@@ -177,6 +177,33 @@ fixture-atari5200:
 
 .PHONY: atari5200 fixture-atari5200
 
+# ---- Atari 7800 (the FujiNet 7800 cartridge) ---------------------------------
+# cc65 in defoogi (tools/atari7800/build.mk): a 128K SuperGame with the cart's
+# 16K of RAM, one program with overlays (src/atari7800/barrage-a78.cfg). The
+# field is MARIA's 160A, the Atari's mode E packing (src/atari's pixels, shot
+# player and POKEY sound, at the cart's POKEY). fujinet-lib is
+# fujinet-lib-experimental's add-atari7800 branch (FNLIB_7800, a worktree),
+# built on the host (tools/atari7800/mkfnlib.sh); the catalog is in ROM (the
+# 5200's tools/atari5200/mkcat.py).
+FNLIB_7800 ?= $(HOME)/Workspace/fnlib-7800
+A78_ARGS = $(if $(TEST),TEST=$(TEST)) $(if $(TEST_SCENE),TEST_SCENE=$(TEST_SCENE) TEST_ARG=$(TEST_ARG)) \
+    $(if $(XFLAGS),XFLAGS="$(XFLAGS)") $(if $(XAFLAGS),XAFLAGS="$(XAFLAGS)")
+atari7800: gen/config.h gen/font35.h gen/atari/tunes.s gen/atari7800/catalog.h build/fnlib-a78/fujinet-a78.lib
+	defoogi $(MAKE) -f tools/atari7800/build.mk $(A78_ARGS)
+build/fnlib-a78/fujinet-a78.lib: tools/atari7800/mkfnlib.sh $(wildcard $(FNLIB_7800)/common/*.c $(FNLIB_7800)/bus/atari7800/* $(FNLIB_7800)/include/*.h)
+	tools/atari7800/mkfnlib.sh $(FNLIB_7800) build/fnlib-a78
+gen/atari7800/catalog.h: $(SERVER_GO) tools/atari5200/mkcat.py src/proto.h
+	@mkdir -p build/a78 gen/atari7800
+	cd server && go run ./cmd/barraged -catalog ../build/a78/catalog.bin
+	$(PYTHON) tools/atari5200/mkcat.py build/a78/catalog.bin src/proto.h gen/atari7800/catalog.s $@
+
+# the test scenes' field and shot at the 7800's script buffer
+fixture-atari7800:
+	@mkdir -p src/atari7800/test
+	cd server && go run ./cmd/refview -flat -shots 1 -seed 5 -weapon 3 -buf 1536 -fixture-all ../src/atari7800/test/fixture.h -out ../build/refview-a78
+
+.PHONY: atari7800 fixture-atari7800
+
 # ---- Coleco Adam (the TMS9918A, the SN76489) --------------------------------
 # z88dk's zcc with zsdcc and z80asm, in the defoogi container unless z88dk is
 # installed (tools/z80/z88dk): tools/adam/build.mk. fujinet-lib is

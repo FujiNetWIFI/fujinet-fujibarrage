@@ -14,8 +14,12 @@
         .export _fld_vrun, _fld_col, _fld_swap, _fld_ellipse
         .exportzp _fx, _fy, _fx1, _fv, _fent, _fold, _ex, _ey, _erx, _ery, _emode
         .export _rowlo, _rowhi
+.ifdef __ATARI7800__
+        .export _fld_cols4
+.endif
 
         .include "hw.inc"
+        .include "proto.inc"
 
         .segment "ZEROPAGE"
 _fx:    .res 2          ; x (int16)
@@ -42,8 +46,22 @@ edy:    .res 1
 ei:     .res 1
 erem:   .res 1
 ehw:    .res 2
+.ifdef __ATARI7800__
+t4:     .res 4          ; fld_cols4: the 4 columns' tops
+nxt:    .res 1
+swp:    .res 1          ; hswap: 1 (hspan: 0)
+oldf:   .res 1          ; hswap: fold's byte
+.endif
 
-.ifdef __ATARI5200__
+.ifdef __ATARI7800__
+        .rodata                 ; (MARIA's zones: line y is zone z = y / 8's line
+_rowlo: .repeat FLINES, I       ; r = y % 8, at page $40 + 8 (z / 6) + 7 - r,
+        .byte   40 * ((I / 8) .mod 6)   ; byte 40 (z % 6): a78.inc)
+        .endrep
+_rowhi: .repeat FLINES, I
+        .byte   $40 + 8 * (I / 48) + 7 - (I .mod 8)
+        .endrep
+.elseif .defined(__ATARI5200__)
         .rodata                 ; (16K of RAM: the field never moves, so they're ROM)
 _rowlo: .repeat FLINES, I
         .byte   <(FIELD + I * 40)
@@ -65,12 +83,16 @@ mask:   .byte   $C0, $30, $0C, $03
 fill:   .byte   $00, $55, $AA, $FF
 lmask:  .byte   $FF, $3F, $0F, $03      ; a span's first byte: from pixel n on
 rmask:  .byte   $C0, $F0, $FC, $FF      ; its last byte: up to pixel n
+.ifdef __ATARI7800__
+cmask:  .byte   $3F, $CF, $F3, $FC      ; fld_cols4: all but pixel n,
+cdirt:  .byte   $80, $20, $08, $02      ; pixel n's dirt
+.endif
 
         .code
 
 ; void fld_init(void): the line address tables
 _fld_init:
-.ifndef __ATARI5200__        ; (the 5200's are ROM)
+.if .not (.defined(__ATARI5200__) .or .defined(__ATARI7800__))  ; (theirs are ROM)
         lda     #<FIELD
         sta     fp
         lda     #>FIELD
@@ -94,6 +116,22 @@ _fld_init:
 
 ; void fld_clear(void): all sky
 _fld_clear:
+.ifdef __ATARI7800__
+        ldx     #0              ; (line by line: the zones' spare bytes are
+@ln:    lda     _rowlo,x        ; the underlays' strips and the text screen)
+        sta     fp
+        lda     _rowhi,x
+        sta     fp+1
+        lda     #$55
+        ldy     #39
+@b:     sta     (fp),y
+        dey
+        bpl     @b
+        inx
+        cpx     #FLINES
+        bne     @ln
+        rts
+.else
         lda     #<FIELD
         sta     fp
         lda     #>FIELD
@@ -113,6 +151,7 @@ _fld_clear:
         sta     (fp),y
         bne     @r
 @x:     rts
+.endif
 
 ; in range? carry clear: fp is the line's address, A the byte, X the pixel
 at:     lda     _fx+1
@@ -204,6 +243,19 @@ _fld_swap:
 ; void fld_hspan(void): line fy, x from fx to fx1 (both included) = fv,
 ; clipped to the field
 _fld_hspan:
+.ifdef __ATARI7800__
+        lda     #0              ; (hswap: the same span, but only its pixels
+        sta     swp             ; of value fold become fv, a byte at a time)
+        beq     hspan2
+; hswap: line fy, fx to fx1, the pixels that are fold become fv (an
+; ellipse's modes 1 and 2: it was fld_swap a pixel at a time)
+hswap:  ldx     _fold
+        lda     fill,x
+        sta     oldf
+        lda     #1
+        sta     swp
+hspan2:
+.endif
         lda     _fy+1
         bne     @out
         ldy     _fy
@@ -220,9 +272,15 @@ _fld_hspan:
         lda     #0
         sta     _fx
         sta     _fx+1
+.ifdef __ATARI7800__
+@c0:    bne     @out            ; x0 >= 256: off the right
+        lda     _fx1+1
+        bmi     @out            ; x1 < 0
+.else
 @c0:    bne     @x              ; x0 >= 256: off the right
         lda     _fx1+1
         bmi     @x              ; x1 < 0
+.endif
         bne     @c1
         lda     _fx1
         cmp     #160
@@ -269,14 +327,30 @@ _fld_hspan:
         iny
 @mid:   cpy     cur
         beq     @last
+.ifdef __ATARI7800__
+        lda     swp
+        bne     @msw
+.endif
         lda     val
         sta     (fp),y
         iny
         bne     @mid
+.ifdef __ATARI7800__
+@msw:   lda     #$FF
+        sta     ft
+        jsr     @edge1
+        iny
+        bne     @mid
+.endif
 @last:  lda     ft2
         sta     ft
 @edge:  ; byte y: mask ft gets val
-@edge1: lda     ft
+@edge1:
+.ifdef __ATARI7800__
+        lda     swp
+        bne     @sw
+.endif
+        lda     ft
         eor     #$FF
         and     (fp),y
         sta     cnt
@@ -285,6 +359,28 @@ _fld_hspan:
         ora     cnt
         sta     (fp),y
 @x:     rts
+.ifdef __ATARI7800__
+@sw:    lda     (fp),y          ; its pixels that are fold, in mask ft
+        eor     oldf
+        sta     cnt
+        lsr     a
+        ora     cnt
+        and     #$55
+        sta     cnt
+        asl     a
+        ora     cnt             ; (11 where a pixel isn't fold)
+        eor     #$FF
+        and     ft
+        sta     cnt
+        eor     #$FF
+        and     (fp),y
+        sta     nm
+        lda     val
+        and     cnt
+        ora     nm
+        sta     (fp),y
+        rts
+.endif
 
 ; column setup: fx's byte and pixel mask, the value fv in it
 colset: lda     _fx
@@ -305,6 +401,40 @@ colset: lda     _fx
         rts
 
 ; rows cur..cnt-1 of column xb get val
+.ifdef __ATARI7800__
+vrows:  lda     #0              ; (MARIA's zones: a line down is a page down,
+        sta     fp              ; but every 8th, a zone's own block)
+@z:     ldx     cur
+        cpx     cnt
+        bcs     @x
+        lda     _rowhi,x
+        sta     fp+1
+        lda     _rowlo,x
+        clc
+        adc     xb              ; (no carry: the byte is under 240)
+        tay
+        txa
+        ora     #7
+        adc     #1              ; the zone's end, or cnt
+        cmp     cnt
+        bcc     @k
+        lda     cnt
+@k:     sta     ft
+        sec
+        sbc     cur
+        tax                     ; its lines
+        lda     ft
+        sta     cur
+@l:     lda     (fp),y
+        and     nm
+        ora     val
+        sta     (fp),y
+        dec     fp+1
+        dex
+        bne     @l
+        beq     @z
+@x:     rts
+.else
 vrows:  lda     cnt             ; (the lines are 40 bytes apart, all of
         sec                     ; them: line 102 starts at $B000)
         sbc     cur
@@ -333,6 +463,102 @@ vrows:  lda     cnt             ; (the lines are 40 bytes apart, all of
 @n:     dex
         bne     @l
 @x:     rts
+.endif
+
+.ifdef __ATARI7800__
+; uint8_t fld_cols4(void): columns fx .. fx+3 (fx a multiple of 4) the 4
+; plain TERRAIN entries at fent (each a top: sky above it, dirt from it
+; down; $F0 none), a byte column at a time: each line's byte built from the
+; four and stored, not read (by columns, every byte was read and written
+; four times: the NES's fld_cols8, for MARIA's zones). 1 if an entry has
+; spans (nothing done: fld_col's, a column at a time); the Z flag as A
+; (src/6502/ply.s's settle tests it).
+_fld_cols4:
+        ldy     #3
+@t:     lda     (_fent),y
+        cmp     #T_SPANS+1
+        bcs     @no
+        cmp     #FLINES
+        bcc     @tt
+        lda     #FLINES         ; ($F0: all sky)
+@tt:    sta     t4,y
+        dey
+        bpl     @t
+        lda     _fx
+        lsr     a
+        lsr     a
+        sta     xb
+        lda     #$55            ; the byte: all sky, then each column's dirt
+        sta     val             ; from its top on
+        lda     #0
+        sta     cur
+@ev:    ldy     #3              ; the columns whose dirt starts at cur
+@e1:    lda     t4,y
+        cmp     cur
+        bne     @e2
+        lda     val
+        and     cmask,y
+        ora     cdirt,y
+        sta     val
+@e2:    dey
+        bpl     @e1
+        lda     #FLINES         ; the next top after cur
+        sta     nxt
+        ldy     #3
+@n1:    lda     t4,y
+        cmp     cur
+        beq     @n2
+        bcc     @n2
+        cmp     nxt
+        bcs     @n2
+        sta     nxt
+@n2:    dey
+        bpl     @n1
+        jsr     cfill
+        lda     nxt
+        sta     cur
+        cmp     #FLINES
+        bcc     @ev
+        ldx     #0
+        lda     #0              ; (A last: the caller tests Z)
+        rts
+@no:    ldx     #0
+        lda     #1
+        rts
+
+; lines cur..nxt-1 of byte column xb = val (MARIA's zones, as vrows)
+cfill:  lda     #0
+        sta     fp
+        ldx     cur
+@z:     cpx     nxt
+        bcs     @x
+        lda     _rowhi,x
+        sta     fp+1
+        lda     _rowlo,x
+        clc
+        adc     xb
+        tay
+        txa
+        ora     #7
+        adc     #1
+        cmp     nxt
+        bcc     @k
+        lda     nxt
+@k:     sta     ft
+        sec
+        sbc     cur
+        tax
+        lda     ft
+        sta     cur
+        lda     val
+@l:     sta     (fp),y
+        dec     fp+1
+        dex
+        bne     @l
+        ldx     cur
+        jmp     @z
+@x:     rts
+.endif
 
 ; void fld_vrun(void): column fx, rows fy to fx1-1 = fv (all in the field)
 _fld_vrun:
@@ -528,7 +754,11 @@ erow:   sec
         sta     _fold
         lda     #1
         sta     _fv
-@l:     lda     _fx+1           ; for fx up to fx1
+@l:
+.ifdef __ATARI7800__
+        jmp     hswap           ; (a byte at a time)
+.endif
+        lda     _fx+1           ; for fx up to fx1
         cmp     _fx1+1
         bmi     @go
         bne     @y

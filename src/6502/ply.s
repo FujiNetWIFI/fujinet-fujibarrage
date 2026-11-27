@@ -20,6 +20,9 @@
 .ifdef FLD_WIDE
         .import _fld_cols8
 .endif
+.ifdef __ATARI7800__
+        .import _fld_cols4
+.endif
         .import _c_op, _c_anim, _pt_step, _pt_clear, _dsp_shake
         .importzp _fx, _fv, _fent, _ex, _ey, _erx, _ery, _emode
 
@@ -387,6 +390,34 @@ settle: stx     bi
         sta     den
         jmp     @c
 @one:
+.endif
+.ifdef __ATARI7800__
+        lda     den             ; (the 7800: a byte's 4 plain columns at once)
+        cmp     #4
+        bcc     @one4
+        lda     _fx
+        and     #3
+        bne     @one4
+        jsr     _fld_cols4
+        bne     @one4           ; (spans among them: a column at a time)
+        lda     mul
+        clc
+        adc     #4
+        sta     mul
+        bcc     @m4
+        inc     mul+1
+@m4:    lda     _fx
+        clc
+        adc     #4
+        sta     _fx
+        bcc     @x4
+        inc     _fx+1
+@x4:    lda     den
+        sec
+        sbc     #4
+        sta     den
+        jmp     @c
+@one4:
 .endif
         jsr     _fld_col
         jsr     elen

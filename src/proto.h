@@ -30,6 +30,7 @@
 #define PLAT_SMS           13
 #define PLAT_NES           14
 #define PLAT_CHANNELF      15
+#define PLAT_ATARI7800     16
 #define SC_HELLO           72
 #define SC_ROOMS           84
 #define SC_ACT             65

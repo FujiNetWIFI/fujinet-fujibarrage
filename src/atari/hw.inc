@@ -4,7 +4,19 @@
 ; files: the same ANTIC, GTIA and POKEY at other addresses, the graphics in
 ; its 16K of RAM, the crt0's shadows in zero page where the OS's were.
 ;
-.ifdef __ATARI5200__
+.ifdef __ATARI7800__
+; (the 7800: src/atari7800/a78.inc; only POKEY, the cartridge's, and the
+; field's lines are these files'. The field is MARIA's zones: fld.s's row
+; tables.)
+GTIA    = $D000
+POKEY   = $0450
+DLICODE = $0000
+PMG     = $0000
+FIELD   = $4000
+FIELD2  = $4000
+TEXT    = $5878
+STATUS  = $0000
+.elseif .defined(__ATARI5200__)
 GTIA    = $C000
 POKEY   = $E800
 DLICODE = $2B00         ; two buffers of compiled DLIs ($300 each)

@@ -167,6 +167,12 @@ var NesPal = project.Caps{FieldW: 256, FieldH: 168, Par: 73, Hz: 50, TankW: 7, T
 var ChannelF = project.Caps{FieldW: 102, FieldH: 46, Par: 48, Hz: 60, TankW: 5, TankH: 3, Buf: 1536,
 	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatChannelF}
 
+// Atari7800 is the Atari 7800 client's shape: the Atari's field (MARIA
+// 160A, the mode E packing) in the FujiNet cart's RAM, the tanks drawn into
+// it and coloured by objects under it.
+var Atari7800 = project.Caps{FieldW: 160, FieldH: 168, Par: 109, Hz: 60, TankW: 7, TankH: 5, Buf: 1536,
+	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatAtari7800}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps
