@@ -10,7 +10,10 @@
  * frame_wait returns at once and the pass is logic only, a few at most.
  * While it waits, the field's changed cells are drawn (sms_idle: the tile
  * cache, src/sms/render.asm); each frame's sprites and colours are set up
- * for the interrupt to put in (sms_frame).
+ * for the interrupt to put in (sms_frame). A script's frames also draw
+ * RENDER_MIN cells each, however late it runs: a blast's fireball, drawn
+ * again as it grows, kept the client behind, so its cells waited for idle
+ * time that never came and only the crater was seen.
  */
 #include <string.h>
 #include "sms.h"
@@ -23,9 +26,14 @@
 #include "fujinet-sms.h"
 
 #define CATCH_UP 30             /* jiffies behind: past this (a stall), let them go */
+#ifndef RENDER_MIN
+#define RENDER_MIN 6            /* the field's cells drawn each frame of a script, at least */
+#endif
 #define MAX_SKIP 4              /* passes in a row with no drawing, at most */
 
 void sms_int_init(void);
+uint8_t fld_flush1(void);       /* a dirty cell drawn: 0 none (render.asm) */
+extern uint8_t fld_live;        /* the field is shown (src/tms9918/fld.asm) */
 void sms_map_init(void);
 void mus_init(void);
 uint8_t sms_pal_probe(void);
@@ -141,10 +149,14 @@ void frame_wait(void)
    and each frame's sms_frame (the sprites, the shake, the colours) */
 uint8_t vbi_now(void)
 {
+    uint8_t i;
     if (*(volatile uint16_t *)&frame_count != tf_seen) {
         tf_seen = frame_count;
         gfx_fast = 0;           /* (how far into the frame: not known) */
         sms_frame();
+        if (fld_live)           /* some cells however late (a blast's) */
+            for (i = 0; i < RENDER_MIN && fld_flush1(); ++i)
+                ;
     } else
         sms_idle();
     return vbi_ticks;

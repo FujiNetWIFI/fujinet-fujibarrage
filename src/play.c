@@ -808,13 +808,15 @@ void __fastcall__ c_op(uint8_t o)
     }
 }
 
-#ifdef __H89__
+#if defined(__H89__) || defined(RING_READY)
 /* A blast's rings are redrawn whole each frame its radius changes; on the H89
  * (a Z80 that costs seconds for a big one, and the line can show ~16 bytes a
  * frame anyway) they are drawn when the client is not behind, and no more than
  * every third frame: each ring holds the one before, and the blast's end is
  * the script's, not the rings'. */
+#ifdef __H89__
 static uint8_t late;
+#endif
 static uint16_t ring_at;
 #endif
 
@@ -824,6 +826,13 @@ static void draw(void)
     uint8_t f;
 #ifdef __H89__
     if (!late && (uint16_t)(frame_count - ring_at) >= 3) {
+        ring_at = frame_count;
+        ply_draw();
+    }
+#elif defined(RING_READY)
+    /* (the SMS: a blast grows once its last size is on the screen, or every
+     * RING_MAX frames; drawn every frame, its cells were always behind) */
+    if (RING_READY() || (uint16_t)(frame_count - ring_at) >= RING_MAX) {
         ring_at = frame_count;
         ply_draw();
     }

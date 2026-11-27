@@ -4,8 +4,8 @@
 ; A cell's picture is its 8 D and 8 F bytes (sky D0 F0, dirt D1 F0, fire D0
 ; F1) painted with its lines' colours: each line has its sky's and its
 ; dirt's palette index (ln_sky, ln_dirt: the round's look, field.asm), the
-; fire's index goes by the line in the cell (fire_ix), so the IRQ's colour
-; cycle makes the flames climb. The key is the two planes and a style: the
+; fire's index goes by the line in the cell (11, 12, 13, 11 ...: mk_field),
+; so the IRQ's colour cycle makes the flames climb. The key is the two planes and a style: the
 ; row whose line colours the cell needs -- its sky's only (no dirt in it),
 ; its dirt's only (no sky), or both -- the first row that has the same, so
 ; rows alike share tiles. A cell all sky on a starry night may be a star
@@ -38,9 +38,6 @@
         defc    _ln_dirt = $AE80 + 168
         defc    NSTAR = 5               ; star tiles: variants 1-5 (of 8: 0, 6, 7 none)
 
-; the fire's index by the line in a cell (palette 0's 11-13, cycled)
-fire_ix:
-        defb    11, 12, 13, 11, 12, 13, 11, 12
 ; a star tile's pixel: line, bit (variants 1-5)
 stars:  defb    1, $40,   5, $08,   2, $02,   6, $20,   4, $10
 
@@ -59,33 +56,40 @@ _fld_flush1:
         ld      l,1
         ret
 
-; next: the first dirty cell, top down: drawn (or skipped), its flag off
-next:   ld      hl,_fld_rowd
-        ld      b,0
-nx_r:   ld      a,(hl)
+; next: the next dirty cell after the last one drawn (rows wrap): drawn (or
+; skipped), its flag off. Not from the top each time: a cell re-marked every
+; frame (a growing fireball's) would keep the scan there, and the rest of
+; the field (the fireball's lower rows) would wait till it stopped.
+next:   ld      a,(nx_r0)
+        ld      b,a             ; B the row
+        ld      a,(nx_c0)
+        ld      c,a             ; C the column to start it at
+        ld      a,FROWS + 1     ; (the first row twice: its end, then its start)
+        ld      (nx_n),a
+nx_r:   ld      hl,_fld_rowd
+        ld      e,b
+        ld      d,0
+        add     hl,de
+        ld      a,(hl)
         or      a
-        jr      nz,nx_row
-        inc     hl
-        inc     b
-        ld      a,b
-        cp      FROWS
-        jr      c,nx_r
-        ld      hl,0            ; (the count was wrong: it is 0)
-        ld      (_fld_nd),hl
-        ret
-nx_row: ld      (nx_rp),hl
-        ld      a,b
-        ld      (rc_r),a
-        ld      l,b             ; the row's flags: dirty + r * 32
+        jr      z,nx_skip
+        ld      (nx_rp),hl
+        ld      a,c
+        ld      (nx_cs),a
+        ld      l,b             ; the row's flags: dirty + r * 32 + c
         ld      h,0
         add     hl,hl
         add     hl,hl
         add     hl,hl
         add     hl,hl
         add     hl,hl
+        ld      e,c
+        add     hl,de
         ld      de,_fld_dirty
         add     hl,de
-        ld      c,0
+        ld      a,c
+        cp      32
+        jr      nc,nx_skip
 nx_c:   bit     0,(hl)
         jr      nz,nx_cell
         inc     hl
@@ -93,12 +97,32 @@ nx_c:   bit     0,(hl)
         ld      a,c
         cp      32
         jr      c,nx_c
-        ld      hl,(nx_rp)      ; (none: the count was wrong)
+        ld      a,(nx_cs)       ; the whole row and none: the count was wrong
+        or      a
+        jr      nz,nx_skip
+        ld      hl,(nx_rp)
         ld      (hl),0
+nx_skip:
+        ld      c,0
+        inc     b
+        ld      a,b
+        cp      FROWS
+        jr      c,nx_s1
+        ld      b,0
+nx_s1:  ld      hl,nx_n
+        dec     (hl)
+        jr      nz,nx_r
+        ld      hl,0            ; (the count was wrong: it is 0)
+        ld      (_fld_nd),hl
         ret
 nx_cell:
+        ld      a,b
+        ld      (rc_r),a
+        ld      (nx_r0),a
         ld      a,c
         ld      (rc_c),a
+        inc     a
+        ld      (nx_c0),a       ; (32: the next row's start)
         ld      (rc_fp),hl
         bit     1,(hl)
         jr      nz,nx_done      ; under the balloon
@@ -141,7 +165,7 @@ rnd_cell:
         ; as D1 F1 in the key (the store never has it). Over row 0: dirt.
         ld      a,(_sms_crust)
         or      a
-        jr      z,rc_nocr
+        jp      z,rc_nocr
         ld      bc,$FFFF        ; B the line two over, C the one over
         ld      a,(rc_r)
         or      a
@@ -159,61 +183,195 @@ rnd_cell:
         ld      b,(hl)
         inc     hl
         ld      c,(hl)
-rc_ab:  ld      hl,_tc_key + 2
-        ld      e,8
-rc_cl:  ld      a,b
+rc_ab:                          ; (unrolled: B two over, C one over)
+        ld      a,b
+        and     c
+        cpl                     ; not dirt both over
+        ld      b,c
+        ld      hl,_tc_key + 2
+        ld      c,(hl)          ; D (the next line's one over)
+        and     c               ; the crust: dirt with sky or fire over it
+        ld      hl,_tc_key + 10
+        or      (hl)            ; (as D1 F1: fire stays fire)
+        ld      (hl),a
+        ld      a,b
         and     c
         cpl
-        and     (hl)            ; dirt, not dirt both over it
-        ld      d,a
-        push    hl
-        ld      a,l
-        add     a,8
-        ld      l,a
-        jr      nc,rc_c1
-        inc     h
-rc_c1:  ld      a,(hl)          ; (fire stays fire)
-        push    af
-        cpl
-        and     d
-        ld      d,a
-        pop     af
-        or      d
-        ld      (hl),a
-        pop     hl
         ld      b,c
+        ld      hl,_tc_key + 3
         ld      c,(hl)
-        inc     hl
-        dec     e
-        jr      nz,rc_cl
+        and     c
+        ld      hl,_tc_key + 11
+        or      (hl)
+        ld      (hl),a
+        ld      a,b
+        and     c
+        cpl
+        ld      b,c
+        ld      hl,_tc_key + 4
+        ld      c,(hl)
+        and     c
+        ld      hl,_tc_key + 12
+        or      (hl)
+        ld      (hl),a
+        ld      a,b
+        and     c
+        cpl
+        ld      b,c
+        ld      hl,_tc_key + 5
+        ld      c,(hl)
+        and     c
+        ld      hl,_tc_key + 13
+        or      (hl)
+        ld      (hl),a
+        ld      a,b
+        and     c
+        cpl
+        ld      b,c
+        ld      hl,_tc_key + 6
+        ld      c,(hl)
+        and     c
+        ld      hl,_tc_key + 14
+        or      (hl)
+        ld      (hl),a
+        ld      a,b
+        and     c
+        cpl
+        ld      b,c
+        ld      hl,_tc_key + 7
+        ld      c,(hl)
+        and     c
+        ld      hl,_tc_key + 15
+        or      (hl)
+        ld      (hl),a
+        ld      a,b
+        and     c
+        cpl
+        ld      b,c
+        ld      hl,_tc_key + 8
+        ld      c,(hl)
+        and     c
+        ld      hl,_tc_key + 16
+        or      (hl)
+        ld      (hl),a
+        ld      a,b
+        and     c
+        cpl
+        ld      b,c
+        ld      hl,_tc_key + 9
+        ld      c,(hl)
+        and     c
+        ld      hl,_tc_key + 17
+        or      (hl)
+        ld      (hl),a
 rc_nocr:
-        ; what it has: dirt (any D), sky (any ~(D|F)), fire (any F)
-        ld      hl,_tc_key + 2
-        ld      b,8
-        ld      c,0             ; D's
-        ld      d,0             ; F's
-        ld      e,0             ; sky's
-rc_k:   ld      a,(hl)
+        ; what it has: dirt (any D) in C, fire (any F) in D, sky (any ~(D|F)) in E
+        ld      bc,0
+        ld      de,0
+        ld      a,(_tc_key + 2)
+        ld      h,a
         or      c
         ld      c,a
-        push    hl
-        ld      a,l
-        add     a,8
+        ld      a,(_tc_key + 10)
         ld      l,a
-        jr      nc,rc_k1
-        inc     h
-rc_k1:  ld      a,(hl)
-        pop     hl
-        push    af
         or      d
         ld      d,a
-        pop     af
-        or      (hl)
+        ld      a,h
+        or      l
         cpl
         or      e
         ld      e,a
-        inc     hl
-        djnz    rc_k
+        ld      a,(_tc_key + 3)
+        ld      h,a
+        or      c
+        ld      c,a
+        ld      a,(_tc_key + 11)
+        ld      l,a
+        or      d
+        ld      d,a
+        ld      a,h
+        or      l
+        cpl
+        or      e
+        ld      e,a
+        ld      a,(_tc_key + 4)
+        ld      h,a
+        or      c
+        ld      c,a
+        ld      a,(_tc_key + 12)
+        ld      l,a
+        or      d
+        ld      d,a
+        ld      a,h
+        or      l
+        cpl
+        or      e
+        ld      e,a
+        ld      a,(_tc_key + 5)
+        ld      h,a
+        or      c
+        ld      c,a
+        ld      a,(_tc_key + 13)
+        ld      l,a
+        or      d
+        ld      d,a
+        ld      a,h
+        or      l
+        cpl
+        or      e
+        ld      e,a
+        ld      a,(_tc_key + 6)
+        ld      h,a
+        or      c
+        ld      c,a
+        ld      a,(_tc_key + 14)
+        ld      l,a
+        or      d
+        ld      d,a
+        ld      a,h
+        or      l
+        cpl
+        or      e
+        ld      e,a
+        ld      a,(_tc_key + 7)
+        ld      h,a
+        or      c
+        ld      c,a
+        ld      a,(_tc_key + 15)
+        ld      l,a
+        or      d
+        ld      d,a
+        ld      a,h
+        or      l
+        cpl
+        or      e
+        ld      e,a
+        ld      a,(_tc_key + 8)
+        ld      h,a
+        or      c
+        ld      c,a
+        ld      a,(_tc_key + 16)
+        ld      l,a
+        or      d
+        ld      d,a
+        ld      a,h
+        or      l
+        cpl
+        or      e
+        ld      e,a
+        ld      a,(_tc_key + 9)
+        ld      h,a
+        or      c
+        ld      c,a
+        ld      a,(_tc_key + 17)
+        ld      l,a
+        or      d
+        ld      d,a
+        ld      a,h
+        or      l
+        cpl
+        or      e
+        ld      e,a
         ld      a,(rc_r)
         ld      l,a
         ld      h,0
@@ -427,62 +585,504 @@ mk_field:
         add     iy,de
         ld      a,(_tc_key)
         cp      K_STAR
-        jr      z,mk_star
-        ld      hl,_tc_key + 2  ; D (F 8 on)
-        ld      de,_tc_tile
-        ld      b,0             ; the line
-mf_l:   push    bc
-        ld      a,(hl)          ; D
-        ld      c,a
-        push    hl
+        jp      z,mk_star
+; each line: its classes' masks (crust D1 F1, dirt D1 F0, fire D0 F1, sky D0
+; F0) in E, C, D, B; its sky's colour in H, its dirt's in L; a plane's byte
+; is the masks of the classes whose colour has that bit (the fire's and the
+; crust's colours are fixed by the line: their masks go in unasked)
+        ld      a,(_tc_key + 2)   ; line 0
+        ld      h,a
+        ld      a,(_tc_key + 10)
+        ld      l,a
+        and     h
+        ld      e,a             ; crust
         ld      a,l
-        add     a,8
-        ld      l,a
-        jr      nc,mf_1
-        inc     h
-mf_1:   ld      a,(hl)          ; F
-        pop     hl
-        ld      (mf_ft),a
-        and     c
-        ld      (mf_c),a        ; the crust: D and F
-        ld      a,(mf_ft)
         cpl
-        and     c
-        ld      (mf_d),a        ; dirt: D and not F
-        ld      a,c
+        and     h
+        ld      c,a             ; dirt
+        ld      a,h
         cpl
-        push    hl
-        ld      hl,mf_ft
-        and     (hl)
-        ld      (mf_f),a        ; fire: F and not D
-        ld      a,(hl)
-        pop     hl
+        and     l
+        ld      d,a             ; fire
+        ld      a,h
+        or      l
+        cpl
+        ld      b,a             ; sky
+        ld      h,(ix + 0)
+        ld      l,(iy + 0)
+        xor     a
+        srl     h
+        jr      nc,mk00a
+        or      b
+mk00a:  srl     l
+        jr      nc,mk00b
         or      c
-        cpl
-        ld      (mf_s),a        ; sky: neither
-        ld      a,b             ; the fire's index for the line
-        push    hl
-        ld      hl,fire_ix
-        add     a,l
+mk00b:
+        or      d
+        or      e
+        ld      (_tc_tile + 0),a
+        xor     a
+        srl     h
+        jr      nc,mk01a
+        or      b
+mk01a:  srl     l
+        jr      nc,mk01b
+        or      c
+mk01b:
+        or      d
+        or      e
+        ld      (_tc_tile + 1),a
+        xor     a
+        srl     h
+        jr      nc,mk02a
+        or      b
+mk02a:  srl     l
+        jr      nc,mk02b
+        or      c
+mk02b:
+        or      e
+        ld      (_tc_tile + 2),a
+        xor     a
+        srl     h
+        jr      nc,mk03a
+        or      b
+mk03a:  srl     l
+        jr      nc,mk03b
+        or      c
+mk03b:
+        or      d
+        ld      (_tc_tile + 3),a
+        ld      a,(_tc_key + 3)   ; line 1
+        ld      h,a
+        ld      a,(_tc_key + 11)
         ld      l,a
-        jr      nc,mf_2
-        inc     h
-mf_2:   ld      a,(hl)
-        pop     hl
-        ld      (mf_fi),a
-        ld      a,(ix + 0)
-        ld      (mf_si),a
-        ld      a,(iy + 0)
-        ld      (mf_di),a
-        call    mf_planes       ; 4 bytes at DE
-        inc     hl
-        inc     ix
-        inc     iy
-        pop     bc
-        inc     b
-        ld      a,b
-        cp      8
-        jr      c,mf_l
+        and     h
+        ld      e,a             ; crust
+        ld      a,l
+        cpl
+        and     h
+        ld      c,a             ; dirt
+        ld      a,h
+        cpl
+        and     l
+        ld      d,a             ; fire
+        ld      a,h
+        or      l
+        cpl
+        ld      b,a             ; sky
+        ld      h,(ix + 1)
+        ld      l,(iy + 1)
+        xor     a
+        srl     h
+        jr      nc,mk10a
+        or      b
+mk10a:  srl     l
+        jr      nc,mk10b
+        or      c
+mk10b:
+        or      e
+        ld      (_tc_tile + 4),a
+        xor     a
+        srl     h
+        jr      nc,mk11a
+        or      b
+mk11a:  srl     l
+        jr      nc,mk11b
+        or      c
+mk11b:
+        or      e
+        ld      (_tc_tile + 5),a
+        xor     a
+        srl     h
+        jr      nc,mk12a
+        or      b
+mk12a:  srl     l
+        jr      nc,mk12b
+        or      c
+mk12b:
+        or      d
+        or      e
+        ld      (_tc_tile + 6),a
+        xor     a
+        srl     h
+        jr      nc,mk13a
+        or      b
+mk13a:  srl     l
+        jr      nc,mk13b
+        or      c
+mk13b:
+        or      d
+        ld      (_tc_tile + 7),a
+        ld      a,(_tc_key + 4)   ; line 2
+        ld      h,a
+        ld      a,(_tc_key + 12)
+        ld      l,a
+        and     h
+        ld      e,a             ; crust
+        ld      a,l
+        cpl
+        and     h
+        ld      c,a             ; dirt
+        ld      a,h
+        cpl
+        and     l
+        ld      d,a             ; fire
+        ld      a,h
+        or      l
+        cpl
+        ld      b,a             ; sky
+        ld      h,(ix + 2)
+        ld      l,(iy + 2)
+        xor     a
+        srl     h
+        jr      nc,mk20a
+        or      b
+mk20a:  srl     l
+        jr      nc,mk20b
+        or      c
+mk20b:
+        or      d
+        or      e
+        ld      (_tc_tile + 8),a
+        xor     a
+        srl     h
+        jr      nc,mk21a
+        or      b
+mk21a:  srl     l
+        jr      nc,mk21b
+        or      c
+mk21b:
+        or      e
+        ld      (_tc_tile + 9),a
+        xor     a
+        srl     h
+        jr      nc,mk22a
+        or      b
+mk22a:  srl     l
+        jr      nc,mk22b
+        or      c
+mk22b:
+        or      d
+        or      e
+        ld      (_tc_tile + 10),a
+        xor     a
+        srl     h
+        jr      nc,mk23a
+        or      b
+mk23a:  srl     l
+        jr      nc,mk23b
+        or      c
+mk23b:
+        or      d
+        ld      (_tc_tile + 11),a
+        ld      a,(_tc_key + 5)   ; line 3
+        ld      h,a
+        ld      a,(_tc_key + 13)
+        ld      l,a
+        and     h
+        ld      e,a             ; crust
+        ld      a,l
+        cpl
+        and     h
+        ld      c,a             ; dirt
+        ld      a,h
+        cpl
+        and     l
+        ld      d,a             ; fire
+        ld      a,h
+        or      l
+        cpl
+        ld      b,a             ; sky
+        ld      h,(ix + 3)
+        ld      l,(iy + 3)
+        xor     a
+        srl     h
+        jr      nc,mk30a
+        or      b
+mk30a:  srl     l
+        jr      nc,mk30b
+        or      c
+mk30b:
+        or      d
+        or      e
+        ld      (_tc_tile + 12),a
+        xor     a
+        srl     h
+        jr      nc,mk31a
+        or      b
+mk31a:  srl     l
+        jr      nc,mk31b
+        or      c
+mk31b:
+        or      d
+        or      e
+        ld      (_tc_tile + 13),a
+        xor     a
+        srl     h
+        jr      nc,mk32a
+        or      b
+mk32a:  srl     l
+        jr      nc,mk32b
+        or      c
+mk32b:
+        or      e
+        ld      (_tc_tile + 14),a
+        xor     a
+        srl     h
+        jr      nc,mk33a
+        or      b
+mk33a:  srl     l
+        jr      nc,mk33b
+        or      c
+mk33b:
+        or      d
+        ld      (_tc_tile + 15),a
+        ld      a,(_tc_key + 6)   ; line 4
+        ld      h,a
+        ld      a,(_tc_key + 14)
+        ld      l,a
+        and     h
+        ld      e,a             ; crust
+        ld      a,l
+        cpl
+        and     h
+        ld      c,a             ; dirt
+        ld      a,h
+        cpl
+        and     l
+        ld      d,a             ; fire
+        ld      a,h
+        or      l
+        cpl
+        ld      b,a             ; sky
+        ld      h,(ix + 4)
+        ld      l,(iy + 4)
+        xor     a
+        srl     h
+        jr      nc,mk40a
+        or      b
+mk40a:  srl     l
+        jr      nc,mk40b
+        or      c
+mk40b:
+        or      e
+        ld      (_tc_tile + 16),a
+        xor     a
+        srl     h
+        jr      nc,mk41a
+        or      b
+mk41a:  srl     l
+        jr      nc,mk41b
+        or      c
+mk41b:
+        or      e
+        ld      (_tc_tile + 17),a
+        xor     a
+        srl     h
+        jr      nc,mk42a
+        or      b
+mk42a:  srl     l
+        jr      nc,mk42b
+        or      c
+mk42b:
+        or      d
+        or      e
+        ld      (_tc_tile + 18),a
+        xor     a
+        srl     h
+        jr      nc,mk43a
+        or      b
+mk43a:  srl     l
+        jr      nc,mk43b
+        or      c
+mk43b:
+        or      d
+        ld      (_tc_tile + 19),a
+        ld      a,(_tc_key + 7)   ; line 5
+        ld      h,a
+        ld      a,(_tc_key + 15)
+        ld      l,a
+        and     h
+        ld      e,a             ; crust
+        ld      a,l
+        cpl
+        and     h
+        ld      c,a             ; dirt
+        ld      a,h
+        cpl
+        and     l
+        ld      d,a             ; fire
+        ld      a,h
+        or      l
+        cpl
+        ld      b,a             ; sky
+        ld      h,(ix + 5)
+        ld      l,(iy + 5)
+        xor     a
+        srl     h
+        jr      nc,mk50a
+        or      b
+mk50a:  srl     l
+        jr      nc,mk50b
+        or      c
+mk50b:
+        or      d
+        or      e
+        ld      (_tc_tile + 20),a
+        xor     a
+        srl     h
+        jr      nc,mk51a
+        or      b
+mk51a:  srl     l
+        jr      nc,mk51b
+        or      c
+mk51b:
+        or      e
+        ld      (_tc_tile + 21),a
+        xor     a
+        srl     h
+        jr      nc,mk52a
+        or      b
+mk52a:  srl     l
+        jr      nc,mk52b
+        or      c
+mk52b:
+        or      d
+        or      e
+        ld      (_tc_tile + 22),a
+        xor     a
+        srl     h
+        jr      nc,mk53a
+        or      b
+mk53a:  srl     l
+        jr      nc,mk53b
+        or      c
+mk53b:
+        or      d
+        ld      (_tc_tile + 23),a
+        ld      a,(_tc_key + 8)   ; line 6
+        ld      h,a
+        ld      a,(_tc_key + 16)
+        ld      l,a
+        and     h
+        ld      e,a             ; crust
+        ld      a,l
+        cpl
+        and     h
+        ld      c,a             ; dirt
+        ld      a,h
+        cpl
+        and     l
+        ld      d,a             ; fire
+        ld      a,h
+        or      l
+        cpl
+        ld      b,a             ; sky
+        ld      h,(ix + 6)
+        ld      l,(iy + 6)
+        xor     a
+        srl     h
+        jr      nc,mk60a
+        or      b
+mk60a:  srl     l
+        jr      nc,mk60b
+        or      c
+mk60b:
+        or      d
+        or      e
+        ld      (_tc_tile + 24),a
+        xor     a
+        srl     h
+        jr      nc,mk61a
+        or      b
+mk61a:  srl     l
+        jr      nc,mk61b
+        or      c
+mk61b:
+        or      d
+        or      e
+        ld      (_tc_tile + 25),a
+        xor     a
+        srl     h
+        jr      nc,mk62a
+        or      b
+mk62a:  srl     l
+        jr      nc,mk62b
+        or      c
+mk62b:
+        or      e
+        ld      (_tc_tile + 26),a
+        xor     a
+        srl     h
+        jr      nc,mk63a
+        or      b
+mk63a:  srl     l
+        jr      nc,mk63b
+        or      c
+mk63b:
+        or      d
+        ld      (_tc_tile + 27),a
+        ld      a,(_tc_key + 9)   ; line 7
+        ld      h,a
+        ld      a,(_tc_key + 17)
+        ld      l,a
+        and     h
+        ld      e,a             ; crust
+        ld      a,l
+        cpl
+        and     h
+        ld      c,a             ; dirt
+        ld      a,h
+        cpl
+        and     l
+        ld      d,a             ; fire
+        ld      a,h
+        or      l
+        cpl
+        ld      b,a             ; sky
+        ld      h,(ix + 7)
+        ld      l,(iy + 7)
+        xor     a
+        srl     h
+        jr      nc,mk70a
+        or      b
+mk70a:  srl     l
+        jr      nc,mk70b
+        or      c
+mk70b:
+        or      e
+        ld      (_tc_tile + 28),a
+        xor     a
+        srl     h
+        jr      nc,mk71a
+        or      b
+mk71a:  srl     l
+        jr      nc,mk71b
+        or      c
+mk71b:
+        or      e
+        ld      (_tc_tile + 29),a
+        xor     a
+        srl     h
+        jr      nc,mk72a
+        or      b
+mk72a:  srl     l
+        jr      nc,mk72b
+        or      c
+mk72b:
+        or      d
+        or      e
+        ld      (_tc_tile + 30),a
+        xor     a
+        srl     h
+        jr      nc,mk73a
+        or      b
+mk73a:  srl     l
+        jr      nc,mk73b
+        or      c
+mk73b:
+        or      d
+        ld      (_tc_tile + 31),a
         ret
 
 ; mk_star: the line's sky everywhere, the variant's one star
@@ -685,6 +1285,10 @@ rc_c:           defs    1
 rc_fp:          defs    2
 rc_was:         defs    1
 nx_rp:          defs    2
+nx_r0:          defs    1
+nx_c0:          defs    1
+nx_cs:          defs    1
+nx_n:           defs    1
 mf_s:           defs    1
 mf_c:           defs    1
 mf_ft:          defs    1
