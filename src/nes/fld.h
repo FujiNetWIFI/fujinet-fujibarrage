@@ -30,6 +30,7 @@ void fld_swap(void);
 void fld_hspan(void);
 void fld_vrun(void);
 uint8_t fld_col(void);
+uint8_t fld_cols8(void);        /* columns fx..fx+7 (fx % 8 == 0), 8 plain entries: 1 if one has spans */
 void fld_ellipse(void);
 
 extern uint8_t fmap[21 * 32];           /* a cell's code: 1 sky, 2 dirt, 3 fire, else a block */

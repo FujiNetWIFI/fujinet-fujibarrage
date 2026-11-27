@@ -12,7 +12,7 @@
                                  angle a (0-180), p 1 with your pennant, in
                                  colour 1 + v (a sprite palette's three:
                                  tools/mkgfx_tms.py's drawing); 115-117 a
-                                 spark, a pixel in colour 1-3
+                                 spark, a pixel in colour 1-3 (its last line)
     mkgfx_nes.py title OUT.s     the title's hills: a column's top line
                                  each (256), _title_hills in FOPEN (bank 7,
                                  src/nes/fieldo.c's field_title)
@@ -56,9 +56,9 @@ def sprites(path):
                 rows8 = mt.tank(a, p)
                 px = [[(v + 1) if (rows8[y] >> (7 - x)) & 1 else 0 for x in range(8)] for y in range(8)]
                 tiles.append(tile2(px))
-    for v in range(3):                  # 115-117: a spark, one pixel, colour 1-3
+    for v in range(3):                  # 115-117: a spark, one pixel (the last line), colour 1-3
         px = [[0] * 8 for _ in range(8)]
-        px[0][0] = v + 1
+        px[7][0] = v + 1
         tiles.append(tile2(px))
     data = [b for t in tiles for b in t]
     data += [0] * (4096 - len(data))

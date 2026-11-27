@@ -86,22 +86,29 @@ static void put(uint16_t a, const uint8_t *p, uint8_t n)
 #define Q_MAP  1
 #define Q_MOVE 2
 
-/* n cells at a: their tiles t become (t & 63) | map[t >> 6] */
+/* n cells at a: their tiles t become (t & 63) | map[t >> 6], 16 cells a
+ * command (crt0.s's cost for one: no more than a frame's drain can take) */
+#define MAP_MAX 16
 static void q_map(uint16_t a, uint8_t n, const uint8_t *map)
 {
-    uint8_t h, i;
-    q_wait(9);
-    h = qhead;
-    ppuq[h++] = Q_READ;
-    ppuq[h++] = Q_MAP;
-    ppuq[h++] = (uint8_t)(a >> 8);
-    ppuq[h++] = (uint8_t)a;
-    ppuq[h++] = n;
-    for (i = 0; i < 4; ++i)
-        ppuq[h++] = map[i];
-    qhead = h;
-    if (direct)
-        ppu_drain(255);
+    uint8_t h, i, k;
+    while (n) {
+        k = n > MAP_MAX ? MAP_MAX : n;
+        q_wait(9);
+        h = qhead;
+        ppuq[h++] = Q_READ;
+        ppuq[h++] = Q_MAP;
+        ppuq[h++] = (uint8_t)(a >> 8);
+        ppuq[h++] = (uint8_t)a;
+        ppuq[h++] = k;
+        for (i = 0; i < 4; ++i)
+            ppuq[h++] = map[i];
+        qhead = h;
+        if (direct)
+            ppu_drain(255);
+        a += k;
+        n -= k;
+    }
 }
 
 /* n bytes of VRAM from s to a */
@@ -177,19 +184,14 @@ static void font_load(void)
     prg_r6(save);
 }
 
-#define MMC3_SEL  (*(volatile uint8_t *)0x8000)
-#define MMC3_BANK (*(volatile uint8_t *)0x8001)
 
 void scr_init(void)
 {
     ppu_direct = 1;
     while (!ppu_off)
         ;
-    MMC3_SEL = 0;                       /* the font's 4K in R0, R1 */
-    MMC3_BANK = CHR_FONT;
-    MMC3_SEL = 1;
-    MMC3_BANK = CHR_FONT + 2;
-    MMC3_SEL = mmc3_sel;
+    mmc3_chr((uint16_t)CHR_FONT << 8);  /* the font's 4K in R0, R1 */
+    mmc3_chr(1 | (uint16_t)(CHR_FONT + 2) << 8);
     font_load();
     {                                   /* the sprites' 4K ($1000: R2-R5 hold banks 16-19) */
         uint16_t i;
@@ -236,6 +238,9 @@ void scr_begin(void)
         ;
     disp_mode = DM_OFF;
     qhead = qtail = 0;                  /* (the queue: nothing left for a screen that's gone) */
+    memset(oam, 0xF8, 256);             /* no sprites: the field's tanks (or the title's) */
+    memset(oam2, 0xF8, 256);            /* aren't the text's */
+    oam_next = 0;
     memset(row_form, 0, sizeof(row_form));
     memset(row_lform, 1, sizeof(row_lform));
     memset(attr, 0, sizeof(attr));

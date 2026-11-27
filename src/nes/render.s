@@ -34,7 +34,7 @@ T_STAR  = 100                   ; 100-107: a star each
 C_SKY   = 1
 C_DIRT  = 2
 C_FIRE  = 3
-ROOM    = 25                    ; a tile and a name: 20 + 5 bytes
+ROOM    = 25                    ; a cell's command: 24 bytes
 
         .segment "ZEROPAGE"
 rr:     .res 1                  ; the cell drawn
@@ -241,18 +241,20 @@ draw:   lda     rr              ; a balloon's: let be
 @plain: lda     #T_SKY
         jmp     name
 @own:   jsr     fld_load
-        jsr     tile
-        lda     #0              ; (its own tile: 0-95 of its band)
-        jmp     name
+        jmp     tile
 
-; tile: wd, wf as cell (rr, rc)'s own tile, queued
+; tile: wd, wf as cell (rr, rc)'s own tile and its name byte (0-95 of its
+; band, 128 on in an odd band), one command (crt0.s's Q_CELL: op $80, its
+; kind byte $40 + the band's CHR bank; a tile and a name apiece cost the
+; drain a third more)
 tile:   ldx     _qhead
-        lda     #0              ; Q_TILE
+        lda     #$80            ; Q_CELL
         sta     _ppuq,x
         inx
         ldy     rr
         lda     bandof,y        ; its band's CHR bank (2K: 1K units * 2)
         asl
+        ora     #$40
         sta     _ppuq,x
         inx
         lda     kof,y           ; the tile in the bank: k * 32 + c, at 16 bytes
@@ -301,6 +303,29 @@ tile:   ldx     _qhead
         sta     _ppuq,x
         inx
         .endrepeat
+        ldy     rr              ; the name byte: its address, its tile
+        lda     ntho,y
+        sta     _ppuq,x
+        inx
+        lda     ntlo,y
+        ora     rc
+        sta     _ppuq,x
+        inx
+        lda     kof,y
+        asl
+        asl
+        asl
+        asl
+        asl
+        ora     rc
+        sta     rt
+        lda     bandof,y
+        lsr
+        lda     rt
+        bcc     @ev
+        ora     #$80
+@ev:    sta     _ppuq,x
+        inx
         stx     _qhead
         rts
 

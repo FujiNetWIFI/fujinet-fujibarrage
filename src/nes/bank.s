@@ -10,7 +10,7 @@
 ; function called with the fastcall argument (A, X), the caller's bank
 ; back, the result (A, X) returned to the wrapper's caller.
 ;
-        .export far_go, far_call
+        .export far_go, far_call, _mmc3_chr
         .exportzp far_a
         .importzp _mmc3_sel, _r6_bank
 
@@ -26,6 +26,19 @@ far_go: sta     _r6_bank
         sty     _mmc3_sel
         sty     $8000
         sta     $8001
+        rts
+
+; void __fastcall__ mmc3_chr(uint16_t rb): MMC3 register rb's low byte (a
+; CHR one, 0-5) gets bank rb >> 8. The select goes in mmc3_sel first: an
+; interrupt that switches a bank of its own puts the select back from it,
+; so the bank still lands in the register meant.
+_mmc3_chr:
+        ldy     _mmc3_sel
+        sta     _mmc3_sel
+        sta     $8000
+        stx     $8001
+        sty     _mmc3_sel
+        sty     $8000
         rts
 
 far_call:

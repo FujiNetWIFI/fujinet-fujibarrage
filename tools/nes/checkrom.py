@@ -12,6 +12,7 @@ checkrom.py; fujinet-lib-experimental makefiles/nes-romstamp.py):
     cartridge takes that as a store of its own. Each code segment the map
     lists is scanned, in the bank CFG (src/nes/barrage-nes.cfg) loads it
     to: B<n> is bank n (B0 at $A000, the rest at $8000), FIXED the last two.
+farcheck.py's RAM_OK names must be outside the overlay window ($8000-$9FFF).
 A failing image is deleted (an image left behind can't look up to date).
 """
 import os
@@ -94,6 +95,17 @@ def main():
                         problems.append("%s: a read-modify-write ($%02X) of $%04X at $%04X"
                                         % (name, op, tgt, pc))
                 pc += LEN[op]
+    # farcheck.py lets anyone use the symbols it names as RAM: none of them
+    # may be in an overlay's window (src/play.c's entry_len was, 2026-11-27:
+    # net.c called it with another bank in, and the game crashed)
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import farcheck
+    exports = dict((n, int(a, 16)) for n, a in re.findall(r"(\S+)\s+([0-9A-F]{6})\s+\S+",
+                   open(mapfile).read().split("Exports list by name:")[1].split("Exports list by value:")[0]))
+    for name in sorted(farcheck.RAM_OK):
+        if name in exports and 0x8000 <= exports[name] < 0xA000:
+            problems.append("%s is at $%04X: in an overlay's window, yet farcheck lets any bank use it"
+                            % (name, exports[name]))
     if problems:
         for m in problems:
             print("%s: %s" % (path, m), file=sys.stderr)

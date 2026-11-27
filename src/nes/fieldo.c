@@ -20,8 +20,6 @@
 #define PPUADDR (*(volatile uint8_t *)0x2006)
 #define PPUDATA (*(volatile uint8_t *)0x2007)
 #define PPUSTAT (*(volatile uint8_t *)0x2002)
-#define MMC3_SEL (*(volatile uint8_t *)0x8000)
-#define MMC3_BANK (*(volatile uint8_t *)0x8001)
 
 uint8_t fld_flush1(void);       /* render.s */
 void fld_mark_all(void);        /* fld.s */
@@ -88,8 +86,11 @@ static const uint8_t hud_pal[16] = {
     0x0F, 0x30, 0x28, 0x2A,             /* green */
 };
 
-static uint8_t hud[3][32];              /* the HUD's letters shown (bit 6: inverse, 7: label) */
-static uint8_t nm_col[3], nm_n[3];      /* a row's name, for its next write (field_name) */
+uint8_t hud_sh[3 * 32];                 /* the HUD's cells shown (src/nes/hud.s's key) */
+uint8_t nm_col[3], nm_n[3];             /* a row's name, for its next write (field_name) */
+extern uint8_t hp_row, hp_col, hp_inv;  /* hud.s: a string into a HUD row */
+void __fastcall__ hud_put(const char *s);
+void hud_gauges_reset(void);
 static uint8_t hud_attr[16];            /* its attribute bytes (rows 26-29's: 8 + 8) */
 
 /* ---- the PPU: directly (the display off) or queued ---- */
@@ -130,9 +131,7 @@ static void put_tile(uint8_t b, uint8_t t)
     uint8_t h, i;
     uint16_t a = (uint16_t)t * 16;
     if (ppu_direct) {
-        MMC3_SEL = 0;
-        MMC3_BANK = b;
-        MMC3_SEL = mmc3_sel;
+        mmc3_chr((uint16_t)b << 8);       /* R0 */
         (void)PPUSTAT;
         PPUADDR = (uint8_t)(a >> 8);
         PPUADDR = (uint8_t)a;
@@ -155,25 +154,6 @@ static void solid(uint8_t c)
 {
     memset(tile, (c & 1) ? 0xFF : 0, 8);
     memset(tile + 8, (c & 2) ? 0xFF : 0, 8);
-}
-
-/* a letter ' '..'_' in ink fg on 0, or ink fg's inverse */
-static void glyph(uint8_t ch, uint8_t fg, uint8_t inv)
-{
-    uint8_t i, g;
-    const uint8_t *p;
-    if (ch >= 'a' && ch <= 'z')
-        ch -= 32;
-    if (ch < ' ' || ch > '_')
-        ch = ' ';
-    p = font8 + (uint8_t)(ch - ' ') * 8;
-    for (i = 0; i < 8; ++i) {
-        g = p[i];
-        if (inv)
-            g = (uint8_t)~g;
-        tile[i] = (fg & 1) ? g : 0;
-        tile[i + 8] = (fg & 2) ? g : 0;
-    }
 }
 
 void field_open(uint8_t sky, uint8_t pal)
@@ -218,7 +198,8 @@ void field_open(uint8_t sky, uint8_t pal)
     solid(0);
     for (t = 0; t < 96; ++t)
         put_tile(CHR_BAND(7), t);
-    memset(hud, ' ', sizeof(hud));
+    memset(hud_sh, 0, sizeof(hud_sh));    /* (glyph 0, the space: blank tiles) */
+    hud_gauges_reset();                 /* (the bars too: drawn at the next numbers) */
 
     /* the name table: the margin (band 0's sky), the field (its cells,
        drawn below), the gap, the HUD's cells */
@@ -274,30 +255,14 @@ void field_open(uint8_t sky, uint8_t pal)
 
 /* ---- the HUD ---- */
 
-static void hud_cell(uint8_t row, uint8_t col, uint8_t ch, uint8_t ink, uint8_t inv)
-{
-    uint8_t k = (uint8_t)(ch | (inv ? 0x40 : 0) | (ink == 2 ? 0x80 : 0));
-    if (row > 2 || col > 31)
-        return;
-    if (ink == 3)
-        k = (uint8_t)(ch | 0xC0);       /* (a name's: drawn again whenever asked) */
-    else if (hud[row][col] == k)
-        return;
-    hud[row][col] = k;
-    glyph(ch, ink, inv);
-    put_tile(CHR_BAND(7), (uint8_t)(row * 32 + col));
-}
-
 static void status(uint8_t row, uint8_t col, const char *s, uint8_t inv)
 {
-    uint8_t c;
     if (row > 2)
         return;
-    while ((c = (uint8_t)*s++) != 0 && col < 32) {
-        hud_cell(row, col, c & 0x7F,
-                 (uint8_t)(col - nm_col[row] < nm_n[row] ? 3 : (c & 0x80) ? 2 : 1), inv);
-        ++col;
-    }
+    hp_row = row;
+    hp_col = col;
+    hp_inv = inv;
+    hud_put(s);                         /* (hud.s: the cells that change) */
     nm_n[row] = 0;                      /* (the name was this write's) */
 }
 
@@ -313,10 +278,11 @@ void field_status_hi(uint8_t row, uint8_t col, const char *s)
 
 void field_status_clear(void)
 {
-    uint8_t r, c;
-    for (r = 0; r < 3; ++r)
-        for (c = 0; c < 32; ++c)
-            hud_cell(r, c, ' ', 1, 0);
+    uint8_t r;
+    for (r = 0; r < 3; ++r) {
+        nm_n[r] = 0;
+        status(r, 0, "                                ", 0);
+    }
 }
 
 /* a name in its seat's colour: the row's next write draws cells col ..
@@ -325,7 +291,7 @@ void field_status_clear(void)
  * yellow in every HUD palette) */
 void field_name(uint8_t row, uint8_t col, uint8_t n, uint8_t seat)
 {
-    uint8_t i, q, a, sh, p;
+    uint8_t i, q, a, sh, p, end;
     if (seat >= SEATS || row > 2)
         return;
     p = row < 2 ? 1 : 2;
@@ -336,7 +302,10 @@ void field_name(uint8_t row, uint8_t col, uint8_t n, uint8_t seat)
        26-27, an attribute byte's bottom half) or 14 (28-29, the next's top) */
     q = (uint8_t)((NT_HUD + row) >> 1);
     sh = (q & 1) ? 4 : 0;
-    for (i = col & ~1; i < col + n && i < 32; i += 2) {
+    end = (uint8_t)(col + n);
+    if (row == 0 && end < 9)
+        end = 9;                        /* (row 0: the energy gauge's cells too, in the name's ink) */
+    for (i = col & ~1; i < end && i < 32; i += 2) {
         a = (uint8_t)((q >> 1) - 6) * 8 + (i >> 2);
         sh = (uint8_t)(((q & 1) ? 4 : 0) + ((i & 2) ? 2 : 0));
         hud_attr[a] = (uint8_t)((hud_attr[a] & ~(3 << sh)) | (p << sh));
@@ -475,5 +444,7 @@ void field_title(void)
     drawn[0] = drawn[1] = 1;
     field_status(0, 2, TXT_TAGLINE);
     field_status(1, 12, TXT_PRESS);
+#ifdef QUIT_HINT
     field_status(2, 9, QUIT_HINT);
+#endif
 }

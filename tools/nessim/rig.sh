@@ -68,6 +68,6 @@ exec unshare -rn bash -c '
     for i in $(seq 40); do ss -ltn | grep -q ":9913 " && break; sleep 0.25; done
     for i in $(seq 40); do ss -ltn | grep -q ":9988 " && break; sleep 0.25; done
     if [ -n "${EXTRA:-}" ]; then bash -c "$EXTRA" > "$OUT/extra.log" 2>&1 & pids="$!"; fi
-    NESRUN_BOIP=127.0.0.1:9988 NESRUN_THROTTLE=1 "$HERE/tools/nessim/nesrun" "$ROM" "$MAP" "$SCEN" "$OUT" > "$OUT/run.log" 2>&1 || true
+    NESRUN_R6LOG=${NESRUN_R6LOG:-} NESRUN_R6FROM=${NESRUN_R6FROM:-} NESRUN_BOIP=127.0.0.1:9988 NESRUN_THROTTLE=1 "$HERE/tools/nessim/nesrun" "$ROM" "$MAP" "$SCEN" "$OUT" > "$OUT/run.log" 2>&1 || true
     tail -5 "$OUT/run.log"
 '

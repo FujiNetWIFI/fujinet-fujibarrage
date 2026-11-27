@@ -142,5 +142,5 @@ uint8_t plat_rand(void)
 
 uint8_t plat_hz(void)
 {
-    return 60;                  /* (M6: a PAL console's 50) */
+    return nes_region ? 50 : 60;        /* (a PAL console or a Dendy: crt0.s counts 60ths) */
 }

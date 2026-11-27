@@ -84,6 +84,7 @@ uint8_t nst_taken;
 
 static char dev[64];
 static uint8_t state, down, wtries, seq, hold, held, is_open, lost, garbled;
+static uint8_t stale;                       /* a request's number that timed out (0 none) */
 static uint8_t rbuf[RMAX];
 static uint16_t rlen, rpos, polled, started, want;
 static uint8_t dlen, drem, dzero, dbad;     /* the frame being decoded */
@@ -107,9 +108,13 @@ static void request(uint8_t cmd, uint8_t n16, uint16_t v, const uint8_t *data, u
     }
     while (n--)
         MB_TX = *data++;
-    /* the cart's sequence, not ours: a console Reset doesn't reset it */
+    /* the cart's sequence, not ours: a console Reset doesn't reset it;
+     * never the number of one that timed out (its reply may yet come, and
+     * would be taken for this one's) */
     seq = MB_ACKSEQ + 1;
     if (!seq)
+        seq = 1;
+    if (seq == stale && !++seq)
         seq = 1;
     MB_REG(R_SEQ) = seq;
     started = jiffies();
@@ -118,8 +123,12 @@ static void request(uint8_t cmd, uint8_t n16, uint16_t v, const uint8_t *data, u
 /* 0 not done yet, 1 an ACK, 2 failed (or no answer in time). */
 static uint8_t collect(void)
 {
-    if (MB_ACKSEQ != seq)
-        return (uint16_t)(jiffies() - started) < WAIT_MAX ? 0 : 2;
+    if (MB_ACKSEQ != seq) {
+        if ((uint16_t)(jiffies() - started) < WAIT_MAX)
+            return 0;
+        stale = seq;                    /* (no answer in time) */
+        return 2;
+    }
     return (MB_ERR == 0 && MB_REPLYCMD == ACK) ? 1 : 2;
 }
 
@@ -175,7 +184,7 @@ static void step(void)
             return;                         /* (the bytes first) */
         case T_WRITE:
             state = T_IDLE;
-            if (r != 1 && ++wtries < WRITE_TRIES) {
+            if (r != 1 && !hold && ++wtries < WRITE_TRIES) {    /* (closing: no again) */
                 start_write();              /* the same again */
                 return;
             }

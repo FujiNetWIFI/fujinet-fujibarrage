@@ -17,6 +17,9 @@
         .import _trk_reset, _trk_load, _trk_stop, _trk_step
         .import _ops_path, _ops_flow, _ops_beam, _ops_step, _ops_seg_end, _ops_reset
         .import _fld_ellipse, _fld_col, _field_fire
+.ifdef FLD_WIDE
+        .import _fld_cols8
+.endif
         .import _c_op, _c_anim, _pt_step, _pt_clear, _dsp_shake
         .importzp _fx, _fv, _fent, _ex, _ey, _erx, _ery, _emode
 
@@ -357,6 +360,34 @@ settle: stx     bi
         adc     mul+1
         sta     _fent+1
         sta     pp+1
+.ifdef FLD_WIDE
+        lda     den             ; (the NES: a cell's 8 plain columns at once)
+        cmp     #8
+        bcc     @one
+        lda     _fx
+        and     #7
+        bne     @one
+        jsr     _fld_cols8
+        bne     @one            ; (spans among them: a column at a time)
+        lda     mul
+        clc
+        adc     #8
+        sta     mul
+        bcc     @m8
+        inc     mul+1
+@m8:    lda     _fx
+        clc
+        adc     #8
+        sta     _fx
+        bcc     @x8
+        inc     _fx+1
+@x8:    lda     den
+        sec
+        sbc     #8
+        sta     den
+        jmp     @c
+@one:
+.endif
         jsr     _fld_col
         jsr     elen
         clc

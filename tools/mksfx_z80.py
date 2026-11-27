@@ -8,6 +8,9 @@ makes the CoCo's, in z80asm.
     mksfx_z80.py sfx OUT.asm
     mksfx_z80.py tunes OUT.asm NAME=music/x.txt ...
 
+--ca65 SEG (anywhere): the same data for ca65 (the NES's src/nes/snd.s), in
+segment SEG.
+
 The units are the chips' own and the same on both: a tone's period P is
 111861 / Hz (the SN76489's N at 3.58 MHz, the AY's period at 1.79 MHz, the
 Intellivision's), a noise's period n (1-31) a new random bit every n of
@@ -151,7 +154,27 @@ def tunes(dst, specs):
     print("%s: %d bytes, %d pitches" % (dst, total + 2 * len(per) + 16, len(per)))
 
 
+def ca65(path, seg):
+    """the z80asm text written as ca65's"""
+    out = []
+    for line in open(path).read().splitlines():
+        t = line.strip()
+        if t.startswith("SECTION "):
+            line = '        .segment "%s"' % seg
+        elif t.startswith("PUBLIC "):
+            line = "        .export " + t[len("PUBLIC "):].strip()
+        else:
+            line = re.sub(r"\bdefb\b", ".byte", re.sub(r"\bdefw\b", ".word", line))
+        out.append(line)
+    open(path, "w").write("\n".join(out) + "\n")
+
+
 def main():
+    seg = None
+    if "--ca65" in sys.argv:
+        i = sys.argv.index("--ca65")
+        seg = sys.argv[i + 1]
+        del sys.argv[i:i + 2]
     if len(sys.argv) < 3:
         sys.exit(__doc__)
     what, out = sys.argv[1], sys.argv[2]
@@ -162,6 +185,8 @@ def main():
         tunes(out, [a.split("=", 1) for a in sys.argv[3:]])
     else:
         sys.exit(__doc__)
+    if seg:
+        ca65(out, seg)
 
 
 if __name__ == "__main__":

@@ -272,8 +272,7 @@
 #ifdef __MSDOS__
 #define QUIT_HINT "ESC: LOBBY"          /* the title: ESC goes back to the lobby (menus.c) */
 #endif
-#ifdef __NES__
-#define QUIT_HINT "SELECT: LOBBY"       /* (SELECT is ESC: src/nes/input.c) */
+#ifdef __NES__                  /* (no QUIT_HINT: the cartridge has no way back to CONFIG) */
 #define TXT_WHEEL1 "UP/DOWN: LETTER  A: TAKE IT"
 #define TXT_WHEEL2 "LEFT: BACK  START: DONE"
 #endif

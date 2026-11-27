@@ -12,7 +12,7 @@
  * between frames. $NESRUN_THROTTLE=1 paces the frames in real time (a
  * live game: the server's clock is the wall's); $NESRUN_BOIP a FujiNet to
  * talk to (host:port of fujinet-pc's BoIP; default none); $NESRUN_REGION
- * pal for a 50 Hz console. A symbol is a name from MAP (ld65's exports),
+ * pal for a 50 Hz console (dendy: a Dendy). A symbol is a name from MAP (ld65's exports),
  * with +n, or a hex address (0x...). The scenario's lines:
  *
  *   wait N                    N frames
@@ -36,8 +36,26 @@
  *                             length into _seg_len, and SYM back to 0
  *   regs                      the CPU's registers, printed
  *   echo TEXT                 printed
+ *   guard                     the PPU guard's count so far, printed
+ *   events L0 L1              the next frame's PPU and mapper writes in lines
+ *                             L0-L1, with their dots (the split's timing)
+ *   wav FILE N                the next N frames' sound (Mesen's mix, 48 kHz
+ *                             stereo, 16 bits) to OUTDIR/FILE
+ *   prof FILE N               the next N frames' CPU by function (Mesen's
+ *                             profiler, the debugger's): OUTDIR/FILE, a line
+ *                             each: PRG offset, exclusive and inclusive
+ *                             cycles, calls (tools/nessim/prof.py names them)
  *
- * Exits 0 when the scenario ends; 2 if an `until` runs out.
+ * The PPU guard (on unless $NESRUN_GUARD=0) reads the emulator's own record
+ * of the register writes each frame (its debugger's event list) and counts
+ * every write the PPU can't take while it draws: $2003-$2007 and $4014
+ * with rendering on in a visible or the pre-render line; and rendering
+ * turned on in a visible line outside the HUD's split (lines 186-197), or
+ * on the pre-render line from dot 257 (the scroll's put back there): a
+ * display put back late. The first few are printed.
+ *
+ * Exits 0 when the scenario ends; 2 if an `until` runs out; 3 if the PPU
+ * guard counted any.
  */
 #include <chrono>
 #include <condition_variable>
@@ -62,6 +80,13 @@
 #include "NES/NesConsole.h"
 #include "NES/NesMemoryManager.h"
 #include "NES/NesCpu.h"
+#include "Debugger/Debugger.h"
+#include "Shared/DebuggerRequest.h"
+#include "Debugger/BaseEventManager.h"
+#include "NES/Debugger/NesEventManager.h"
+#include "Debugger/CallstackManager.h"
+#include "Debugger/Profiler.h"
+#include <map>
 
 static nessession *S;
 static MesenHost *host;
@@ -76,11 +101,124 @@ static std::condition_variable cv;
 static uint64_t frames, target;
 static bool held;
 
+/* ---- the PPU guard: the frame's register writes, from the debugger ---- */
+static int guard_on;
+static long guard_hits;
+static uint8_t guard_mask;              /* PPUMASK as the writes left it */
+static uint8_t guard_sel;               /* MMC3's bank select, as written */
+static int ev_req, ev_l0, ev_l1;        /* (events: the next frame's, printed) */
+static long r6log = -1;                 /* $NESRUN_R6LOG=V: R6 set to V (256: any), logged */
+static unsigned long long r6from;       /* ($NESRUN_R6FROM: from this frame on) */
+static std::vector<DebugEventInfo> guard_ev;
+
+static void guard_config(BaseEventManager *m)
+{
+	NesEventViewerConfig cfg = {};
+	EventViewerCategoryCfg on = {};
+	on.Visible = true;
+	on.Color = 0xFFFFFF;
+	cfg.Ppu2000Write = cfg.Ppu2001Write = cfg.Ppu2003Write = cfg.Ppu2004Write = on;
+	cfg.Ppu2005Write = cfg.Ppu2006Write = cfg.Ppu2007Write = on;
+	cfg.MapperRegisterWrites = on;
+	cfg.ApuRegisterWrites = cfg.ControlRegisterWrites = on;
+	cfg.ShowPreviousFrameEvents = false;
+	m->SetConfiguration(cfg);
+}
+
+static void guard_hit(const DebugEventInfo &e, const char *what)
+{
+	if(++guard_hits <= 12)
+		fprintf(out, "ppuguard: frame %llu line %d dot %u PC=%04X $%04X=%02X %s\n",
+		        (unsigned long long)frames, e.Scanline, e.Cycle, e.ProgramCounter,
+		        e.Operation.Address, (uint8_t)e.Operation.Value, what);
+}
+
+/* (the emulation thread, at the pre-render line: the last frame's events) */
+static void guard_frame(void)
+{
+	if(ev_req == 1)
+		ev_req = 2;             /* (from this frame's start) */
+	else if(ev_req == 2)
+		ev_req = 0;
+	Debugger *dbg = emu->InternalGetDebugger();
+	BaseEventManager *m = dbg ? dbg->GetEventManager(CpuType::Nes) : nullptr;
+	if(!m)
+		return;
+	guard_config(m);
+	m->TakeEventSnapshot(true);
+	uint32_t n = m->GetEventCount();
+	guard_ev.resize(n);
+	if(n)
+		m->GetEvents(guard_ev.data(), n);
+	for(uint32_t i = 0; i < n; i++) {
+		const DebugEventInfo &e = guard_ev[i];
+		if(e.Type != DebugEventType::Register)
+			continue;
+		if(ev_req == 2 && e.Scanline >= ev_l0 && e.Scanline <= ev_l1)
+			fprintf(out, "event: line %d dot %u PC=%04X $%04X=%02X\n", e.Scanline, e.Cycle,
+			        e.ProgramCounter, e.Operation.Address, (uint8_t)e.Operation.Value);
+		MemoryOperationType t = e.Operation.Type;
+		if(t != MemoryOperationType::Write && t != MemoryOperationType::DmaWrite &&
+		   t != MemoryOperationType::DummyWrite)
+			continue;
+		uint32_t a = e.Operation.Address;
+		uint8_t v = (uint8_t)e.Operation.Value;
+		int line = e.Scanline;
+		bool drawing = (line >= -1 && line <= 239) || line == 261;
+		if(a >= 0x2000 && a < 0x4000) {
+			unsigned r = a & 7;
+			if(r == 1) {
+				/* (on the pre-render line before dot 257 it is in time: the
+				   scroll is put back at dots 257-304) */
+				if((v & 0x18) && !(guard_mask & 0x18) && drawing && !(line >= 186 && line <= 197) &&
+				   !((line == -1 || line == 261) && e.Cycle < 257))
+					guard_hit(e, "rendering on mid-frame");
+				guard_mask = v;
+			} else if(r >= 3 && (guard_mask & 0x18) && drawing) {
+				guard_hit(e, "while rendering");
+			}
+		} else if(a == 0x4014 && (guard_mask & 0x18) && drawing) {
+			guard_hit(e, "OAM DMA while rendering");
+		} else if(a >= 0x8000 && a < 0xA000) {
+			if(!(a & 1))
+				guard_sel = v;
+			else if((guard_sel & 7) == 6 && r6log >= 0 && (v == r6log || r6log == 256) &&
+			        frames >= r6from)
+				fprintf(out, "r6log: frame %llu line %d PC=%04X R6=%u\n", (unsigned long long)frames,
+				        e.Scanline, e.ProgramCounter, v);
+		}
+	}
+}
+
+/* ---- the profiler: snapshots taken on the emulation thread (its data
+   call breaks into the debugger from anywhere else: here, held, a hang) ---- */
+static int prof_snap;
+static std::vector<ProfiledFunction> prof_cur(100000);
+static uint32_t prof_n;
+
+static void prof_take(void)
+{
+	Debugger *dbg = emu->InternalGetDebugger();
+	CallstackManager *cs = dbg ? dbg->GetCallstackManager(CpuType::Nes) : nullptr;
+	prof_n = 0;
+	if(cs && cs->GetProfiler())
+		cs->GetProfiler()->GetProfilerData(prof_cur.data(), prof_n);
+}
+
 class Stepper : public INotificationListener
 {
 public:
-	void ProcessNotification(ConsoleNotificationType type, void *) override
+	void ProcessNotification(ConsoleNotificationType type, void *param) override
 	{
+		if(type == ConsoleNotificationType::PpuFrameDone && prof_snap) {
+			prof_take();
+			prof_snap = 0;
+		}
+		if(type == ConsoleNotificationType::EventViewerRefresh) {
+			if(guard_on && (CpuType)(intptr_t)param == CpuType::Nes)
+				guard_frame();
+			return;
+		}
 		if(type != ConsoleNotificationType::PpuFrameDone)
 			return;
 		std::unique_lock<std::mutex> lk(mu);
@@ -213,6 +351,8 @@ static FILE *outf(const char *name, const char *mode)
 	return f;
 }
 
+static void wav_drain(void);
+
 /* ---- test.c's segments ---- */
 static int serve_on;
 static uint16_t serve_at;
@@ -246,6 +386,48 @@ static void step(void)
 {
 	frame();
 	serve_check();
+	wav_drain();
+}
+
+/* ---- sound: the host's ring (Mesen's mix), drained a frame at a time ---- */
+static FILE *wav_f;
+static uint32_t wav_n;                  /* frames of sound written */
+
+static void wav_drain(void)
+{
+	uint32_t r, w, size, n;
+	static float buf[2 * 16384];
+	host->AudioLatency(r, w, size);
+	n = ((w - r) / 4) % (size / 4);
+	if(!n)
+		return;
+	host->FillAudio(buf, n);
+	if(!wav_f)
+		return;
+	for(uint32_t i = 0; i < 2 * n; i++) {
+		float v = buf[i] * 32767.0f;
+		int16_t x = (int16_t)(v > 32767.0f ? 32767 : v < -32768.0f ? -32768 : v);
+		fwrite(&x, 2, 1, wav_f);
+	}
+	wav_n += n;
+}
+
+static void wav_head(FILE *f, uint32_t n)
+{
+	uint32_t rate = 48000, bytes = n * 4, v;
+	uint16_t h;
+	fwrite("RIFF", 1, 4, f);
+	v = 36 + bytes; fwrite(&v, 4, 1, f);
+	fwrite("WAVEfmt ", 1, 8, f);
+	v = 16; fwrite(&v, 4, 1, f);
+	h = 1; fwrite(&h, 2, 1, f);
+	h = 2; fwrite(&h, 2, 1, f);
+	fwrite(&rate, 4, 1, f);
+	v = rate * 4; fwrite(&v, 4, 1, f);
+	h = 4; fwrite(&h, 2, 1, f);
+	h = 16; fwrite(&h, 2, 1, f);
+	fwrite("data", 1, 4, f);
+	fwrite(&bytes, 4, 1, f);
 }
 
 /* ---- input ---- */
@@ -336,7 +518,8 @@ int main(int argc, char **argv)
 	nessession_start_opts o;
 	nessession_default_opts(S, &o);
 	o.cart_path = rom;
-	o.region = region && !strcmp(region, "pal") ? NES_REGION_PAL : NES_REGION_NTSC;
+	o.region = !region ? NES_REGION_NTSC : !strcmp(region, "pal") ? NES_REGION_PAL :
+	           !strcmp(region, "dendy") ? NES_REGION_DENDY : NES_REGION_NTSC;
 	o.port_type[0] = NES_CTRL_STANDARD;
 	o.port_type[1] = NES_CTRL_NONE;
 	o.analog_joystick = 0;
@@ -357,6 +540,13 @@ int main(int argc, char **argv)
 		ec.EmulationSpeed = 0;
 		emu->GetSettings()->SetEmulationConfig(ec);
 	}
+	guard_on = !getenv("NESRUN_GUARD") || atoi(getenv("NESRUN_GUARD"));
+	if(getenv("NESRUN_R6LOG") && *getenv("NESRUN_R6LOG"))
+		r6log = atol(getenv("NESRUN_R6LOG"));
+	if(getenv("NESRUN_R6FROM") && *getenv("NESRUN_R6FROM"))
+		r6from = strtoull(getenv("NESRUN_R6FROM"), NULL, 0);
+	if(guard_on)
+		emu->GetDebugger(true);         /* (its event list: the PPU guard's) */
 	static std::shared_ptr<Stepper> stepper = std::make_shared<Stepper>();
 	emu->GetNotificationManager()->RegisterNotificationListener(stepper);
 	{
@@ -437,12 +627,66 @@ int main(int argc, char **argv)
 			NesCpuState &st = con()->GetCpu()->GetState();
 			fprintf(out, "PC=%04X A=%02X X=%02X Y=%02X SP=%02X P=%02X frames=%llu\n", st.PC, st.A, st.X,
 			        st.Y, st.SP, st.PS, (unsigned long long)frames);
+		} else if(!strcmp(cmd, "wav")) {
+			long n = k > 2 ? strtol(b, NULL, 0) : 60;
+			wav_drain();            /* (what came before isn't this) */
+			wav_f = outf(a, "wb");
+			wav_head(wav_f, 0);
+			wav_n = 0;
+			while(n-- > 0)
+				step();
+			fseek(wav_f, 0, SEEK_SET);
+			wav_head(wav_f, wav_n);
+			fclose(wav_f);
+			wav_f = NULL;
+			fprintf(out, "wav: %s, %u frames of sound\n", a, wav_n);
+		} else if(!strcmp(cmd, "prof")) {
+			long n = k > 2 ? strtol(b, NULL, 0) : 60;
+			std::map<int64_t, ProfiledFunction> a0;
+			prof_snap = 1;
+			step();
+			for(uint32_t i = 0; i < prof_n; i++)
+				a0[(int64_t)prof_cur[i].Address.Type << 32 | (uint32_t)prof_cur[i].Address.Address] = prof_cur[i];
+			while(n-- > 1)
+				step();
+			prof_snap = 1;
+			step();
+			FILE *f = outf(a, "w");
+			for(uint32_t i = 0; i < prof_n; i++) {
+				ProfiledFunction &p = prof_cur[i];
+				int64_t key = (int64_t)p.Address.Type << 32 | (uint32_t)p.Address.Address;
+				uint64_t ex = p.ExclusiveCycles, in = p.InclusiveCycles, c = p.CallCount;
+				auto it = a0.find(key);
+				if(it != a0.end()) {
+					ex -= it->second.ExclusiveCycles;
+					in -= it->second.InclusiveCycles;
+					c -= it->second.CallCount;
+				}
+				if(ex || c)
+					fprintf(f, "%d %d %llu %llu %llu\n", (int)p.Address.Type, p.Address.Address,
+					        (unsigned long long)ex, (unsigned long long)in, (unsigned long long)c);
+			}
+			fclose(f);
+		} else if(!strcmp(cmd, "events")) {
+			ev_l0 = atoi(a);
+			ev_l1 = atoi(b);
+			ev_req = 1;
+			step();
+			step();
+			step();
+		} else if(!strcmp(cmd, "guard")) {
+			fprintf(out, "ppuguard: %ld\n", guard_hits);
 		} else if(!strcmp(cmd, "echo")) {
 			fprintf(out, "%s", line + 5);
 		} else {
 			fprintf(stderr, "nesrun: %s: what?\n", cmd);
 			rc = 1;
 		}
+	}
+	if(guard_on) {
+		fprintf(out, "ppuguard: %ld writes the PPU couldn't take\n", guard_hits);
+		if(guard_hits && !rc)
+			rc = 3;
 	}
 	fflush(out);
 	_exit(rc);

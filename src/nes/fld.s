@@ -26,7 +26,7 @@
         .export _fld_init, _fld_clear, _fld_plot, _fld_get, _fld_hspan
         .export _fld_vrun, _fld_col, _fld_swap, _fld_ellipse
         .exportzp _fx, _fy, _fx1, _fv, _fent, _fold, _ex, _ey, _erx, _ery, _emode
-        .export _fld_nd, _fld_live, _fld_dirty, _fld_rowd, _fld_lossy
+        .export _fld_nd, _fld_live, _fld_dirty, _fld_rowd, _fld_lossy, _fld_cols8
         .export _fmap, _fpool, _fkind, _fld_blocks, fld_mark_all, _fld_mark_all
         .export fld_load, cellat, mark_below, _fld_touch
         .exportzp wd, wf, fcp, crow, ccol, code
@@ -64,6 +64,9 @@ ccol:   .res 1
 ry:     .res 1          ; a pixel's line in its cell
 rbit:   .res 1          ; and its bit
 code:   .res 1
+ctop:   .res 8          ; (fld_cols8: each column's top,
+cf:     .res 8          ; its first dirt line in the cell row (8: none),
+crw:    .res 1          ; the cell row)
 chg:    .res 1
 t0:     .res 1
 t1:     .res 1
@@ -105,6 +108,11 @@ el_in1: .res 1          ; to (in0 > in1: none)
 el_c0:  .res 1          ; the cells touched: from,
 el_c1:  .res 1          ; to
 el_dy:  .res 1
+eh_dy:  .res 1          ; (el_half: the last line's dy, $FF none,
+eh_i:   .res 1          ; its i and remainder,
+eh_rem: .res 1
+eh_mi:  .res 1          ; the i of the last product, $FF none,
+eh_hw:  .res 1          ; and the product's half width)
 
         .segment "CODE2"        ; (R7's bank: always in, and the fixed banks are full)
 ; a quarter circle: q32[i] = 64 sqrt(1 - (i/32)^2) (the Atari's)
@@ -410,57 +418,100 @@ bpair:  ldx     #4
 ; fld_store: wd, wf back into the cell at hand (code: its code so far), the
 ; cell marked changed (mark)
 fld_store:
-        ; what is there: any dirt, all dirt, any fire, all fire, any sky
-        lda     #0
-        sta     t0              ; or D
-        sta     t2              ; or F
-        sta     chg             ; or sky
-        lda     #$FF
-        sta     t1              ; and D
-        sta     t3              ; and F
-        ldx     #7
-@w:     lda     wd,x
-        ora     t0
-        sta     t0
-        lda     wd,x
-        and     t1
-        sta     t1
-        lda     wf,x
-        ora     t2
-        sta     t2
-        lda     wf,x
-        and     t3
-        sta     t3
-        lda     wd,x
-        ora     wf,x
-        eor     #$FF
-        ora     chg
-        sta     chg
-        dex
-        bpl     @w
-        lda     t2
+        ; what is there, asked only as far as it matters (wd, wf in zero
+        ; page, unrolled: the store's commonest work)
+        lda     wf
+        ora     wf+1
+        ora     wf+2
+        ora     wf+3
+        ora     wf+4
+        ora     wf+5
+        ora     wf+6
+        ora     wf+7
         bne     @fire
-        lda     t0              ; no fire
+        lda     wd
+        ora     wd+1
+        ora     wd+2
+        ora     wd+3
+        ora     wd+4
+        ora     wd+5
+        ora     wd+6
+        ora     wd+7
         bne     @d1
-        lda     #C_SKY
+        lda     #C_SKY          ; no fire, no dirt
         jmp     whole
-@d1:    lda     t1
+@d1:
+        lda     wd
+        and     wd+1
+        and     wd+2
+        and     wd+3
+        and     wd+4
+        and     wd+5
+        and     wd+6
+        and     wd+7
         cmp     #$FF
         bne     @d2
         lda     #C_DIRT
         jmp     whole
 @d2:    lda     #K_DSKY
         jmp     one
-@fire:  lda     t3
+@fire:
+        lda     wf
+        and     wf+1
+        and     wf+2
+        and     wf+3
+        and     wf+4
+        and     wf+5
+        and     wf+6
+        and     wf+7
         cmp     #$FF
         bne     @f1
         lda     #C_FIRE
         jmp     whole
-@f1:    lda     t0
+@f1:
+        lda     wd
+        ora     wd+1
+        ora     wd+2
+        ora     wd+3
+        ora     wd+4
+        ora     wd+5
+        ora     wd+6
+        ora     wd+7
         bne     @f2
         lda     #K_FSKY
         jmp     one
-@f2:    lda     chg
+@f2:    lda     wd              ; fire and dirt: any sky (a pixel of neither)?
+        ora     wf
+        sta     t0
+        lda     wd+1
+        ora     wf+1
+        and     t0
+        sta     t0
+        lda     wd+2
+        ora     wf+2
+        and     t0
+        sta     t0
+        lda     wd+3
+        ora     wf+3
+        and     t0
+        sta     t0
+        lda     wd+4
+        ora     wf+4
+        and     t0
+        sta     t0
+        lda     wd+5
+        ora     wf+5
+        and     t0
+        sta     t0
+        lda     wd+6
+        ora     wf+6
+        and     t0
+        sta     t0
+        lda     wd+7
+        ora     wf+7
+        and     t0
+        sta     t0
+        cmp     #$FF
         beq     @f3
         jmp     three
 @f3:    lda     #K_FDIRT
@@ -879,8 +930,9 @@ vrows:  lda     _fx
         sta     rbit
 @cell:  lda     t2
         cmp     t3
-        bcs     @x
-        lsr
+        bcc     @in
+        rts
+@in:    lsr
         lsr
         lsr
         tay
@@ -905,17 +957,49 @@ vrows:  lda     _fx
         cmp     _fv
         beq     @next
         jsr     fld_load
-        lda     t1              ; (to - t2) lines from line t0
-        sec
-        sbc     t2
+        lda     t1              ; (to - t2) lines from line t0: the bit
+        sec                     ; cleared in both planes, set in fv's
+        sbc     t2              ; (setpx's work, a line in a loop of its own)
         tay
         ldx     t0
-@l:     lda     rbit
-        jsr     setpx           ; (X, Y kept)
+        lda     rbit
+        eor     #$FF
+        sta     t1
+        lda     _fv
+        cmp     #C_DIRT
+        beq     @dl
+        cmp     #C_FIRE
+        beq     @fl
+@sl:    lda     wd,x            ; sky
+        and     t1
+        sta     wd,x
+        lda     wf,x
+        and     t1
+        sta     wf,x
         inx
         dey
-        bne     @l
-        lda     t2
+        bne     @sl
+        beq     @st
+@dl:    lda     wd,x            ; dirt
+        ora     rbit
+        sta     wd,x
+        lda     wf,x
+        and     t1
+        sta     wf,x
+        inx
+        dey
+        bne     @dl
+        beq     @st
+@fl:    lda     wf,x            ; fire
+        ora     rbit
+        sta     wf,x
+        lda     wd,x
+        and     t1
+        sta     wd,x
+        inx
+        dey
+        bne     @fl
+@st:    lda     t2
         pha
         lda     t3
         pha
@@ -1005,6 +1089,124 @@ _fld_col:
         ldx     #0
         rts
 
+        .segment "CODE2"        ; (R7: always in, as the fixed banks, which are full)
+
+; uint8_t fld_cols8(void): columns fx .. fx+7 (fx a multiple of 8) the 8
+; plain TERRAIN entries at fent (each a top: sky above it, dirt from it
+; down; $F0 none), a cell at a time: each cell built and stored once (by
+; columns a cell was loaded and stored once per column: the field took 1.7
+; s). 1 if an entry has spans (nothing done: fld_col's, a column at a time);
+; the Z flag as A (src/6502/ply.s's settle tests it).
+_fld_cols8:
+        ldy     #7
+@e:     lda     (_fent),y
+        cmp     #$F0
+        beq     @none
+        bcc     @pl
+        ldx     #0              ; (spans: not here; A last: Z clear)
+        lda     #1
+        rts
+@pl:    cmp     #FLINES
+        bcc     @t
+@none:  lda     #FLINES
+@t:     sta     ctop,y
+        dey
+        bpl     @e
+        lda     #0
+        sta     crw
+@row:   lda     crw             ; each column's first dirt line in the row,
+        asl                     ; 0-8 (8: none): max 0 all dirt, min 8 all sky
+        asl
+        asl
+        sta     t0
+        lda     #0
+        sta     t1              ; (the max)
+        lda     #8
+        sta     t2              ; (the min)
+        ldx     #7
+@f:     lda     ctop,x
+        sec
+        sbc     t0
+        bcs     @p
+        lda     #0
+@p:     cmp     #8
+        bcc     @s
+        lda     #8
+@s:     sta     cf,x
+        cmp     t1
+        bcc     @mx
+        sta     t1
+@mx:    cmp     t2
+        bcs     @mn
+        sta     t2
+@mn:    dex
+        bpl     @f
+        ldy     crw
+        lda     _fx
+        lsr
+        lsr
+        lsr
+        tax
+        jsr     cellat
+        lda     t1
+        bne     @nd
+        lda     #C_DIRT         ; all dirt
+        bne     @uni
+@nd:    lda     t2
+        cmp     #8
+        bne     @mix
+        lda     #C_SKY          ; all sky
+@uni:   cmp     code
+        beq     @next           ; (so already)
+        sta     t3
+        jsr     fld_load        ; (the crust: its old last lines)
+        lda     #0
+        ldx     t3
+        cpx     #C_DIRT
+        bne     @u0
+        lda     #$FF
+@u0:    ldx     #7
+@uf:    sta     wd,x
+        dex
+        bpl     @uf
+        jmp     @st
+@mix:   jsr     fld_load
+        lda     #0
+        ldx     #7
+@mz:    sta     wd,x
+        dex
+        bpl     @mz
+        ldy     #7              ; each column's bit, from its first dirt line
+@mc:    ldx     cf,y
+        cpx     #8
+        bcs     @mn2
+        lda     bitof,y
+        sta     t3
+@ml:    lda     wd,x
+        ora     t3
+        sta     wd,x
+        inx
+        cpx     #8
+        bcc     @ml
+@mn2:   dey
+        bpl     @mc
+@st:    lda     #0              ; no fire
+        ldx     #7
+@sf:    sta     wf,x
+        dex
+        bpl     @sf
+        jsr     fld_store
+@next:  inc     crw
+        lda     crw
+        cmp     #FROWS
+        bcs     @done
+        jmp     @row
+@done:  lda     #0
+        tax
+        rts
+
+        .code
+
 ; rows ecur..ecnt-1 of column fx = A; ecur = ecnt after
 erun:   sta     _fv
         lda     ecnt
@@ -1029,6 +1231,9 @@ erun:   sta     _fv
 ; fv; 1: sky becomes fv; 2: fire becomes sky. A band of 8 lines at a time:
 ; each line's span, then each cell the band touches, once.
 _fld_ellipse:
+        lda     #$FF            ; (el_half: nothing to step from)
+        sta     eh_dy
+        sta     eh_mi
         lda     _ery
         bne     @r
         inc     _ery
@@ -1205,9 +1410,22 @@ el_spans:
         rts
 
 ; el_half: el_w = the half width at dy el_dy: i = min(32, (ery/2 + 32 dy)
-; / ery), hw = (erx * q32[i] + 32) >> 6
+; / ery), hw = (erx * q32[i] + 32) >> 6. A band's lines come one after
+; another, so i and its remainder step from the last line's (dy one more or
+; less: a subtraction or two, not the whole division), and the product is
+; the last one's while i is (fld_ellipse sets both "none" first).
 el_half:
-        lda     #0              ; n = 32 dy + ery/2 (16-bit)
+        lda     el_dy           ; the lines come one after another: from the
+        ldx     eh_dy           ; last line's quotient and remainder when dy
+        cpx     #$FF            ; is one more or less
+        beq     @full
+        sec
+        sbc     eh_dy
+        cmp     #1
+        beq     @up
+        cmp     #$FF
+        beq     @down
+@full:  lda     #0              ; n = 32 dy + ery/2 (16-bit)
         sta     el_w+1
         lda     el_dy
         asl
@@ -1228,7 +1446,7 @@ el_half:
         sta     el_w
         bcc     @dv
         inc     el_w+1
-@dv:    ldy     #0              ; i = n / ery, at most 32
+@dv:    ldy     #0              ; i = n / ery (at most 32: dy <= ery)
 @d:     lda     el_w
         sec
         sbc     _ery
@@ -1241,7 +1459,33 @@ el_half:
         iny
         cpy     #32
         bcc     @d
-@q:     lda     q32,y           ; hw = (erx * q32[i] + 32) >> 6
+@q:     lda     el_w
+        jmp     @set
+@up:    lda     eh_rem          ; n + 32
+        clc
+        adc     #32
+        ldy     eh_i
+@u:     cmp     _ery
+        bcc     @set
+        sbc     _ery
+        iny
+        jmp     @u
+@down:  lda     eh_rem          ; n - 32
+        ldy     eh_i
+@dn:    cmp     #32
+        bcs     @ds
+        adc     _ery            ; (carry clear)
+        dey
+        jmp     @dn
+@ds:    sbc     #32             ; (carry set)
+@set:   sta     eh_rem
+        sty     eh_i
+        lda     el_dy
+        sta     eh_dy
+        cpy     eh_mi           ; the product: the last one's while i is
+        beq     @same
+        sty     eh_mi
+        lda     q32,y           ; hw = (erx * q32[i] + 32) >> 6 (a byte: erx's at most)
         sta     t3
         lda     #0
         sta     el_w
@@ -1265,11 +1509,16 @@ el_half:
         sta     el_w
         bcc     @sh
         inc     el_w+1
-@sh:    ldx     #6
-@sd:    lsr     el_w+1
-        ror     el_w
-        dex
-        bne     @sd
+@sh:    asl     el_w            ; (>> 6: << 2, the high byte)
+        rol     el_w+1
+        asl     el_w
+        rol     el_w+1
+        lda     el_w+1
+        sta     eh_hw
+@same:  lda     eh_hw
+        sta     el_w
+        lda     #0
+        sta     el_w+1
         rts
 
 ; el_cells: the band's cells, each once: masks from the 8 spans, then the

@@ -28,8 +28,6 @@
 #define PPUADDR (*(volatile uint8_t *)0x2006)
 #define PPUDATA (*(volatile uint8_t *)0x2007)
 #define PPUSTAT (*(volatile uint8_t *)0x2002)
-#define MMC3_SEL (*(volatile uint8_t *)0x8000)
-#define MMC3_BANK (*(volatile uint8_t *)0x8001)
 
 #ifndef RENDER_MIN
 #define RENDER_MIN 6            /* cells drawn each frame, however late */
@@ -40,16 +38,13 @@ void fld_mark_all(void);        /* fld.s */
 extern uint8_t rnd_stars;
 extern uint8_t bln_cells[21 * 4];
 extern uint8_t dsp_shake;       /* the player's (pt.s) */
-extern uint8_t pt_x[16], pt_y[16], pt_life[16];        /* the sparks (pt.s) */
 
 uint8_t fires[3];               /* the round's fire's three, cycled (fieldo.c sets them) */
 
 uint8_t band_pal[16];            /* the round's palettes */
 uint8_t drawn[SEATS];            /* field_tank's: shown */
-static uint8_t rot;                     /* the sprites' order turns */
 uint8_t fire_on, fire_ph, fire_t;
 uint8_t flash_n;
-static uint8_t shake_t;
 uint8_t field_shown;
 
 /* ---- the store's calls ---- */
@@ -71,10 +66,21 @@ void field_column(uint16_t x, const uint8_t *entry)
 
 void field_columns(uint16_t x, const uint8_t *entry, uint16_t n)
 {
-    while (n--) {
+    while (n) {
+        if (!((uint8_t)x & 7) && n >= 8) {      /* a cell's 8 columns at once */
+            fx = x;
+            fent = entry;
+            if (!fld_cols8()) {
+                x += 8;
+                entry += 8;
+                n -= 8;
+                continue;
+            }
+        }
         fx = x++;
         fent = entry;
         entry += fld_col();
+        --n;
     }
 }
 
@@ -124,15 +130,19 @@ void field_ellipse(int16_t x, int16_t y, uint8_t rx, uint8_t ry, uint8_t v, uint
 
 /* ---- the screen ---- */
 
+/* (each entry written once, with its value: the NMI may copy pal_bg any
+ * time) */
 void field_palettes(void)
 {
-    uint8_t p;
-    memcpy(pal_bg, band_pal, 16);
-    if (flash_n)
-        memset(pal_bg, 0x30, 16);
-    else if (fire_on)
-        for (p = 0; p < 4; ++p)
-            pal_bg[p * 4 + 3] = fires[(uint8_t)(fire_ph + 3 - p) % 3];
+    uint8_t i, v;
+    for (i = 0; i < 16; ++i) {
+        v = band_pal[i];
+        if (flash_n)
+            v = 0x30;
+        else if (fire_on && (i & 3) == 3)
+            v = fires[(uint8_t)(fire_ph + 3 - (i >> 2)) % 3];
+        pal_bg[i] = v;
+    }
 }
 
 /* the field's changed cells, while the game waits for a frame */
@@ -142,53 +152,7 @@ void field_idle(void)
         fld_flush1();
 }
 
-/* the sprites, built in the page not shown */
-static void sprites(void)
-{
-    uint8_t *o = oam_show == 0x02 ? oam2 : oam;
-    uint8_t n = 0, i, s, k, first = 0xFF, second = 0xFF;
-    int16_t x;
-    if (my_seat < SEATS)
-        first = my_seat;
-    if (st[OFF_TURN] < SEATS && st[OFF_TURN] != first)
-        second = st[OFF_TURN];
-    for (k = 0; k < SEATS + 2; ++k) {
-        if (k == 0)
-            s = first;
-        else if (k == 1)
-            s = second;
-        else {
-            s = (uint8_t)((k - 2 + rot) % SEATS);
-            if (s == first || s == second)
-                continue;
-        }
-        if (s >= SEATS || !drawn[s] || !tk[s].on)
-            continue;
-        x = tk[s].x - 3;
-        if (x < 0)
-            x = 0;
-        if (x > 248)
-            x = 248;
-        o[n] = (uint8_t)(tk[s].y + 11);         /* (foot at y: the top 8 over, line 20 on, less 1) */
-        i = s < 9 ? s % 3 : 0;
-        o[n + 1] = (uint8_t)(1 + i * 38 + (s == my_seat ? 19 : 0) + (tk[s].angle > 180 ? 18 : tk[s].angle / 10));
-        o[n + 2] = (uint8_t)(s / 3);
-        o[n + 3] = (uint8_t)x;
-        n += 4;
-    }
-    for (k = 0; k < 16; ++k) {          /* the sparks: hot yellow, orange, red as they cool */
-        if (pt_y[k] == 0xFF)
-            continue;
-        o[n] = (uint8_t)(pt_y[k] + 19);
-        o[n + 1] = pt_life[k] > 12 ? 116 : pt_life[k] > 5 ? 117 : 115;
-        o[n + 2] = pt_life[k] > 12 ? 0 : pt_life[k] > 5 ? 1 : 0;
-        o[n + 3] = pt_x[k];
-        n += 4;
-    }
-    memset(o + n, 0xF8, 256 - n);
-    ++rot;
-    oam_next = o == oam2 ? 0x04 : 0x02;
-}
+void field_sprites(void);       /* pt.s: the tanks' and sparks' sprites */
 
 /* a frame: some changed cells however late, the sprites, the colours */
 void field_frame(void)
@@ -198,7 +162,7 @@ void field_frame(void)
         return;
     for (i = 0; i < RENDER_MIN && fld_flush1(); ++i)
         ;
-    sprites();
+    field_sprites();
     if (fire_on && ++fire_t >= 8) {
         fire_t = 0;
         fire_ph = (uint8_t)((fire_ph + 1) % 3);

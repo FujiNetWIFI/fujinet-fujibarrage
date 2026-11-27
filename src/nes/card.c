@@ -17,8 +17,6 @@ extern const uint8_t font8[];           /* the ART bank (R6, bank 1) */
 #define PPUADDR (*(volatile uint8_t *)0x2006)
 #define PPUDATA (*(volatile uint8_t *)0x2007)
 #define PPUSTAT (*(volatile uint8_t *)0x2002)
-#define MMC3_SEL (*(volatile uint8_t *)0x8000)
-#define MMC3_BANK (*(volatile uint8_t *)0x8001)
 
 static const uint8_t field_pal[16] = {
     0x06, 0x21, 0x17, 0x27,             /* the crust (the backdrop: dark red, so a leak shows); sky, dirt, fire by band */
@@ -43,9 +41,7 @@ static uint8_t tile[16];
 
 static void chr_r0(uint8_t bank)
 {
-    MMC3_SEL = 0;
-    MMC3_BANK = bank;
-    MMC3_SEL = mmc3_sel;
+    mmc3_chr((uint16_t)bank << 8);       /* R0 */
 }
 
 static void vaddr(uint16_t a)

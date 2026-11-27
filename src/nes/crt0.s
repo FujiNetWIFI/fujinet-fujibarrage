@@ -63,7 +63,7 @@
         .export         _exit
         .export         _ppu_drain, _prg_r6, _nmi_hook
         .exportzp       _qhead, _qtail, _ppu_direct, _mmc3_sel, _ppu_off
-        .exportzp       _oam_show, _oam_next, _disp_mode, _scroll_x, _r6_bank
+        .exportzp       _oam_show, _oam_next, _disp_mode, _scroll_x, _r6_bank, _nes_region, _nes_count
         .export         _frame_count, _nes_frames, _ppuq, _oam, _oam2
         .export         _pal_bg, _pal_hud, _pal_spr, _pal_spr_dirty
         .export         _irq_hits, _drain_left
@@ -101,13 +101,19 @@ TEXT_FIRST  = 215
 
 ; Drain budgets, in units of 16 cycles, counted from the code below at its
 ; slowest: a copy of n bytes is 15n + 120 cycles, a fill 9n + 130, a tile
-; 160 + 130. The IRQ's starts at line 220 and the display must be back on
+; 300 (its bank switched); a move of n VRAM bytes 33n + 150, a map of n
+; cells 85n + 140 (n at most 16: scr.c). No command costs more than the
+; IRQ's budget (or it would never be taken). It was 19 for every read
+; until 2026-11-27: a shop's scroll ran the drain into the picture, and the
+; writes corrupted the font. tools/nessim/nesrun's PPU guard watches for
+; that now. The IRQ's starts at line 220 and the display must be back on
 ; by the pre-render line's dot 280 (or it isn't scrolled to the top): its
 ; budget is what leaves time for the NMI's work (the palettes, the DMA,
 ; show: ~1000 cycles) after. The NMI's own has the vertical blank before
 ; that work.
 IRQ_BUDGET = 200
 NMI_BUDGET = 70
+NMI_OFF_BUDGET = 250            ; (DM_OFF: ~4000 cycles, well inside a frame)
 OFF_DELAY  = 8                  ; the IRQ's wait before rendering goes off (dot ~150)
 OFF_DELAY_F = 1                 ; the same in the field's steps (more before it)
 CLK_EVERY  = 608                ; 60.0988 * 607 / 608 = 60.000 Hz
@@ -115,6 +121,9 @@ CLK_EVERY  = 608                ; 60.0988 * 607 / 608 = 60.000 Hz
 Q_TILE    = $00                 ; queue ops: a tile (16 bytes)
 Q_MAP     = 1                   ; op $80's: a read, remap, write of cells
 Q_MOVE    = 2                   ; and a copy of VRAM
+Q_CELL    = $40                 ; and ($40 + R0's bank) a field cell: its
+                                ; tile (16 bytes), then its name byte (the
+                                ; address, the byte): src/nes/render.s's
 QBUF      = $0100               ; (the stack page's bottom: their buffer, 32 bytes)
                                 ; $01-$7F: a copy of n bytes; $81-$FF: a fill of n & $7F
 
@@ -155,6 +164,10 @@ alo:         .res 1
 cnt:         .res 1
 qx:          .res 1
 clk_n:       .res 2             ; frames to the next one not counted
+_nes_count:  .res 2             ; (the count itself: tools/nessim)
+_nes_region: .res 1             ; 0 NTSC, 1 PAL, 2 a Dendy (50 Hz, NTSC's lines)
+pal5:        .res 1             ; (50 Hz: frames to the fifth, counted twice)
+split_vec:   .res 2             ; the split for the console's lines
 
 .segment "BSS"
 _frame_count: .res 2            ; the game's 60 Hz (cleared by zerobss)
@@ -208,6 +221,20 @@ start:
         lda     #1
         sta     $A000           ; horizontal mirroring (a shake wraps the field round)
 
+        ; the cartridge's 8K: all of it zero (BSS2, HIGH and the rest that
+        ; zerobss doesn't clear come up as the RAM powered on)
+        lda     #0
+        sta     $00
+        tay
+        ldx     #$60
+@wram:  stx     $01
+@wb:    sta     ($00),y
+        iny
+        bne     @wb
+        inx
+        cpx     #$80
+        bne     @wram
+
         ; RAM: all of it zero (the stack's page too: nothing is on it yet)
         lda     #0
         tax
@@ -238,6 +265,44 @@ start:
 
 @v2:    bit     PPUSTATUS
         bpl     @v2
+
+        ; the console: a loop's passes (12 cycles each) from this vertical
+        ; blank to the next: NTSC ~2482 ($9xx), PAL ~2771 ($Axx), a Dendy
+        ; (50 Hz, NTSC's lines) ~2955 ($Bxx); a blank missed: again
+@reg:   bit     PPUSTATUS       ; (a fresh blank's start: the flag stays up
+@rf:    bit     PPUSTATUS       ; till read, so the last wait's may be old)
+        bpl     @rf
+        ldx     #0
+        ldy     #0
+@rc:    inx
+        bne     @rb
+        iny
+@rb:    bit     PPUSTATUS
+        bpl     @rc
+        .assert >@rc = >*, error, "the console's count: a branch across a page (13 cycles)"
+        stx     _nes_count
+        sty     _nes_count+1
+        cpy     #$0C
+        bcs     @reg
+        lda     #0              ; NTSC
+        cpy     #$0A
+        bcc     @rs
+        lda     #1              ; PAL
+        cpy     #$0B
+        bcc     @rs
+        lda     #2              ; Dendy
+@rs:    sta     _nes_region
+        lda     #5
+        sta     pal5
+        ldx     #<split         ; the HUD's split: PAL's lines are shorter (a
+        ldy     #>split         ; Dendy's are NTSC's)
+        lda     _nes_region
+        cmp     #1
+        bne     @sv
+        ldx     #<split_pal
+        ldy     #>split_pal
+@sv:    stx     split_vec
+        sty     split_vec+1
 
         jsr     zerobss
         jsr     copydata
@@ -273,13 +338,19 @@ _prg_r6:
         sta     $8001
         rts
 
-; chr(reg, bank): an interrupt's bank switch, the game's select put back
+; chr(reg, bank): an interrupt's bank switch, the game's select put back.
+; (Anything that writes the select notes it in mmc3_sel first: an NMI
+; between the select and the bank puts the select back from there.)
 .macro  chr_set reg, bank
+        lda     _mmc3_sel
+        pha
         lda     reg
+        sta     _mmc3_sel
         sta     $8000
         lda     bank
         sta     $8001
-        lda     _mmc3_sel
+        pla
+        sta     _mmc3_sel
         sta     $8000
 .endmacro
 
@@ -374,7 +445,20 @@ nmi:
         inc     _nes_frames
         bne     @nf
         inc     _nes_frames+1
-@nf:    lda     clk_n           ; (one frame in CLK_EVERY isn't counted)
+@nf:    lda     _nes_region     ; 50 Hz: every fifth frame counts twice
+        beq     @ntsc
+        dec     pal5
+        bne     @p1
+        lda     #5
+        sta     pal5
+        inc     _frame_count
+        bne     @p1
+        inc     _frame_count+1
+@p1:    inc     _frame_count
+        bne     @c
+        inc     _frame_count+1
+        jmp     @c
+@ntsc:  lda     clk_n           ; (one frame in CLK_EVERY isn't counted)
         bne     @cl
         lda     clk_n+1
         bne     @ch
@@ -393,29 +477,37 @@ nmi:
         lda     in_drain
         bne     @late
         lda     #NMI_BUDGET
-        jsr     _ppu_drain
+        ldx     cur_mode        ; (the display off and staying off: no picture
+        bne     @nb             ; to keep, and no interrupt's drain: room for
+        ldx     _disp_mode      ; any command)
+        bne     @nb
+        lda     #NMI_OFF_BUDGET
+@nb:    jsr     _ppu_drain
         jsr     oam_send
         jsr     show
         jmp     @hook
-@late:  lda     #1              ; the IRQ's drain shows it when done
-        sta     nmi_late
-        jmp     @hook
+@late:  lda     #1              ; the IRQ's drain shows it when done, and
+        sta     nmi_late        ; calls the hook then (the drain may be mid
+        jmp     @x              ; bank switch: the hook switches R6)
 @direct:
         lda     #0
         sta     PPUMASK
         sta     $E000
         lda     #1
         sta     _ppu_off
-@hook:  lda     _nmi_hook+1
-        beq     @x
-        jsr     @call
+@hook:  jsr     hook
 @x:     pla
         tay
         pla
         tax
         pla
         rti
-@call:  jmp     (_nmi_hook)
+
+; the frame's hook (the sound: src/nes/snd.s), if set
+hook:   lda     _nmi_hook+1
+        beq     @x
+        jmp     (_nmi_hook)
+@x:     rts
 
 ; ---------------------------------------------------------------------------
 ; The scanline interrupt's steps (see the top). The field's: a bank
@@ -447,31 +539,37 @@ irq:
         sta     $E001
         jmp     @ret
 @split: bne     @off            ; (step 7: the drain)
-        jmp     split
+        jmp     (split_vec)     ; (the region's: start-up chose it)
         ; the end of the picture: off at dot ~150 of the next line, and
         ; the queue
-@off:   ldy     #OFF_DELAY
+        ; (in_drain first: an NMI from here until the display is back
+        ; leaves the drain and the display to this; the field's wait is
+        ; no shorter than before, the text's the same)
+@off:   lda     #1
+        sta     in_drain
         lda     cur_mode
         cmp     #DM_FIELD
-        bne     @dl
-        ldy     #OFF_DELAY_F
+        beq     @fo
+        ldy     #OFF_DELAY - 1
 @dl:    dey
         bne     @dl
-        lda     #0
+@fo:    lda     #0
         sta     PPUMASK
         sta     $E000
-        lda     #1
-        sta     in_drain
         lda     #IRQ_BUDGET
         jsr     _ppu_drain
-        lda     #0
+@fin:   lda     #0              ; done: an NMI meanwhile is shown now
         sta     in_drain
         lda     nmi_late
         beq     @ret
+        lda     #1
+        sta     in_drain
         lda     #0
         sta     nmi_late
         jsr     oam_send
         jsr     show
+        jsr     hook
+        jmp     @fin
 @ret:   pla
         tay
         pla
@@ -547,23 +645,29 @@ lp:     dey
 ; the line's ends shows outside that, in the overscan), the HUD's first
 ; line is line 196 for SPLIT_DR 176-188.
 .ifndef SPLIT_DP
-SPLIT_DP = 33                   ; rendering off to the park (in the blank)
+SPLIT_DP = 31                   ; rendering off to the park (in the blank; the
+                                ; IRQ's jmp (split_vec) is 2 cycles of 33)
 .endif
 .ifndef SPLIT_D0
-SPLIT_D0 = 116 - SPLIT_DP       ; the park to the first burst
+SPLIT_D0 = 114 - SPLIT_DP       ; the park to the first burst (2026-11-27: 2 earlier,
+                                ; measured over 30 frames: a burst's colours, from its
+                                ; reference to its last write, at dots 268-336)
 .endif
 .ifndef SPLIT_DR
 SPLIT_DR = 182                  ; the last burst to the resume
 .endif
 
-.segment "SPLIT"                ; (a page of its own: no loop branches across one)
-split:
+; the split's body: rendering off, the park, the bursts a line apart
+; (s0-s3: the cycles from one burst's reference write to the next's), the
+; resume; dp, d0, dr as SPLIT_DP, SPLIT_D0, SPLIT_DR
+.macro  split_body dp, d0, s0, s1, s2, s3, dr
+        .local  d1
         ldy     #OFF_DELAY_F
-@d1:    dey
-        bne     @d1
+d1:     dey
+        bne     d1
         lda     #0
-        sta     PPUMASK         ; rendering off, dot ~190 (the gap row's tile
-        delay   SPLIT_DP        ; is the backdrop's colour: the line is one)
+        sta     PPUMASK         ; rendering off (the gap row's tile is the
+        delay   dp              ; backdrop's colour: the line is one)
         bit     PPUSTATUS       ; then in the blank,
         lda     #$3F
         sta     PPUADDR
@@ -573,7 +677,7 @@ split:
         sta     $C000
         sta     $C001
         sta     $E001
-        delay   SPLIT_D0        ; (it takes Y)
+        delay   d0              ; (it takes Y)
         lda     #$3F
         ldx     #$00
         ldy     _pal_hud
@@ -584,8 +688,7 @@ split:
         sta     PPUADDR
         lda     #$04
         sta     PPUADDR         ; parked
-        ; 14 + d + 20 = 114
-        delay   80
+        delay   (s0 - 34)       ; (14 + d + 20 = s0)
         .repeat 4, p
         ldx     _pal_hud + 4 * p + 1
         ldy     _pal_hud + 4 * p + 2
@@ -598,12 +701,14 @@ split:
         lda     _pal_hud + 4 * p + 3
         sta     PPUDATA         ; v on entry 4p+4: black
         .if p = 0
-        delay   (113 - 36)
-        .elseif p < 3
-        delay   (114 - 36)
+        delay   (s1 - 36)
+        .elseif p = 1
+        delay   (s2 - 36)
+        .elseif p = 2
+        delay   (s3 - 36)
         .endif
         .endrepeat
-        delay   SPLIT_DR
+        delay   dr
         bit     PPUSTATUS
         lda     #0
         ldx     #>(HUD_ROW * 32)  ; (v, not an address: $2000 would be fine Y 2)
@@ -620,7 +725,29 @@ split:
         tax
         pla
         rti
+.endmacro
+
+; PAL's lines are 106.5625 cycles (3.2 dots a cycle): the bursts 107, 106,
+; 107 apart, the first earlier. Tuned in nesrun (NESRUN_REGION=pal) with
+; its `events`, every write of the park and the bursts in a blank.
+.ifndef SPLITP_DP
+SPLITP_DP = 33
+.endif
+.ifndef SPLITP_D0
+SPLITP_D0 = 66
+.endif
+.ifndef SPLITP_DR
+SPLITP_DR = 168
+.endif
+
+.segment "SPLIT"                ; (a page of its own: no loop branches across one)
+split:
+        split_body SPLIT_DP, SPLIT_D0, 114, 113, 114, 114, SPLIT_DR
         .assert >split = >*, error, "split: more than a page"
+.segment "SPLIT2"               ; (PAL's: a page of its own too)
+split_pal:
+        split_body SPLITP_DP, SPLITP_D0, 107, 106, 107, 106, SPLITP_DR
+        .assert >split_pal = >*, error, "split_pal: more than a page"
 .segment "CODE"
 
 ; ---------------------------------------------------------------------------
@@ -644,8 +771,7 @@ _ppu_drain:
 @have:  lda     _ppuq,x
         beq     @ctile
         bmi     @cfill
-        sta     tmp             ; a copy: (15n + 120) / 16 ~ n + 8
-        clc
+        clc                     ; a copy: (15n + 120) / 16 ~ n + 8
         adc     #8
         bcc     @chk
 @cfill: and     #$7F            ; a fill: (9n + 130) / 16 ~ n/2 + 9
@@ -653,8 +779,35 @@ _ppu_drain:
         lsr     a
         adc     #9
         bne     @chk
-@cread: lda     #72             ; a map or a move of 32: ~1100 cycles at most
-@ctile: lda     #19             ; a tile: 290 / 16
+@ctile: lda     #20             ; a tile: 300 / 16
+        bne     @chk
+        ; op $80: its kind at +1, a read's n at +4 (the queue wraps)
+@cread: txa
+        tay
+        iny
+        lda     _ppuq,y         ; which
+        cmp     #Q_CELL
+        bcc     @crd
+        lda     #25             ; a cell: (395 cycles, counted) / 16
+        bne     @chk
+@crd:   iny
+        iny
+        iny
+        cmp     #Q_MOVE
+        lda     _ppuq,y         ; n
+        bcc     @cmap
+        asl     a               ; a move: (33n + 150) / 16 ~ 2n + 12
+        adc     #12
+        bne     @chk
+@cmap:  sta     tmp             ; a map: (85n + 140) / 16 ~ 5.5n + 10
+        asl     a               ; (n is 16 at most: scr.c)
+        asl     a
+        adc     tmp
+        sta     cnt
+        lda     tmp
+        lsr     a
+        adc     cnt
+        adc     #10
 @chk:   ldy     budget
         cpy     #255
         beq     @go
@@ -675,14 +828,21 @@ _ppu_drain:
 @go:    lda     _ppuq,x
         sta     op
         inx
-        lda     _ppuq,x         ; the bank, for R0
+        lda     _ppuq,x         ; the bank, for R0 (op $80's: which)
         inx
         cmp     #$FF
         beq     @addr
+        ldy     op
+        cpy     #$80
+        beq     @addr
+        ldy     _mmc3_sel       ; (chr_set's protocol)
+        sty     tmp
         ldy     #0
+        sty     _mmc3_sel
         sty     $8000
         sta     $8001
-        lda     _mmc3_sel
+        lda     tmp
+        sta     _mmc3_sel
         sta     $8000
 @addr:  bit     PPUSTATUS
         lda     _ppuq,x
@@ -727,7 +887,10 @@ _ppu_drain:
         inx
         inx
         inx
-        cmp     #Q_MOVE
+        cmp     #Q_CELL
+        bcc     @rd
+        jmp     @cell
+@rd:    cmp     #Q_MOVE
         beq     @move
         ; Q_MAP: n cells read, remapped, written back
         lda     _ppuq,x         ; n
@@ -812,6 +975,34 @@ _ppu_drain:
         sta     PPUDATA
         inx
         .endrepeat
+        stx     _qtail
+        jmp     @next
+        ; a field cell: R0 its band's bank (the PPU's address is set: the
+        ; bank is the PPU's view at each write), the tile, the name byte
+@cell:  and     #$3F
+        ldy     _mmc3_sel       ; (chr_set's protocol)
+        sty     tmp
+        ldy     #0
+        sty     _mmc3_sel
+        sty     $8000
+        sta     $8001
+        lda     tmp
+        sta     _mmc3_sel
+        sta     $8000
+        .repeat 16
+        lda     _ppuq,x
+        sta     PPUDATA
+        inx
+        .endrepeat
+        lda     _ppuq,x
+        sta     PPUADDR
+        inx
+        lda     _ppuq,x
+        sta     PPUADDR
+        inx
+        lda     _ppuq,x
+        sta     PPUDATA
+        inx
         stx     _qtail
         jmp     @next
 

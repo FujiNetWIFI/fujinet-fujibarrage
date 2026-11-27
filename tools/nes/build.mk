@@ -19,9 +19,9 @@ CFG    := src/nes/barrage-nes.cfg
 FNLIB  := build/fnlib-nes
 FAR    := tools/nes/far.txt
 
-CFLAGS := -t nes -Os -Cl -O --cpu 6502 -DONE_PROGRAM -DCAT_ROM -DUSING_FUJINET_LIB=1 \
+CFLAGS := -t nes -g -Os -Cl -O --cpu 6502 -DONE_PROGRAM -DCAT_ROM -DUSING_FUJINET_LIB=1 \
 	-I src -I src/platform-specific -I src/nes -I gen -I gen/nes -I src/test -I $(FNLIB)/include
-AFLAGS := -t nes -D FLD_WIDE -I src/nes -I src/6502 -I gen/nes $(XAFLAGS)
+AFLAGS := -t nes -g -D FLD_WIDE -I src/nes -I src/6502 -I gen/nes $(XAFLAGS)
 ifeq ($(TEST),1)
   CFLAGS += -DTEST_SCENES -DNO_APPKEYS
 endif
@@ -51,8 +51,8 @@ BOOT_DEFS  := $(shell python3 tools/nes/mkfar.py $(FAR) --defs 5)
 FOPEN_DEFS := $(shell python3 tools/nes/mkfar.py $(FAR) --defs 7)
 
 CORE_C  := src/main.c src/net.c src/nes/plat.c src/nes/input.c src/nes/nstrans.c \
-	src/nes/scr.c src/nes/field.c src/nes/sound.c
-CORE_S  := src/nes/crt0.s src/nes/bank.s src/nes/fld.s src/nes/render.s src/nes/pt.s \
+	src/nes/scr.c src/nes/field.c
+CORE_S  := src/nes/crt0.s src/nes/bank.s src/nes/fld.s src/nes/render.s src/nes/pt.s src/nes/snd.s \
 	src/6502/ops.s src/6502/ply.s src/6502/trk.s gen/nes/far.s gen/nes/font.s gen/nes/spr.s \
 	gen/nes/title.s
 FIELD_C := src/play.c
@@ -61,6 +61,8 @@ ROOM_S  := gen/nes/catalog.s
 MENU_C  := src/menus.c src/appkey.c
 BOOT_C  := src/test.c
 FOPEN_C := src/nes/fieldo.c
+FOPEN_S := src/nes/hud.s
+SND_S   := gen/nes/sfx.s gen/nes/mus.s
 
 G := $(B)/game
 CORE_O  := $(patsubst %,$(G)/%.o,$(CORE_C) $(CORE_S))
@@ -68,8 +70,9 @@ FIELD_O := $(patsubst %,$(G)/%.o,$(FIELD_C))
 ROOM_O  := $(patsubst %,$(G)/%.o,$(ROOM_C) $(ROOM_S))
 MENU_O  := $(patsubst %,$(G)/%.o,$(MENU_C))
 BOOT_O  := $(patsubst %,$(G)/%.o,$(BOOT_C))
-FOPEN_O := $(patsubst %,$(G)/%.o,$(FOPEN_C))
-OBJ     := $(CORE_O) $(FIELD_O) $(ROOM_O) $(MENU_O) $(BOOT_O) $(FOPEN_O)
+FOPEN_O := $(patsubst %,$(G)/%.o,$(FOPEN_C) $(FOPEN_S))
+SND_O   := $(patsubst %,$(G)/%.o,$(SND_S))
+OBJ     := $(CORE_O) $(FIELD_O) $(ROOM_O) $(MENU_O) $(BOOT_O) $(FOPEN_O) $(SND_O)
 IMG     := $(R)/barrage.nes
 MAP     := $(B)/barrage.map
 LIBS    := $(FNLIB)/fujinet-nes.lib nes.lib
@@ -111,7 +114,7 @@ $(R7_O): $(G)/%.c.o: %.c $(HDR) $(B)/flags.stamp $(FAR)
 $(FIELD_O): $(G)/%.c.o: %.c $(HDR) $(B)/flags.stamp $(FAR)
 	@mkdir -p $(dir $@)
 	cl65 $(CFLAGS) --code-name FIELDCODE --rodata-name CODE2 $(FIELD_DEFS) -c -o $@ $<
-$(FOPEN_O): $(G)/%.c.o: %.c $(HDR) $(B)/flags.stamp $(FAR)
+$(patsubst %,$(G)/%.o,$(FOPEN_C)): $(G)/%.c.o: %.c $(HDR) $(B)/flags.stamp $(FAR)
 	@mkdir -p $(dir $@)
 	cl65 $(CFLAGS) --code-name FOPEN --rodata-name FOPEN $(FOPEN_DEFS) -c -o $@ $<
 $(G)/src/room.c.o $(G)/src/cat.c.o: $(G)/%.c.o: %.c $(HDR) $(B)/flags.stamp $(FAR)
@@ -139,15 +142,24 @@ gen/nes/title.s: tools/nes/mkgfx_nes.py
 gen/nes/spr.s: tools/nes/mkgfx_nes.py tools/mkgfx_tms.py
 	python3 tools/nes/mkgfx_nes.py sprites $@
 
+# the sound's data (bank 6: src/nes/snd.s plays it): the Adam's and the
+# SMS's effects and tunes (tools/mksfx_z80.py) for ca65
+SNDDEP := tools/mksfx_z80.py tools/mksfx_coco.py tools/mus.py tools/mkmus_intv.py src/intv/sfx.asm $(wildcard music/*.txt)
+gen/nes/sfx.s: $(SNDDEP)
+	python3 tools/mksfx_z80.py sfx $@ --ca65 SNDDATA
+gen/nes/mus.s: $(SNDDEP)
+	python3 tools/mksfx_z80.py tunes $@ --ca65 SNDDATA title=music/title.txt win=music/win.txt \
+	  over=music/over.txt shop=music/shop.txt
+
 ifneq ($(CARD),1)
 $(IMG): $(OBJ) $(CFG) tools/nes/checkrom.py tools/nes/farcheck.py $(FNLIB)/fujinet-nes.lib
 	python3 tools/nes/farcheck.py field $(FIELD_O) -- room $(ROOM_O) -- menu $(MENU_O) -- \
-	  boot $(BOOT_O) -- fopen $(FOPEN_O) -- core $(CORE_O)
+	  boot $(BOOT_O) -- fopen $(FOPEN_O) -- sound $(SND_O) -- core $(CORE_O)
 else
 $(IMG): $(OBJ) $(CFG) tools/nes/checkrom.py
 endif
 	@mkdir -p $(R)
-	cl65 -t nes -C $(CFG) -vm -m $(MAP) -o $@ $(OBJ) $(LIBS)
+	cl65 -t nes -C $(CFG) -vm -m $(MAP) -Wl --dbgfile,$(MAP:.map=.dbg) -o $@ $(OBJ) $(LIBS)
 	python3 tools/nes/checkrom.py $(CFG) $(MAP) $@
 
 .PHONY: all FORCE

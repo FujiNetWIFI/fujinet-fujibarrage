@@ -31,7 +31,7 @@ import fixture  # noqa: E402
 import nesfield  # noqa: E402
 
 W, H = 256, 168
-FIX_RAM = 512                   # (src/nes/test/fixext.h)
+FIX_RAM = 400                   # (src/nes/test/fixext.h)
 I_SHIELD = 42
 NESRUN = os.path.join(HERE, "nesrun")
 ROM = os.path.join(TOP, "r2r", "nes", "barrage.nes")

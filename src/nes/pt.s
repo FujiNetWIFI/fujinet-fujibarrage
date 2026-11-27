@@ -16,9 +16,9 @@
 ; left, for the sprites.
 ;
         .export _field_sparks, _pt_step, _pt_clear, _dsp_shake
-        .export _pt_x, _pt_y, _pt_life
-        .import _tk, _fld_get
-        .importzp _fx, _fy
+        .export _pt_x, _pt_y, _pt_life, _field_sprites
+        .import _tk, _fld_get, _drawn, _my_seat, _st, _oam, _oam2
+        .importzp _fx, _fy, _oam_show, _oam_next
 
 NP      = 16
 
@@ -59,6 +59,18 @@ pidx:   .res 1
 tl:     .res 1
 th:     .res 1
 rnd:    .res 2          ; (a 16-bit LFSR: the Atari had POKEY's)
+
+        .segment "ZEROPAGE"
+op:     .res 2                  ; the sprite page being built
+
+        .segment "BSS"
+rot:    .res 1                  ; the sprites' order turns: the seat to start at
+first:  .res 1
+second: .res 1
+ri:     .res 1
+rn:     .res 1
+ts:     .res 1
+tt:     .res 1
 
         .segment "CODE2"        ; (R7: the fixed banks are full)
 cos:    .byte   32, 30, 23, 12, 0, <-12, <-23, <-30
@@ -296,6 +308,179 @@ move:   clc
         rts
 @off:   sec
         rts
+
+; void field_sprites(void): the tanks and sparks into the sprite page not
+; shown, once an NES frame (while the NMI hasn't taken the last page built,
+; it is left alone). Yours and the turn's go first, the rest in an order
+; that turns each frame (a ninth on a line blinks), the sparks after them.
+; A tank is 8x8, its foot at the sprite's bottom: tile 1 + 38 v + 19 (yours:
+; the pennant) + its barrel's angle / 10, v its seat's colour in a sprite
+; palette of three (seat / 3); a spark's dot is its sprite's last line.
+SEATS   = 10
+OFF_TURN = 4
+
+_field_sprites:
+        lda     _oam_next
+        beq     @go
+        rts
+@go:    lda     #>_oam2         ; the page not shown
+        ldx     _oam_show
+        cpx     #>_oam
+        beq     @pg
+        lda     #>_oam
+@pg:    sta     op+1
+        lda     #0
+        sta     op
+        lda     #$FF
+        sta     first
+        sta     second
+        lda     _my_seat
+        cmp     #SEATS
+        bcs     @nf
+        sta     first
+@nf:    lda     _st+OFF_TURN
+        cmp     #SEATS
+        bcs     @ns
+        cmp     first
+        beq     @ns
+        sta     second
+@ns:    ldy     #0              ; (the page's next byte)
+        lda     first
+        jsr     tank
+        lda     second
+        jsr     tank
+        lda     rot             ; the rest, from rot round
+        sta     ri
+        lda     #SEATS
+        sta     rn
+@r:     lda     ri
+        cmp     first
+        beq     @rs
+        cmp     second
+        beq     @rs
+        jsr     tank
+@rs:    inc     ri
+        lda     ri
+        cmp     #SEATS
+        bcc     @rw
+        lda     #0
+        sta     ri
+@rw:    dec     rn
+        bne     @r
+        inc     rot             ; (next frame: from the next seat)
+        lda     rot
+        cmp     #SEATS
+        bcc     @rt
+        lda     #0
+        sta     rot
+@rt:    ldx     #NP-1           ; the sparks: hot yellow, orange, red as they cool
+@sp:    lda     _pt_y,x
+        cmp     #$FF
+        beq     @sn
+        clc
+        adc     #12
+        sta     (op),y
+        iny
+        lda     _pt_life,x
+        cmp     #13
+        bcs     @hot
+        cmp     #6
+        bcs     @warm
+        lda     #115
+        sta     (op),y
+        iny
+        lda     #0
+        beq     @sa
+@hot:   lda     #116
+        sta     (op),y
+        iny
+        lda     #0
+        beq     @sa
+@warm:  lda     #117
+        sta     (op),y
+        iny
+        lda     #1
+@sa:    sta     (op),y
+        iny
+        lda     _pt_x,x
+        sta     (op),y
+        iny
+@sn:    dex
+        bpl     @sp
+        lda     #$F8            ; the rest off the screen
+@h:     cpy     #0
+        beq     @d
+        sta     (op),y
+        iny
+        bne     @h
+@d:     lda     op+1
+        sta     _oam_next
+        rts
+
+; tank: seat A's sprite at the page's byte Y (Y past it), if it is shown
+tank:   cmp     #SEATS
+        bcs     @x
+        sta     ts
+        tax
+        lda     _drawn,x
+        beq     @x
+        txa                     ; tk + 5 seat
+        asl     a
+        asl     a
+        adc     ts
+        tax
+        lda     _tk,x           ; (on)
+        beq     @x
+        lda     _tk+3,x         ; y: the foot at the bottom (line 20 on, less 1)
+        clc
+        adc     #11
+        sta     (op),y
+        iny
+        lda     _tk+4,x         ; the barrel: angle / 10 (past 180: 18)
+        cmp     #181
+        bcc     @a
+        lda     #180
+@a:     stx     tt
+        ldx     #0
+@d10:   cmp     #10
+        bcc     @dd
+        sbc     #10
+        inx
+        bne     @d10
+@dd:    txa
+        ldx     ts
+        clc
+        adc     tbase,x
+        cpx     _my_seat
+        bne     @t
+        clc
+        adc     #19             ; (yours: the pennant)
+@t:     sta     (op),y
+        iny
+        lda     tpal,x
+        sta     (op),y
+        iny
+        ldx     tt              ; x - 3, kept to 0-248
+        lda     _tk+1,x
+        sec
+        sbc     #3
+        sta     tt
+        lda     _tk+2,x
+        sbc     #0
+        bmi     @x0
+        bne     @x1
+        lda     tt
+        cmp     #249
+        bcc     @xs
+@x1:    lda     #248
+        bne     @xs
+@x0:    lda     #0
+@xs:    sta     (op),y
+        iny
+@x:     rts
+
+tbase:  .byte   1, 39, 77, 1, 39, 77, 1, 39, 77, 1  ; 1 + 38 (seat % 3; the tenth's 0)
+tpal:   .byte   0, 0, 0, 1, 1, 1, 2, 2, 2, 3        ; seat / 3
 
 _pt_clear:
         ldx     #NP-1

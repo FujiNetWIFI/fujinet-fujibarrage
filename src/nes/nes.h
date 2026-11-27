@@ -50,8 +50,11 @@ extern uint8_t oam_show, oam_next, disp_mode, scroll_x;
 #pragma zpsym ("oam_next")
 #pragma zpsym ("disp_mode")
 #pragma zpsym ("scroll_x")
+extern uint8_t nes_region;              /* 0 NTSC, 1 PAL, 2 a Dendy (crt0.s: measured at start-up) */
+#pragma zpsym ("nes_region")
 extern volatile uint16_t nes_frames;   /* every NMI (frame_count, the 60 Hz clock: plat.h) */
 extern uint8_t ppuq[256], oam[256], oam2[256];
+void __fastcall__ mmc3_chr(uint16_t rb);    /* CHR register rb & 255 gets bank rb >> 8 (bank.s) */
 extern uint8_t pal_bg[16], pal_hud[16], pal_spr[16], pal_spr_dirty;
 extern uint8_t irq_hits, drain_left;
 extern void (*nmi_hook)(void);

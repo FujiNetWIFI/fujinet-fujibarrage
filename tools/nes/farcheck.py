@@ -22,11 +22,20 @@ def dump(obj, what):
 
 
 # overlay variables (in RAM, so anyone's), and the core's functions an
-# overlay's source holds (a #pragma code-name "CODE": src/play.c's entry_len)
+# overlay's source holds (a #pragma code-name "CODE": src/play.c's entry_len);
+# checkrom.py fails an image where any of these lands in the overlay window
 RAM_OK = {"_cat_ok", "_cat_stale", "_tk", "_my_seat", "_entry_len", "_test_hook",
           "_test_t0", "_test_t1", "_fix_ram", "_in_script", "_my_name", "_srv_host",
           "_srv_port", "_srv_table", "_band_pal", "_drawn", "_fire_on", "_flash_n",
-          "_field_shown", "_rnd_stars", "_bln_cells"}
+          "_field_shown", "_rnd_stars", "_bln_cells", "_hud_sh", "_nm_col", "_nm_n",
+          "_hp_row", "_hp_col", "_hp_inv"}
+
+
+# the sound bank's (bank 6) used from elsewhere: the tunes' addresses,
+# which C only hands to snd_tune (the player reads them, with bank 6 in),
+# and the tables the player (src/nes/snd.s: the core's object) reads
+SND_OK = {"_t_title1", "_t_title2", "_t_win1", "_t_win2", "_t_over1", "_t_over2",
+          "_t_shop1", "_t_shop2", "_sx_cues", "_sx_booms", "_sx_ui", "_mus_per", "_mus_nz"}
 
 
 def main():
@@ -53,7 +62,7 @@ def main():
             if o.endswith("far.s.o"):
                 continue
             for s in dump(o, "imports"):
-                if s in owner and owner[s][0] != g and s not in RAM_OK:
+                if s in owner and owner[s][0] != g and s not in RAM_OK and s not in SND_OK:
                     bad.append("%s (%s) uses %s from the %s overlay (%s): add it to far.txt"
                                % (o, g, s, owner[s][0], owner[s][1]))
     for b in sorted(bad):

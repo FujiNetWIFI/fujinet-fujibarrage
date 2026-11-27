@@ -8,7 +8,7 @@
 #ifdef TEST_CATALOG
 #define FIX_RAM 256                 /* (scene 10's build: no shot, room for the catalog) */
 #else
-#define FIX_RAM 512                 /* (the NES's RAM: the gate's fixtures are 299-339 bytes) */
+#define FIX_RAM 400                 /* (the NES's RAM: the gate's fixtures are 299-339 bytes) */
 #endif
 extern uint8_t fix_ram[FIX_RAM];
 #define FIX_SKY     fix_ram[0]
