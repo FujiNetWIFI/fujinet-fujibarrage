@@ -113,6 +113,16 @@
 #define PLY_CATCHUP 8
 #define MARK_UP (TANK_H + 7)     /* the turn's arrow, its top: over the barrel */
 #define TXT_ITEMS "I: ITEMS"
+/* a blast is drawn at a new size once the last one is on the screen (the
+ * SMS's: at most RING_GATE cells still to go, or RING_MAX frames on) */
+extern uint16_t fld_nd;
+#ifndef RING_GATE
+#define RING_GATE 4
+#endif
+#ifndef RING_MAX
+#define RING_MAX 8
+#endif
+#define RING_READY() (fld_nd <= RING_GATE)
 #endif
 
 #ifdef __SMS__

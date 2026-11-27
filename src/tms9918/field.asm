@@ -1127,7 +1127,8 @@ _tms_idle:
         ret     z
         jp      _fld_flush1
 
-; void tms_frame(void): a frame came: the field's sprites and a burst of its cells
+; void tms_frame(void): a frame came: the field's sprites and a burst of its
+; cells (flat out if it came as we waited, gfx_fast)
 _tms_frame:
 
 ; void field_frame(void)
@@ -1194,14 +1195,11 @@ ff_slow:
 ff_sd:  xor     a
         ld      (sat_dirty),a
 ff_burst:
-        ld      a,(_gfx_fast)
-        or      a
-        ret     z
-        ld      hl,(_fld_nd)
-        ld      a,h
+        ld      hl,(_fld_nd)    ; (a script's frames too, however late: a
+        ld      a,h             ; blast's cells, slow if not in the blank)
         or      l
         ret     z
-        ld      a,1
+        ld      a,(_gfx_fast)
         ld      (_rnd_fast),a
         ld      a,6
         ld      (_fld_budget),a

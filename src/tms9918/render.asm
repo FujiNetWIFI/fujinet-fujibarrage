@@ -67,36 +67,39 @@ fn_l:   or      a
         jr      nz,fn_l
         ret
 
-; next: the first dirty cell, top down: drawn (or skipped), its flag off
-next:   ld      hl,_fld_rowd
-        ld      b,0
-nx_r:   ld      a,(hl)
+; next: the next dirty cell after the last one drawn (rows wrap): drawn (or
+; skipped), its flag off. Not from the top each time: a cell re-marked every
+; frame (a growing fireball's) would keep the scan there, and the rest of
+; the field (the fireball's lower rows) would wait till it stopped.
+next:   ld      a,(rc_r)
+        ld      b,a             ; B the row
+        ld      a,(rc_c)
+        inc     a
+        ld      c,a             ; C the column to start it at
+        ld      a,FROWS + 1     ; (the first row twice: its end, then its start)
+        ld      (nx_n),a
+nx_r:   ld      hl,_fld_rowd
+        ld      e,b
+        ld      d,0
+        add     hl,de
+        ld      a,(hl)
         or      a
-        jr      nz,nx_row
-        inc     hl
-        inc     b
-        ld      a,b
-        cp      FROWS
-        jr      c,nx_r
-        ld      hl,0            ; (the count was wrong: it is 0)
-        ld      (_fld_nd),hl
-        ret
-nx_row: dec     (hl)
-        ld      hl,(_fld_nd)
-        dec     hl
-        ld      (_fld_nd),hl
-        ld      a,b
-        ld      (rc_r),a
-        ld      l,b             ; the row's flags: dirty + r * 32
-        ld      h,0
+        jr      z,nx_skip
+        ld      (nx_rp),hl
+        ld      a,c
+        cp      32
+        jr      nc,nx_skip
+        ld      l,b             ; the row's flags: dirty + r * 32 + c
+        ld      h,d
         add     hl,hl
         add     hl,hl
         add     hl,hl
         add     hl,hl
         add     hl,hl
+        ld      e,c
+        add     hl,de
         ld      de,_fld_dirty
         add     hl,de
-        ld      c,0
 nx_c:   bit     0,(hl)
         jr      nz,nx_cell
         inc     hl
@@ -104,11 +107,33 @@ nx_c:   bit     0,(hl)
         ld      a,c
         cp      32
         jr      c,nx_c
-        ret                     ; (none: the count was wrong)
+nx_skip:
+        ld      c,0
+        inc     b
+        ld      a,b
+        cp      FROWS
+        jr      c,nx_s1
+        ld      b,c
+nx_s1:  ld      hl,nx_n
+        dec     (hl)
+        jr      nz,nx_r
+        ld      h,c             ; (the count was wrong: it is 0)
+        ld      l,c
+        ld      (_fld_nd),hl
+        ret
 nx_cell:
         res     0,(hl)
+        ex      de,hl
+        ld      hl,(nx_rp)
+        dec     (hl)
+        ld      hl,(_fld_nd)
+        dec     hl
+        ld      (_fld_nd),hl
+        ld      a,b
+        ld      (rc_r),a
         ld      a,c
         ld      (rc_c),a
+        ex      de,hl
         bit     1,(hl)
         ret     nz              ; under the balloon
         ld      a,(hl)
@@ -116,27 +141,26 @@ nx_cell:
         ld      (rc_fp),hl
         jp      cell
 
-; cell: draw row rc_r's column rc_c
-cell:   ld      a,(rc_r)
-        ld      h,a
-        ld      a,(rc_c)
+; cell: draw row B's column C (rc_r, rc_c)
+cell:   ld      a,c
         add     a,a
         add     a,a
         add     a,a
         ld      l,a
+        ld      h,b
         ld      (_rc_cell),hl   ; (H r, L c * 8: the VRAM offset)
-        ld      a,(rc_c)        ; c * 37 (the stars' hash)
-        ld      b,a
+        push    hl
+        ld      a,c             ; c * 37 (the stars' hash)
         add     a,a
         add     a,a
-        ld      c,a             ; 4c
+        ld      e,a             ; 4c
         add     a,a
         add     a,a
         add     a,a             ; 32c
+        add     a,e
         add     a,c
-        add     a,b
         ld      (rc_c37),a
-        ld      a,(rc_r)        ; its first line, and that line's styles (IY)
+        ld      a,b             ; its first line, and that line's styles (IY)
         add     a,a
         add     a,a
         add     a,a
@@ -152,15 +176,11 @@ cell:   ld      a,(rc_r)
         add     hl,de
         push    hl
         pop     iy
-        ld      a,(rc_r)        ; the D byte of the first run (its F: the page up)
+        pop     hl              ; the D byte of the first run (its F: the page up)
+        ld      a,h
         add     a,a
         add     a,SH_HI
         ld      h,a
-        ld      a,(rc_c)
-        add     a,a
-        add     a,a
-        add     a,a
-        ld      l,a
         ld      ix,_rc_pat
         xor     a
         ld      (rc_fire),a
@@ -357,3 +377,5 @@ rc_c37:         defs    1
 rc_flag:        defs    1
 rc_fp:          defs    2
 rc_fire:        defs    1
+nx_rp:          defs    2
+nx_n:           defs    1

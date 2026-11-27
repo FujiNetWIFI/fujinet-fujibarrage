@@ -830,8 +830,8 @@ static void draw(void)
         ply_draw();
     }
 #elif defined(RING_READY)
-    /* (the SMS: a blast grows once its last size is on the screen, or every
-     * RING_MAX frames; drawn every frame, its cells were always behind) */
+    /* (the SMS, the Adam: a blast grows once its last size is on the screen, or
+     * every RING_MAX frames; drawn every frame, its cells were always behind) */
     if (RING_READY() || (uint16_t)(frame_count - ring_at) >= RING_MAX) {
         ring_at = frame_count;
         ply_draw();
