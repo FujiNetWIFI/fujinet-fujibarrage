@@ -1,0 +1,28 @@
+# live: CLEAR (the console's reset) mid-game, twice: the title, then back
+# in the room and the same seat
+wait 120
+press 5
+until SHOWS 1 1200
+press 5
+until SHOWS 2 1800
+press 9
+until AIMING 1 6000
+press 5
+wait 300
+press clear
+wait 150
+snap title
+press 5
+until SHOWS 3 3000
+wait 300
+snap back1
+peek MYSEAT 1
+wait 600
+press clear
+wait 150
+press 5
+wait 900
+snap back2
+peek MYSEAT 1
+peek SHOWS 1
+peek NBAD 1

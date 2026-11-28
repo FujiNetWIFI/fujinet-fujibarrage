@@ -2,8 +2,8 @@
 
 The Atari 400/800 is the first client, and the Intellivision the second;
 the Apple II, the Astrocade, the Color Computers, the 5200, the Adam, the
-PC, the Arcadia 2001, the H89, the Master System, the NES and the Channel F
-followed.
+PC, the Arcadia 2001, the H89, the Master System, the NES, the Channel F,
+the 7800 and the Studio II followed.
 These notes say
 what another machine needs, and what the ports taught.
 
@@ -430,6 +430,26 @@ $4000. What it took:
 - **The link:** the 5200's `nstrans.c` with the 7800's mailbox (plain stores to $0D00 and $0F00, the reply at $0800), `CAP_HOLD`.
 - **Input:** the left port's two-button joystick (a 2600 stick's one button fires): the left button fires, the right is TAB, SELECT is I on the field and S elsewhere, PAUSE RETURN, RESET ESC. The name comes from the 5200's wheel. RESET on the title goes back to CONFIG.
 - **Tests:** `tools/a78sim/` (MAME's 7800 with the FujiNet cartridge: `a78sim.py` with `dmacheck` and `auto`, `refcheck.py`, `rig.sh` live with fujinet-pc over BoIP and the proxies, NTSC and PAL).
+
+## The RCA Studio II
+
+`src/studio2/` is 1802 assembly (Macroassembler AS) on FujiBlast's Studio II
+runtime (the cartridge's mailbox and drawing operations, `fujilib`, the
+checks), with the Channel F's flow and view.go's player op for op. The
+FujiNet cartridge (protocol 2) composes the picture itself and gives the
+console RAM it reads directly but writes only through a POKE stream. What it
+took:
+- **A picture the console can't write.** The cartridge serves a 64x128 one-bit raster to the 1861 by DMA, composed from a background, 16 sprites and 96 images; the console sends operations as hotspot reads (parameters at `$EF00+v`, the operation at `$EE00+op`): a rectangle (set, or, xor, clear, seven patterns) about 24 instructions, an image, a sprite placed, a view (shift, invert), text in the 12-line or the 5-line font, HOLD around a pass so it shows whole. The console never reads the raster. With about 1,300 instructions a frame (DMA takes the rest), drawing less is everything.
+- **The field's model is the server's own.** The TERRAIN column entries are kept in the cartridge's RAM as sent (`fld.inc`: a first byte a column in `TOPS`, 00-EF dirt from that row, F0 none, F0+n spans in a 32-byte slot), changed only by a G frame and by `OP_SETTLE` when it runs. That is exact because every change to the dirt the server makes is followed by a settle over its columns (the roundtrip test proves it for this shape, every weapon); smoke trails are the only other pixels. The picture is the model's cache: a column is one clear and a rectangle a span, columns marked dirty and redrawn a few a pass (a run of plain columns of one height is one clear and one rectangle), a settle's columns when it lands. Effects with their own settle need no undo; plasma, puffs, fire flows and roller heads restore their columns from the model.
+- **Tanks are sprites.** Sprites 0-9 in MASK mode, an image and its halo a seat (`tools/s2/mktank_s2.py`): the seat's mark (ten shapes, the same as app glyphs beside every name: the screen has one colour), the barrel at the angle in 15-degree steps, the hull. An image is sent only when its step changes, two a pass. The one aiming blinks; a guidance target blinks instead. The shells are sprites 10-15, so the server gives this client six track slots (`project.PlatSlots`).
+- **The shot player** (`p_ply.inc`) keeps its records in the cartridge's RAM with absolute end frames (a record is written once, never every frame), its tracks' 24-bit positions in console RAM. It catches up to 8 frames a pass and draws once; empty record tables are skipped by their counts; a track's head is worked out once a pass; HUD messages (talk, hits, shields) are drawn once a pass, not per op. Blasts are column runs grown in four stages; the fireball is the CHECK pattern. Flash is the view inverted, shake the view moved. The worst shot (MEGA MIRV on a flat field) ends about 1.2 s behind its script.
+- **Memory:** 512 bytes of console RAM. Page $08 holds the variables (`CVAR`, `GETV`/`PUTV` through RA, checked to stay on the page), page $09 the frame being built, the HUD's row, the tracks and the stack. The cartridge's RAM is image pages the program claims ($A400, $B400, $D400: the catalog, the rooms, the model, the state, the script, the records), read with LDN and written by POKE streams (a store through a cartridge pointer lands in console RAM, silently). An image may claim 192 blocks of 256 bytes in all, none at $x000-$x3FF; the release is about 146. Code past the fixed space goes in banks at $C400 (one assembly a bank, the fixed code identical in each, entered through each bank's jump table).
+- **The 1802's traps, each now a check:** a 3-cycle opcode ($C0-$CF) or IDL cuts the cartridge's DMA short (`checkrom.py`); RF is the cartridge's register, read only with LDN; RB points into the cartridge's RAM, so never SEX RB or STR through it; a short branch can't cross a page (`RFIT`, sized by `fit.sh`); the SCRT call costs about 33 instructions and spends RD.1, and RD.0 is the ISR's beep counter; AS's labels are global (`checkdup.py`); a value in D is lost to a pointer load (`checkldr.py`); the scratch T0-T7 belong to the callee (the catalog's number formatting spends all eight).
+- **Screens:** the cartridge's text, 16 columns by 10 rows in the 12-line font: the room's seats two a row with their marks, the settings (labels 9, values right-aligned in 6), the shop with a six-row list that scrolls, the results. The HUD is two rows of the 5-line font under the 108-line field, an energy bar and a timer bar on the lines between; YOUR TURN!, the defence window, the items line, talk (wrapped at the spaces) and hit and shield lines take its rows over. A long draw (eight settings rows) polls the keypads between rows so a short press isn't lost.
+- **The link:** FujiBlast's transactions with FujiBarrage's frames; the frame buffer is in the cartridge's RAM (decoded by a POKE stream). The server answers PING only in a room, so the dead-link clock starts only once joined. A commit sent before the server had our fire can say it is still our turn: once we fire, aiming waits for the turn to pass (`FIRED`).
+- **Sound:** Q gates one fixed tone; the ISR keeps it on while RD.0 counts down. Every sound is a rhythm of (on, off) jiffies (`tools/s2/mksnd_s2.py`): the effects by hand, a boom's length its size; the tunes are music/*.txt's melody rhythm with the kick and snare as pips where it rests. MAME rings a beep a jiffy past its count, so the stored counts are one less. Priorities as the Arcadia's. 9 in the waiting room turns it off and on.
+- **No PAL:** the European clones have the CDP1864, which the cartridge doesn't serve; HELLO says 60.
+- **Tests:** `tools/s2sim/` (MAME headless: `short` for DMA cut short, CLEAR, test scenes, the cartridge's CONFIG), `refcheck.py` (the 99 shots at 0 pixels), `fieldcheck.py`, `tools/s2/sndwav_s2.py`, `tools/s2rig/rig.sh` live with fujinet-pc over BoIP, the proxies and CONFIG=1; the FujiNet Go Studio II desktop's core (`studio2_drive`) plays it too.
 
 ## Testing a port
 

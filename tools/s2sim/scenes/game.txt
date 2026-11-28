@@ -1,0 +1,54 @@
+# live (M4): a whole game with a kit (DEVSET kit=1, rounds=2, timer=10:
+# the server fires for us when the time runs out): the items line, a
+# guided shot, the round's end, the shop again, the game's end, back in
+# the room
+wait 120
+press 5
+until SHOWS 1 1200
+wait 120
+press 5
+until SHOWS 2 1800
+wait 60
+snap shop
+press 9
+until AIMING 1 6000
+wait 30
+snap aim
+press 7
+wait 60
+snap items
+press 6
+wait 30
+press 6
+wait 30
+snap items2
+press 4
+press 4
+wait 30
+press 5
+wait 60
+snap target
+press 6
+wait 30
+press 5
+wait 30
+snap aimg
+peek GUIDE 2
+press 5
+burst shot 6
+wait 30
+until SHOWS 4 40000
+wait 60
+snap round1
+until SHOWS 2 3000
+wait 60
+snap shop2
+press 9
+until SHOWS 5 60000
+wait 60
+snap over
+until SHOWS 1 3000
+wait 120
+snap room2
+peek NBAD 1
+short

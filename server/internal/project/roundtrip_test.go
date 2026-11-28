@@ -14,29 +14,30 @@ import (
 )
 
 var shapes = []Caps{
-	{FieldW: 160, FieldH: 168, Hz: 60, Buf: 3072, TankW: 7, TankH: 4},        // Atari mode E
-	{FieldW: 160, FieldH: 168, Hz: 50, Buf: 3072, TankW: 7, TankH: 4},        // the same, PAL
-	{FieldW: 280, FieldH: 160, Hz: 60, Buf: 4096, TankW: 9, TankH: 5},        // Apple II high-res
-	{FieldW: 256, FieldH: 176, Hz: 50, Buf: 2048, TankW: 8, TankH: 5},        // TMS9918, PAL
-	{FieldW: 40, FieldH: 40, Hz: 60, Buf: 512, TankW: 3, TankH: 2},           // a tiny one
-	{FieldW: 320, FieldH: 176, Hz: 60, Buf: 8192, TankW: 12, TankH: 6},       // CGA
-	{FieldW: 160, FieldH: 80, Hz: 60, Buf: 1024, TankW: 7, TankH: 5},         // Intellivision
-	{FieldW: 160, FieldH: 80, Hz: 50, Buf: 1024, TankW: 7, TankH: 5},         // the same, PAL
-	{FieldW: 160, FieldH: 56, Hz: 60, Buf: 240, TankW: 7, TankH: 5},          // Astrocade
-	{FieldW: 48, FieldH: 48, Hz: 60, Buf: 160, TankW: 2, TankH: 1, Slots: 6}, // Arcadia
-	{FieldW: 160, FieldH: 44, Hz: 60, Buf: 2048, TankW: 4, TankH: 2},         // H89 (H19 quadrant blocks)
-	{FieldW: 160, FieldH: 44, Hz: 60, Buf: 896, TankW: 4, TankH: 2},          // H89 under HDOS
-	{FieldW: 140, FieldH: 160, Hz: 60, Buf: 1536, TankW: 5, TankH: 5},        // Apple II (HGR colour pixels)
-	{FieldW: 140, FieldH: 160, Hz: 50, Buf: 1536, TankW: 5, TankH: 5},        // the same, PAL
-	{FieldW: 128, FieldH: 168, Hz: 60, Buf: 1536, TankW: 5, TankH: 5},        // CoCo 1/2 (PMODE 4 artifact)
-	{FieldW: 128, FieldH: 168, Hz: 50, Buf: 1536, TankW: 5, TankH: 5},        // the same, PAL
-	{FieldW: 320, FieldH: 176, Hz: 60, Buf: 1536, TankW: 12, TankH: 6},       // CoCo 3 (GIME 320x200)
-	{FieldW: 256, FieldH: 168, Hz: 60, Buf: 1536, TankW: 7, TankH: 5},        // Coleco Adam (TMS9918)
-	{FieldW: 256, FieldH: 168, Hz: 50, Buf: 1536, TankW: 7, TankH: 5},        // the same, PAL
-	{FieldW: 160, FieldH: 168, Hz: 60, Buf: 1024, TankW: 7, TankH: 5},        // Atari 5200 (the Atari's field, 16K)
-	{FieldW: 320, FieldH: 176, Hz: 60, Buf: 4096, TankW: 12, TankH: 6},       // MS-DOS (CGA and VGA)
-	{FieldW: 102, FieldH: 46, Hz: 60, Buf: 1536, TankW: 5, TankH: 3},         // Channel F
-	{FieldW: 160, FieldH: 168, Hz: 60, Buf: 1536, TankW: 7, TankH: 5},        // Atari 7800 (the Atari's field)
+	{FieldW: 160, FieldH: 168, Hz: 60, Buf: 3072, TankW: 7, TankH: 4},          // Atari mode E
+	{FieldW: 160, FieldH: 168, Hz: 50, Buf: 3072, TankW: 7, TankH: 4},          // the same, PAL
+	{FieldW: 280, FieldH: 160, Hz: 60, Buf: 4096, TankW: 9, TankH: 5},          // Apple II high-res
+	{FieldW: 256, FieldH: 176, Hz: 50, Buf: 2048, TankW: 8, TankH: 5},          // TMS9918, PAL
+	{FieldW: 40, FieldH: 40, Hz: 60, Buf: 512, TankW: 3, TankH: 2},             // a tiny one
+	{FieldW: 320, FieldH: 176, Hz: 60, Buf: 8192, TankW: 12, TankH: 6},         // CGA
+	{FieldW: 160, FieldH: 80, Hz: 60, Buf: 1024, TankW: 7, TankH: 5},           // Intellivision
+	{FieldW: 160, FieldH: 80, Hz: 50, Buf: 1024, TankW: 7, TankH: 5},           // the same, PAL
+	{FieldW: 160, FieldH: 56, Hz: 60, Buf: 240, TankW: 7, TankH: 5},            // Astrocade
+	{FieldW: 48, FieldH: 48, Hz: 60, Buf: 160, TankW: 2, TankH: 1, Slots: 6},   // Arcadia
+	{FieldW: 160, FieldH: 44, Hz: 60, Buf: 2048, TankW: 4, TankH: 2},           // H89 (H19 quadrant blocks)
+	{FieldW: 160, FieldH: 44, Hz: 60, Buf: 896, TankW: 4, TankH: 2},            // H89 under HDOS
+	{FieldW: 140, FieldH: 160, Hz: 60, Buf: 1536, TankW: 5, TankH: 5},          // Apple II (HGR colour pixels)
+	{FieldW: 140, FieldH: 160, Hz: 50, Buf: 1536, TankW: 5, TankH: 5},          // the same, PAL
+	{FieldW: 128, FieldH: 168, Hz: 60, Buf: 1536, TankW: 5, TankH: 5},          // CoCo 1/2 (PMODE 4 artifact)
+	{FieldW: 128, FieldH: 168, Hz: 50, Buf: 1536, TankW: 5, TankH: 5},          // the same, PAL
+	{FieldW: 320, FieldH: 176, Hz: 60, Buf: 1536, TankW: 12, TankH: 6},         // CoCo 3 (GIME 320x200)
+	{FieldW: 256, FieldH: 168, Hz: 60, Buf: 1536, TankW: 7, TankH: 5},          // Coleco Adam (TMS9918)
+	{FieldW: 256, FieldH: 168, Hz: 50, Buf: 1536, TankW: 7, TankH: 5},          // the same, PAL
+	{FieldW: 160, FieldH: 168, Hz: 60, Buf: 1024, TankW: 7, TankH: 5},          // Atari 5200 (the Atari's field, 16K)
+	{FieldW: 320, FieldH: 176, Hz: 60, Buf: 4096, TankW: 12, TankH: 6},         // MS-DOS (CGA and VGA)
+	{FieldW: 102, FieldH: 46, Hz: 60, Buf: 1536, TankW: 5, TankH: 3},           // Channel F
+	{FieldW: 160, FieldH: 168, Hz: 60, Buf: 1536, TankW: 7, TankH: 5},          // Atari 7800 (the Atari's field)
+	{FieldW: 64, FieldH: 108, Hz: 60, Buf: 1536, TankW: 3, TankH: 4, Slots: 6}, // Studio II
 }
 
 func field(seed uint64) *sim.Sim {

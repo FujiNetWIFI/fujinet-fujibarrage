@@ -1,0 +1,26 @@
+# live: host, start, shop done; on our turn aim (angle down 6 times, power
+# up 3), snap, fire; the shot; the next turns
+wait 120
+press 5
+wait 600
+press 5
+wait 600
+press 9
+wait 600
+snap field0
+sprites
+peek AIMING 1
+peek AIMA 4
+hold 6 60
+hold 2 30
+wait 20
+snap aimed
+peek AIMA 4
+sprites
+press 5
+wait 400
+snap shot
+wait 600
+snap later
+peek NBAD 1
+short

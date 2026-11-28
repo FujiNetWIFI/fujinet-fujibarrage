@@ -206,6 +206,13 @@ func TestAtari7800GameAgainstBots(t *testing.T) {
 	}
 }
 
+// The Studio II's shape: 64x108, six shell tracks, CAP_HOLD, a 1.5K buffer.
+func TestStudio2GameAgainstBots(t *testing.T) {
+	for mode := 0; mode < 3; mode++ {
+		botGame(t, client.Studio2, mode)
+	}
+}
+
 func TestAtari5200GameAgainstBots(t *testing.T) {
 	for mode := 0; mode < 3; mode++ {
 		botGame(t, client.Atari5200, mode)

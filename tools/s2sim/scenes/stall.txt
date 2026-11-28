@@ -1,0 +1,18 @@
+# live, stallproxy (AT after our fire, 10 s) then tapproxy: our D comes too
+# late, the server skips; the field afterwards against the server's
+wait 120
+press 5
+until SHOWS 1 1200
+press 5
+until SHOWS 2 1800
+press 9
+until AIMING 1 6000
+press 5
+wait 2400
+until AIMING 1 9000
+ssave TOPS 64 fld-1.tops
+ssave SPN 2048 fld-1.spn
+save NTV 1 fld-1.ntv
+snap aim2
+peek NBAD 1
+short

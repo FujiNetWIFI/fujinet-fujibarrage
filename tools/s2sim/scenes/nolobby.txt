@@ -1,0 +1,24 @@
+# no lobby keys: the title, the name wheel (A, B, then done), the room
+# list (the second room picked), the waiting room
+wait 120
+press 5
+wait 30
+snap name0
+press 5
+press 8
+press 5
+wait 20
+snap name1
+press 9
+wait 900
+snap rooms
+text
+press 8
+wait 20
+snap rooms2
+press 5
+wait 900
+snap room
+peek MYNAME 9
+peek SRVTBL 9
+peek MYSEAT 1

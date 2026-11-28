@@ -28,9 +28,9 @@ type Caps struct {
 
 // PlatSlots is how many shell tracks a platform keeps at once, when fewer
 // than maxSlots (the HELLO has no byte for it): the Arcadia's cart RAM is
-// 1K behind a mailbox.
+// 1K behind a mailbox; the Studio II's shells are the cart's sprites 10-15.
 func PlatSlots(plat int) int {
-	if plat == proto.PlatArcadia {
+	if plat == proto.PlatArcadia || plat == proto.PlatStudio2 {
 		return 6
 	}
 	return 0

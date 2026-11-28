@@ -1,0 +1,91 @@
+# live (M4): every screen: the waiting room, the settings (a value changed,
+# a page on), the start, the shop scrolled both ways with a buy and a sell,
+# the field's YOUR TURN!, the items line, a few turns, the round's end and
+# the game's. DEVSET rounds=2.
+wait 120
+snap title
+press 5
+until SHOWS 1 1200
+wait 300
+snap wait0
+press 7
+wait 120
+snap set0
+press 8
+press 8
+press 8
+wait 30
+press 6
+wait 300
+snap set1
+press 3
+wait 120
+snap set2
+press 7
+wait 120
+snap wait1
+press 5
+until SHOWS 2 1800
+wait 300
+snap shop0
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+wait 60
+snap shop1
+press 5
+wait 240
+snap shop2
+press 4
+wait 240
+snap shop3
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+wait 60
+snap shop4
+press 9
+wait 120
+snap shop5
+until AIMING 1 6000
+wait 20
+snap aim0
+press 7
+wait 30
+snap items0
+press 6
+wait 30
+snap items1
+press 7
+wait 30
+hold 4 30
+press 5
+burst shot 8
+until AIMING 1 9000
+snap aim1
+press 5
+until AIMING 1 9000
+press 5
+until SHOWS 4 30000
+wait 120
+snap round
+until SHOWS 2 3000
+wait 300
+snap shop6
+press 9
+until SHOWS 5 60000
+wait 120
+snap over
+peek NBAD 1
+peek SHOWS 1
+short

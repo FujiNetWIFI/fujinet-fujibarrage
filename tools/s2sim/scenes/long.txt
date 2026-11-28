@@ -1,0 +1,142 @@
+# live (M6): 10 tanks, 3 rounds, a kit (the defence window each round);
+# the shop scrolled to its end and back with a buy; our first turn aimed
+# and fired, the rest fired by the server's timer; GAME OVER, the room
+wait 120
+press 5
+until SHOWS 1 1200
+press 5
+until SHOWS 2 1800
+wait 60
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+press 8
+wait 30
+snap shopend
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+press 2
+wait 30
+snap shoptop
+press 8
+press 8
+press 5
+wait 120
+snap shopbuy
+press 9
+until AIMING 1 20000
+snap aim1
+hold 4 20
+press 5
+burst shot 6
+until SHOWS 4 80000
+wait 60
+snap round1
+until SHOWS 2 3000
+wait 60
+press 8
+press 8
+press 8
+press 5
+wait 60
+press 9
+until SHOWS 4 80000
+wait 60
+snap round2
+until SHOWS 2 3000
+press 9
+until SHOWS 5 80000
+wait 60
+snap over
+until SHOWS 1 3000
+wait 120
+snap room
+peek NBAD 1
+short

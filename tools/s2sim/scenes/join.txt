@@ -1,0 +1,11 @@
+# join: the lobby's keys say who and where: the title, then the room
+wait 120
+snap title
+press 5
+wait 600
+snap room
+text
+peek NLINK 1
+peek MYSEAT 1
+peek NBAD 1
+speek ST 24

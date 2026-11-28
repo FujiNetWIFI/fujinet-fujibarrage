@@ -1,0 +1,22 @@
+# live, cutproxy in the link (EXTRA, ROOM): the link cut mid-game; the
+# client says CONNECTION LOST, dials again and has its seat back
+wait 120
+press 5
+until SHOWS 1 1200
+press 5
+until SHOWS 2 1800
+press 9
+until AIMING 1 6000
+press 5
+wait 4200
+snap after
+peek MYSEAT 1
+peek SHOWS 1
+peek NBAD 1
+until AIMING 1 9000
+snap aim2
+press 5
+wait 600
+peek MYSEAT 1
+peek NBAD 1
+short

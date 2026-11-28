@@ -1,0 +1,28 @@
+# live: the picture the cart holds against the model at our turns, after
+# the shots before them (tools/s2sim/rastercheck.py)
+wait 120
+press 5
+until SHOWS 1 1200
+press 5
+until SHOWS 2 1800
+press 9
+until AIMING 1 6000
+wait 60
+rsave p1.raster
+ssave TOPS 64 p1.tops
+ssave SPN 2048 p1.spn
+press 5
+wait 600
+until AIMING 1 9000
+wait 60
+rsave p2.raster
+ssave TOPS 64 p2.tops
+ssave SPN 2048 p2.spn
+press 5
+wait 600
+until AIMING 1 9000
+wait 60
+rsave p3.raster
+ssave TOPS 64 p3.tops
+ssave SPN 2048 p3.spn
+short

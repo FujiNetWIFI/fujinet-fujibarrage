@@ -31,6 +31,7 @@
 #define PLAT_NES           14
 #define PLAT_CHANNELF      15
 #define PLAT_ATARI7800     16
+#define PLAT_STUDIO2       17
 #define SC_HELLO           72
 #define SC_ROOMS           84
 #define SC_ACT             65

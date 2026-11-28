@@ -1,0 +1,25 @@
+# live, CONFIG=1: the cart's CONFIG from power-on: the host slots, the SD,
+# barrage.st2 booted; then our title, the room, the shop and the field
+wait 400
+snap cfg0
+press 5
+wait 240
+snap cfg1
+text
+press 8
+wait 60
+snap cfg2
+text
+press 5
+wait 900
+snap boot
+press 5
+until SHOWS 1 2400
+snap room
+press 5
+until SHOWS 2 1800
+press 9
+until AIMING 1 6000
+snap aim
+peek MYSEAT 1
+peek NBAD 1

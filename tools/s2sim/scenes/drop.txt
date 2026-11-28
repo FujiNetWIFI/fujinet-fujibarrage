@@ -1,0 +1,7 @@
+# live, dropproxy in the link: the first frame lost; the client still gets in
+wait 120
+press 5
+until SHOWS 1 2400
+snap room
+peek MYSEAT 1
+peek NBAD 1

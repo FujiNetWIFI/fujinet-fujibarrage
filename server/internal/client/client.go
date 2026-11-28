@@ -173,6 +173,13 @@ var ChannelF = project.Caps{FieldW: 102, FieldH: 46, Par: 48, Hz: 60, TankW: 5, 
 var Atari7800 = project.Caps{FieldW: 160, FieldH: 168, Par: 109, Hz: 60, TankW: 7, TankH: 5, Buf: 1536,
 	Bands: 0, Flags: proto.CapHold, Plat: proto.PlatAtari7800}
 
+// Studio2 is the RCA Studio II client's shape: the FujiNet cart composes a
+// 64x128 1-bit raster (a dot ~3.3 lines wide: 210/64) from a background and
+// sprites; the field is 64x108 over two short-font HUD rows. The tanks and
+// the shells are the cart's sprites, so six shell tracks at once.
+var Studio2 = project.Caps{FieldW: 64, FieldH: 108, Par: 210, Hz: 60, TankW: 3, TankH: 4, Buf: 1536,
+	Bands: 0, Slots: project.PlatSlots(proto.PlatStudio2), Flags: proto.CapHold, Plat: proto.PlatStudio2}
+
 // Hello sits down in room as name, with these capabilities.
 func (c *Client) Hello(room, name string, caps project.Caps, flags byte) error {
 	c.Caps = caps

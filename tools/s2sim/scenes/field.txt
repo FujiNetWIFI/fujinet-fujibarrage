@@ -1,0 +1,24 @@
+# live, with tools/rigs/tapproxy.py in the link (EXTRA, ROOM): we host,
+# start, leave the shop; the field after the first turns against the
+# server's TERRAIN (tools/s2sim/fieldcheck.py)
+wait 120
+press 5
+wait 600
+press 5
+wait 600
+snap shop
+press 9
+wait 900
+snap field1
+ssave TOPS 64 fld-1.tops
+ssave SPN 2048 fld-1.spn
+save NTV 1 fld-1.ntv
+press 5
+wait 1200
+snap field2
+ssave TOPS 64 fld-2.tops
+ssave SPN 2048 fld-2.spn
+save NTV 1 fld-2.ntv
+peek NBAD 1
+peek SHOWS 1
+short

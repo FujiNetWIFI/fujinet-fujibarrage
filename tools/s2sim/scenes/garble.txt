@@ -1,0 +1,19 @@
+# live, garbleproxy in the link (AT s): one byte flipped mid-game; a bad
+# frame counted, resynced, the game goes on
+wait 120
+press 5
+until SHOWS 1 1200
+press 5
+until SHOWS 2 1800
+press 9
+until AIMING 1 6000
+press 5
+wait 3000
+peek NBAD 1
+until AIMING 1 9000
+snap aim2
+press 5
+wait 900
+peek NBAD 1
+peek SHOWS 1
+short

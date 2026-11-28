@@ -421,6 +421,23 @@ fixture-channelf:
 
 .PHONY: channelf channelf-rig fixture-channelf
 
+# ---- RCA Studio II: the FujiNet cartridge's protocol 2 (an ST2 image) ---------
+# CDP1802 assembly (Macroassembler AS): the cart composes the picture from a
+# background and sprites; the field is 64x108 over two short-font HUD rows.
+studio2:
+	$(if $(SERVER),SERVER=$(SERVER)) bash src/studio2/build.sh
+
+studio2-rig:
+	SERVER=127.0.0.1:9913 TEST=1 OUT=build/studio2-rig/obj R2R=build/studio2-rig bash src/studio2/build.sh
+
+# the test scenes' field and shot (tools/s2sim/refcheck.py swaps in each
+# weapon's): the Studio II's caps as the server projects its HELLO
+fixture-studio2:
+	cd server && go run ./cmd/refview -w 64 -h 108 -par 210 -buf 1536 -tankw 3 -tankh 4 -plat 17 \
+	    -shots 1 -seed 5 -weapon 9 -fixture-asm ../build/studio2-fixture.inc -out ../build/refview-studio2
+
+.PHONY: studio2 studio2-rig fixture-studio2
+
 include mekkogx/toplevel-rules.mk
 
 # ---- Heathkit H89: CP/M 2.2.04 or HDOS 2.0, the H19 terminal ----------------
